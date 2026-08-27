@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.ipynb_checkpoints/
+*.egg-info/
+dist/
+build/
+.env
+# corpora and client material never belong in the repo
+Output Log/
+Investigations/
+*_corpus.json
+.DS_Store
