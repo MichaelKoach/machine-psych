@@ -1,0 +1,343 @@
+"""Drift detector tests.
+
+Everything here runs offline. The tiers make network calls in use, but their
+comparison logic, exit codes and refusal behaviour do not — and those are the
+parts that decide whether the detector is trustworthy.
+
+The tests are organised around the failure modes from the hypothetical sweep
+rather than around the functions, because the failures are what the design is
+for. Several assert that something is NOT reported, which matters as much as the
+positives: a detector that reports everything is a detector nobody reads.
+"""
+
+from __future__ import annotations
+
+import json
+import pathlib
+
+import pytest
+
+from drift import characterise as ch
+from drift import tier1, tier2, tier3
+from drift.printer import compare, print_response, shape_of
+
+FIXTURES = pathlib.Path(__file__).parent / "fixtures"
+
+
+def load(provider: str, name: str) -> dict:
+    return json.loads((FIXTURES / provider / f"{name}.json").read_text())["response"]
+
+
+def copy(body: dict) -> dict:
+    return json.loads(json.dumps(body))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# The noise problem — the failure that kills the system silently
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def test_different_content_same_shape_is_silent():
+    """THE test. If this fails the detector is useless in a fortnight.
+
+    Re-collected responses differ constantly — different search results, different
+    phrasing, different counts — because the subject is stochastic. A differ that
+    reports all of it produces pages of output on every run and gets skimmed, and
+    then a real change scrolls past unread.
+    """
+    one = shape_of([load("anthropic", "grounded_ok")])
+    two = shape_of([load("anthropic", "multiturn_t0")])
+    assert compare(one, two) == []
+
+
+def test_a_count_moving_within_a_category_is_silent():
+    """Three searches becoming four is not drift.
+
+    Comparing the numbers would report it as loudly as three becoming zero, and
+    only the category boundary carries signal.
+    """
+    base = load("anthropic", "grounded_ok")
+
+    def with_searches(n):
+        body = copy(base)
+        body["usage"]["server_tool_use"]["web_search_requests"] = n
+        return body
+
+    assert compare(shape_of([with_searches(5)]), shape_of([with_searches(6)])) == []
+
+
+def test_a_count_crossing_zero_is_reported():
+    """And three becoming zero IS drift — a provider that stopped searching."""
+    base = load("anthropic", "grounded_ok")
+
+    def with_searches(n):
+        body = copy(base)
+        body["usage"]["server_tool_use"]["web_search_requests"] = n
+        return body
+
+    diffs = compare(shape_of([with_searches(5)]), shape_of([with_searches(0)]))
+    assert any("zero" in d for d in diffs)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# The changes that actually happened
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def test_catches_the_openai_tool_usage_removal():
+    """The real regression: `usage.tool_usage` vanished and `n_queries` silently
+    returned None on every record for a full session."""
+    after = load("openai", "grounded_ok")
+    before = copy(after)
+    before["usage"]["tool_usage"] = {"web_search": {"num_requests": 5}}
+    diffs = compare(shape_of([before]), shape_of([after]))
+    assert any("tool_usage" in d and "REMOVED" in d for d in diffs)
+
+
+def test_catches_a_type_change():
+    """A field going int to string keeps its path and breaks every reader."""
+    before = load("openai", "grounded_ok")
+    after = copy(before)
+    after["usage"]["input_tokens"] = "49041"
+    assert compare(shape_of([before]), shape_of([after]))
+
+
+def test_catches_a_new_block_type():
+    """A new unit type is a capability appearing, and the most interesting kind
+    of drift — it is how `code_execution_tool_result` would have announced
+    itself."""
+    before = load("anthropic", "grounded_ok")
+    after = copy(before)
+    after["content"].append({"type": "code_execution_tool_result"})
+    diffs = compare(shape_of([before]), shape_of([after]))
+    assert any("code_execution_tool_result" in d for d in diffs)
+
+
+def test_catches_a_field_becoming_sometimes_absent():
+    """The absent-vs-present distinction, which is how this project's providers
+    signal zero."""
+    body = load("gemini", "grounded_ok")
+    stripped = copy(body)
+    for step in stripped.get("steps", []):
+        for content in step.get("content") or []:
+            for ann in content.get("annotations") or []:
+                ann.pop("start_index", None)
+    assert compare(shape_of([body]), shape_of([stripped]))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# The Printer
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def test_scrubbed_keys_keep_their_presence():
+    """Scrubbing replaces the VALUE, never the key.
+
+    Losing a field and having a field change are different events and must not
+    look alike — if scrubbing deleted the key, a removed field would be invisible.
+    """
+    printed = print_response({"text": "anything at all", "type": "text"})
+    assert set(printed) == {"text", "type"}
+    assert printed["text"] == "<text>"
+    assert printed["type"] == "text", "structural values are never scrubbed"
+
+
+def test_long_unlisted_text_is_scrubbed_by_length():
+    """The scrub list will always be incomplete.
+
+    A 6,000-character answer under a key nobody listed is pure noise, so length
+    is a second net beneath the name-based one.
+    """
+    printed = print_response({"some_new_field": "x" * 500})
+    assert printed["some_new_field"].startswith("<long:")
+
+
+def test_structural_keys_holding_dicts_do_not_break():
+    """`caller` is a scalar on two providers and `{"type": "direct"}` on
+    Anthropic. An earlier version returned structural values raw and crashed the
+    schema builder on the dict."""
+    printed = print_response({"caller": {"type": "direct"}})
+    assert printed == {"caller": {"type": "direct"}}
+
+
+def test_the_shape_has_both_structure_and_values():
+    """Two parts, because seeding GenSON to collect values needs every path named
+    in advance and a seed deep enough for three providers is combinatorial — the
+    first attempt exhausted memory at depth five."""
+    shape = shape_of([load("anthropic", "grounded_ok")])
+    assert "structure" in shape and "values" in shape
+    assert any("type" in path for path in shape["values"])
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Exit codes — incomplete must never read as clean
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def test_tier1_reports_incomplete_without_a_key(capsys):
+    """A run that could not look has found no differences, which must not read as
+    a clean result."""
+    from machine_psych import paths
+    saved = dict(paths._API_KEYS)
+    paths._API_KEYS.clear()
+    try:
+        assert tier1.run(["anthropic"]) == 2
+    finally:
+        paths._API_KEYS.update(saved)
+    assert "INCOMPLETE" in capsys.readouterr().out
+
+
+def test_tier2_reports_incomplete_without_a_key(capsys):
+    from machine_psych import paths
+    saved = dict(paths._API_KEYS)
+    paths._API_KEYS.clear()
+    try:
+        assert tier2.run(["anthropic/claude-sonnet-5"]) == 2
+    finally:
+        paths._API_KEYS.update(saved)
+    out = capsys.readouterr().out
+    assert "INCOMPLETE" in out
+    assert "none were looked for" in out
+
+
+def test_tier3_without_a_baseline_is_incomplete(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(tier3, "BASELINE", tmp_path / "absent.json")
+    assert tier3.check() == 2
+    assert "NO BASELINE" in capsys.readouterr().out
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# The approval gate and the canary
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def test_checking_never_writes_the_baseline(tmp_path, monkeypatch):
+    """A script that overwrites what it compares against destroys the baseline by
+    running, and the next run then compares against the drift."""
+    baseline = tmp_path / "baseline.json"
+    monkeypatch.setattr(tier3, "BASELINE", baseline)
+    tier3.approve()
+    original = baseline.read_text()
+
+    tier3.check()
+    assert baseline.read_text() == original, "check() modified the baseline"
+
+
+def test_approving_is_a_separate_step(tmp_path, monkeypatch, capsys):
+    baseline = tmp_path / "baseline.json"
+    monkeypatch.setattr(tier3, "BASELINE", baseline)
+    assert not baseline.exists()
+    assert tier3.check() == 2
+    tier3.approve()
+    assert baseline.exists()
+    assert tier3.check() == 0
+
+
+def test_the_canary_catches_a_broken_detector(tmp_path, monkeypatch, capsys):
+    """A detector that reports nothing looks exactly like a detector reporting no
+    changes.
+
+    Without the canary those two are indistinguishable, and the failure mode is
+    silent trust in a check that stopped working.
+    """
+    monkeypatch.setattr(tier3, "BASELINE", tmp_path / "baseline.json")
+    tier3.approve()
+    assert tier3.check() == 0
+
+    monkeypatch.setattr(tier3, "compare", lambda a, b: [])
+    assert tier3.check() == 2
+    assert "CANARY DID NOT FIRE" in capsys.readouterr().out
+
+
+def test_tier3_reports_a_real_difference(tmp_path, monkeypatch):
+    import shutil
+    monkeypatch.setattr(tier3, "BASELINE", tmp_path / "baseline.json")
+    tier3.approve()
+
+    changed = tmp_path / "fx"
+    shutil.copytree(FIXTURES, changed)
+    for path in (changed / "openai").glob("grounded*.json"):
+        record = json.loads(path.read_text())
+        record["response"].setdefault("usage", {})["tool_usage"] = {"x": 1}
+        path.write_text(json.dumps(record))
+
+    assert tier3.check(source=changed) == 1
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# characterise
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def test_characterise_refuses_to_guess_the_offset_unit():
+    """Byte and character offsets are IDENTICAL in shape and differ only on
+    non-ASCII text.
+
+    Guessing produces spans that are silently wrong and drift further into the
+    answer — measured wrong on 70 of 107 citations once. Unknown is the honest
+    answer from one response.
+    """
+    for provider in ("openai", "gemini"):
+        read = ch._read_grounded(load(provider, "grounded_ok"))
+        assert read["citation_offsets"] is None
+
+    anthropic = ch._read_grounded(load("anthropic", "grounded_ok"))
+    assert anthropic["citation_offsets"] == "quoted", (
+        "quoted IS decidable from shape — the text is right there")
+
+
+def test_characterise_reports_the_budget_rather_than_concluding():
+    """An earlier version decided `combined_token_budget` from one call and got
+    Gemini wrong — its truncated response has thinking AND text, and it does have
+    a combined budget.
+
+    That was a verdict function computing a conclusion from insufficient
+    evidence, which is the pattern this project has flagged four times.
+    """
+    read = ch._read_budget(load("gemini", "incomplete_no_output"), "gemini")
+    assert read["combined_token_budget"] is None
+    assert "thinking tokens" in read["_budget_observation"]
+
+
+def test_rendered_block_marks_unmeasured_fields():
+    """A defaulted capability produces an arm whose condition is a fiction, which
+    is worse than a blank because it looks like data."""
+    block = ch._render({"model": "openai/gpt-9",
+                        "measured": {"reasoning_off": True, "retrieval_set": None},
+                        "notes": []})
+    assert "reasoning_off=True," in block
+    assert "UNMEASURED" in block
+
+
+def test_answer_extraction_works_on_all_three_providers():
+    for provider in ("anthropic", "openai", "gemini"):
+        text = ch._answer_text(load(provider, "grounded_ok"), provider)
+        assert len(text) > 100, provider
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Probe construction
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@pytest.mark.parametrize("provider,model,parameter,expected_path", [
+    ("anthropic", "claude-sonnet-5", "output_config.effort", ["output_config", "effort"]),
+    ("openai", "gpt-5.6-sol", "reasoning.effort", ["reasoning", "effort"]),
+    ("gemini", "gemini-3.7-flash", "generation_config.thinking_level",
+     ["generation_config", "thinking_level"]),
+])
+def test_probe_bodies_nest_the_parameter_correctly(provider, model, parameter,
+                                                   expected_path):
+    body = tier2._body_with(provider, model, parameter, "BOGUS")
+    node = body
+    for part in expected_path:
+        node = node[part]
+    assert node == "BOGUS"
+
+
+def test_response_side_enums_are_not_probed():
+    """`error.type` and `role` describe what comes BACK. There is nothing to send,
+    and sending something would probe a different parameter."""
+    assert tier2._body_with("openai", "m", "error.type", "x") is None
+    assert tier2._body_with("gemini", "m", "role", "x") is None
+
+
+def test_valid_values_are_recovered_from_a_rejection():
+    """The technique that recovered every enumeration in the table originally."""
+    message = {"error": {"message":
+               "Input should be 'minimal', 'low', 'medium', 'high' or 'xhigh'"}}
+    assert set(tier2._values_in_error(message)) == {
+        "minimal", "low", "medium", "high", "xhigh"}
