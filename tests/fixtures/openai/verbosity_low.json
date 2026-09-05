@@ -1,0 +1,129 @@
+{
+ "_why": "verbosity=low. The only output-length control of the three, measured swinging output 5.7x AND restructuring the answer.",
+ "_collected": "2026-09-05T18:36:15Z",
+ "_request": {
+  "model": "gpt-5.6-sol",
+  "store": false,
+  "max_output_tokens": 8192,
+  "text": {
+   "verbosity": "low"
+  },
+  "input": "What are the top-rated CRM tools for small consulting firms? Compare at least six on price, ratings and features."
+ },
+ "_http_status": 200,
+ "response": {
+  "id": "resp_0a72b6a66b91c280016a9c6106045887d2b1b4f16c7f272fca",
+  "object": "response",
+  "created_at": 1788633350,
+  "status": "completed",
+  "background": false,
+  "billing": {
+   "payer": "developer"
+  },
+  "completed_at": 1788633375,
+  "error": null,
+  "frequency_penalty": 0.0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": 8192,
+  "max_tool_calls": null,
+  "model": "gpt-5.6-sol",
+  "moderation": null,
+  "output": [
+   {
+    "id": "rs_0a72b6a66b91c280016a9c6106775087d29079811516a4d033",
+    "type": "reasoning",
+    "content": [],
+    "encrypted_content": "gAAAAABqnGEfagG4k7_rfAkwmZvV9d8hU4bVClfNyhAYux7rpFzwZ3AD9s-0QCjcqzZxrIRNZ04Zs0OUnS5-yu_LaPGok2CbR8CWcSScV9SWG4375RA5AN-a8oF_-e6hTmQ1yI5WWBlB5rT8k6WaEiFV2jNAOcXLS33-Az_Ul69nZuZjBx2nRQqmtJxkefdtm_ZrQ0cE7MXAdyBsoOPRUejQpzT8MGjyt0oVhcZHjotQKAs6DCRHtD34TkFXg4aWqpz7vAn17ZBaNRhkoJvTly76wtw_jFCEtdQH8XCNHN9Zcoo-0yRSw3lQMxWz0HMb8rw656DPjL4PPEX5JotLgSZnIuavjyiVxFCe-ywIPwvKQS87jBaQJHp5cc2XN0_kcqPJU6q5PXrLHubeuhcgX9MgVTY22qGcL01Z9rIJC0wuO7DXbEAUsdb6LmEi24dkPPF7Bfu71rj15lepfsSFsmm2cY7lkca01wQCIdNF6lj3gaBR6QglMsm1vKeSsrKN0lWs8_XFRu-FJcWjRQf0mVzMknZCmi_viirh4yx6h0xW44Myf66yd72Zmy1o5TTAEJDGJpX521LDMxbQBrKPayCP43OdjS74BdXYt5ToyJ-LRPy9ow8iqsEE5hsmdvd1aQbBuN1p32ewMQabxwEol_E66YMIFtVy88tkcLT-Ep2iKWDr4SkXY6CuU8nE8AHujbdh_zRTEi5_bcDqLlahFXDsUAGVXHoOH9O2Nxe4Eh-BSvEvIIQTk1vgtOn0PD0HuUs2otLb6wg2TZN9cD4KuQpwzAmWwtjTIs8sJs1rweVMP93D1JJYSTDzmVXd3ASgfcuiFKLKkLeRcONsO_JOh1P7DlVNzwJylrP86rOlLz2DRG0aneEfx45UGbQP7vv3p3OCaNjA13O0Yymwh93RgRBZOCO0o0krhVmOkABC9ujtE8NZIeaYi2PsT09iF0JiabUj_99IgaIe05XX9bI6bHC0N50cxfALOeKut2SCbncmoVRtvIWwseKDgmJKtVFSQPD5Apjd2kE0R5o28jiaEqx6LHjKNwW-87Z0XOYyLB2S4pd6T9UnZBHv8xJlq_Ngvtjc-017DYq3Uluy-ER5j20q-yE0clAppThlensJBh1wtR5v5T3g_kEThHYYkXlhf2aOKVlOsW2TjNbLAjzdPFDEATstmuIOMY0KiQkYBsdTVrxRCqsOuuyX5ZlLPDetOo02RdwXkdILcGBdXWBfZw5pTZ1hMBkbcEbe2mk4WCpHeeljWXGDBpbfNhLuxsbohVbwNqKu_ME68MGgf3KyTX5sm8DKrNzVu37NU04GxkhVpfrsG2vTClUgm9-U5cw8EcdkFTTVUJn1CJ3hc0Kl_0NYpDnoWZnsh8YjyPX7h3MvUtuVn0y5pX-r1fKow4zlLw3nSbzlFcLBTlmz_a3wsDpAzIZH2w3QOk1vGDOQ_VUhhOh9ZPF_gTAN0AdgfY-3ueM8VD_6DRv-1JpGWQwU1KpxpPDmiQqGoU6_PjlHLdbIsxvJFd1UDSEf9JKcuJTroZ0u6_-ecyW85ZhVTYWBeAN7haLUjRWlHeCnFAJYWNRzf-fxUXLUKYaQXON9IstRojLpXA2LA2nLrrBEG4Mk11H1GB3YiqFNJPN9OFaqx797PdH4LRuLKTHGrhPFRQ6KidiivOrRIs0kqnDuwB0v2QnvhSbVJ2XuiiCHODxzpOI-MK3xuh0QvqOZ_Dbn06XOQJTqeemTgiPjW3OLgtGsx8Rj08g5RjET1BwM7skCq2M_9Ev9wROFqNTdMOwGKZPHAffcOGf2As0mowEZ2Bif_Jar7phos9aDLJKZTUBUQfMnfI_4VU-CfUfkT3N9RlY_8-tVhbvPLAYAVitseLQ5ovQVqEd8muokVKz2wpuKvuKfrf_be7UlFadO6GuUiLCThl7Gt4ecKbE5VNfYPzZl8niiNV6RryWeIpvOl320wdsrOe6nlbqgxuPzSQsO4g4rSbL92sc5AP8UMmaaRAga9O8TQCUxn_TAw2sPwpk5Ek6Lw3KyzJXyYHBXhRG9YwThXBaQJq6R4UXrOeqtVr0G66uirZeQWWl9y0HDUBnfOCBpthjWHOQZbfmA2C7QH7zwBDDeAkwd671ViGwHPAgNmur-Yvi_abjAa0gdiaQPIWa6w67kv-99HNVHxve_3VGvBsN1wiDUFv_Vc4Cmw2cUzi2khNYYtDeaHFWnu8tcgQOttbT8YsYdb0iO8-9M-gMK265RXPFTD2b1woJfuxrpn586qVPbPjW0HWLlKWSKkTRyhoOkKW8Dl080FFJu6u3qdPUSZy6gowtEmqPNjeWUsOiMXBlYK53_17gQToslaNQY8Hwqh13ZVYvltunckiCDWNJ_FesbqSLZ37ohqVRPHIDeMixvz7bseTivn6hle7-qLHYu3uU7x5TygiGTarxqBzOxCaWwDrbLmGqVuvfYZlvQ32Vg83vdYU9l0YE7EQGKMi1rnOJ7Nw0n3fLZqPNcJxmRWxrvVpQN88hjVZkEI_UZMRUsyCEeguQ9m9-b5b6b066IjNHNMG3KZPysaLj5-vieo-Vwd2fXX8nTx3KxZK3ioStdv8uTkNjcyiEnsJwKwbUERXZhFw0lS431CzCL1Ipg5kCzu9LriUY7BDO1RRISA1hZxxPLZ_cvrDpvh5YyEmH-wyOfw2rid1mmK41uYPbUPE-JFOKQpZRDOe2Nnp_J1656N9ytDcm_R8y0LjnIDe8hx-xn7SodHOfjikxzPMZPHB06Pm6c7sZLJ__-MK7nkt7WKHswjFwI8hXf9QsXEhMJ0c72J7_tDQPW_2TY-Zemox1aeqVUH7E_FsavTwKAVftihUWE37NifnQgLlSceMVYmyN_H1u7GHoV-IZF5SQ5cmmo-gR7_goOQlue5Kr2LDgJKVriz6R07HfXWzGtZP2SBsljVOQ-oHhFv24UZmvuk6Xjy_qjznKtBQemQ7feAO9JGtVw7pbuyNCdnZfxRWkOWfg0oxqIZOWI59W5fjewtOeMD_vi-FVpPDF_CnPwYxYRPsYgsJj_GHzPYmQW-GKYclKGCNzU5CDR5H6jBvcpMJWxXUVT-dfoDqR9uFqqxbBEYlx3d0Gy7SnmCDChEP-xexdexxX47vB_gEH3vLeCSUX4SUcYYOworPfgAg2a487o2Wq3XjDF8Cky489Tu64ehfgRkAII4pz4uW2mucLN3mfF0lHFHx_jOc9A9fxZsW7U1QFBGICrFttNU-6HrS2oZtHjotQ1Acu-1WbKYcp5xf8c6yaknmhkAmeE7jLudsMJ7L5VttD7D0IJOgitQCL6KyiVp10gsuLVVBYFRlHiRxEglWsEUTZ8d4mFOQl_Zz17HSL5uFdDYqAXfNlZHU4giVd8EC2MbaRYybsm6yZNf5icQuGuZJuljwFsORQZ4tt7PwMzSYYKuaeuCTQ28QTIZPoIR4SMDt9JLfZGQ5qXMNGrGvKyQb49pADguDPMqjyMd5NKRVEOb-Je9zUNHT5xBTyX0rI3oZ5e1j0m1ntrhGS-WoWzlO89bOZXUabuCPWyhLisBYMioPmQL51GoMTP74b1btWAGT47SYFIPxYyNn7K6wKioeEPSRxQk0o9aVkkQr9ef9f-6Q-Cp6uDnIIxfjccP_QNwBNzIj-UeEF43eSaAAWTW4_3fSt6uQQr9DqC9oxmnA0QKUYys8cprQbESkyb1FGRYi1nu7mV_uJ30ArHnLkH1yJnzKV4Qp0_JiTkgmBV1_kSA0ZNeY2cOH1VZCFguFbf170ZoCCM8SL4mjTr4-xE",
+    "summary": []
+   },
+   {
+    "id": "rs_0a72b6a66b91c280016a9c610ccad487d285313ba5488d52b3",
+    "type": "reasoning",
+    "content": [],
+    "encrypted_content": "gAAAAABqnGEftnedsYXxQkIRsJ2lmE9tiwNDi0oYTHEhmJW-TdeP3fprGLMIpSHc2fBcClSD1FhK3SDl8ZT38HkRsijD9XFgJ-LYRa6zAcsnwkKYKzmoW8FALBVN5eU4G_Ihv_SL3b3u31-zdNJZLvpHemBwxsaJotTkLRkvz1vdAqR4xpxCZlzW2ARIRUH02xdCtKc6dDGQ3sKHuGik10dLpS9Wc5Uq0ycPMYgqM7lxODYt_KAuHCIkYJ9lHRU8jvg8BQWrC1EX3sl2Fl1bL35OuKRg3r0E6-pprLab4MlyHy7tphieQV5dFoj0iNroDU-lcNC7DLy9Hlw9HWfYUXLhGrNL8Xo1dxOfq9I5uzQb4EAmUnnzDGWwNwoeJUIidMOBZLF2Tf3cCA27oiFVTIwyE61VVwztXYMTp5WElHQFPPH1QkUsQbQyoaskDRuubo3f0PSlqR0Z4Rjo2ioDNbNZfdX72R6GTfyryCbxMMKDrXDHz1gKQd3_aUqXBS-JbqI9RlEuH-QxApv6nT0gY_t7Sqtcv4O0Q4Re1Zp3fZk79iBx8wakDsASNueSQdHHIS39DTf3D0pyrtPprmVxQqsJcS0yhUedcXlLFqNsN1-2Z7As4ztahtjKVSKPSaDqra25PGBc_8BPCxdVF806HcmrFdO2AH4_lVW4GOBxnLA4IPUdhus9tuQTKlMbrS_oASTwv_W9pg-NtK-vLcF5c31JFg3ulurh55m7Ut8FGW1e_HS0NlwkVuOaw_OHt-pO8kYGH1Fdps92Z1JKJZ07yXRfmgeG8SU9Sbmowf8of1WSeRiqU0FX-ixcS9IAiITgXYY4JXXYsSeTp9igOFSUVaUoOQqUCVMi0lZU6RRKrFOWziFXRy1jCqX1IaK6u7FROn--YAH4M_coyF4wxYHfb3ZnxQqzsg5ELH0bQxr5ofDjzLC3kE0fqbzKzPtmmbDEmaXFhOixj2aFMOSrBCvV2JfiedHh8Jv7aBWJqkfcZxIwmyljbGFgdXzi2WEdQTgabmUhwbedwMNwWNMvrRsp18n73YtZ5hnzRuR8o4MEsGlocVjOOiV2bgGM1Qb8_MrxGHhLLLpiG-wQsgQBdxZygCCph5D6s3H_VD3syZjRoTILlplglu8D3Zq27EIqjqpwm86HIblOsD5ANb2nidjogloWRB4dcpszxIc_nldJuW59IdDIOtywTsvIwK66NLpunpplcVTqCe1qU7Z2U62NkHl9BoZhiaiDP2w18Vx7PZ5Tj4HWoq4v7BDNeg2eeAYL7wMkrP-_6CVDXMELPuYqOBqMNeGaUUSv2kjWgNZR0VHHNZ6-QJtTeTgqKGHP91lnwpzLY0W3PbFQRxOSqLU5KnkcASi-D9BfkfbQAD2WIR4e4YLcAE3j5QPYtbXPw80rLPijAh4Mu0p1Pq99Em9tVNb6mHISx7T0YFhcyfKstZc-p0foZ5enITR5ARw0LWDf1s1uzJldwSeIB57FbKH-SSOYacVIdJbJaC2D0LZgv_EpA9D7PxV7FIyUetg7sP1Dop-sYrq5HFoIWjqyI_pH-Z1Etce0KrQGuZRvJ7hoULoD5yEwLq1qtmVm6hKdPdoIiMWB10CdIW82BAwrl7Tuzy2hAHI3D5fnMzz8UfwJYs7dUHUIeLhMKwDem-9e3xjF5lOMkjq25s3jzhl1J41C4_wBWuFkpC7r0Ut-0llX64FCXnUe-EzR_TShdqFAmRWMJxFjg1iXC1vWCBqmzhRkNXIW5PGSs4-MddMjmUWE7f7FN4kbft1IBVVKmusROnLmX6oCamY468nNa-kMgB7xZVcFyLQgT-qpk6rZuT3ZFIqvpj73N0uelnY8-KH_Se4_DEKGIzRjAtdWdNEhj2LF60iiyPUXlpYNc_ujyg-KSR9vfJXYdnEw0QdV5VKmZFWNlgAcP2QEuleUz9a6QrtApPVTIg5uSndUMcNeHnZj1gISpYl-2SHSEfwizP_a5d8TcFWs4iCdeN1q3uFYqDA9hvrFkYiCCK8wrjLUVhO2SdttcAq3QX3FYZpumySbt2Ozf3-wv3W935BQ7WRZjnE_-hoLY38pjF1es5QYfbloHdDLAKhfmGxc63GJz16OPYT61Tbpj7VyJj_Rw4IuyGGoi9imSbhMAH5QXRmnO92dvxMNROSrPWgFcm5Z3EGw2L-7UGf-tQRw2J_zPBE8nBz829Hcg66SsCNHFO9TQS2SdpiDc7orlujO77P5sS56FCG_5gVJkNXQGpq012e3dVyz2-BrQSqVvJPiXFZmrVUCGxkP5L9Vw1YBni6w0RjhXp-8Ys6XuWDh4ab0L2Pcj-Tn0BaPNuhQneNTme3qHKl49REUY9YL37Lr0ek0wQjIzhF4uRqSfAGElp9x4yEOJwaPUVYaFGm31IHGHq_w_WHCYLD2ClieyllBWdZd36fcDc1JWFfOYdJUf0CNr4R773fQj8zPBldQYnHib8Rx2Kgjxk7QgDdTYKb6vD36LmL-RA65PAFlL71f6pkzjXaZMmUMgHq3WMyAkg8ZPuAqYOgd9cC9jhUZLidlDAvwNRxurUsqbvuXAnOrlpr8Jyc2selULlHV3Zy5c0jLsNgrkhQOD6EU-bMFaV-h_SHwDC76524l5UK8V0s3AKQvWsdfksxC3Gk07bt2kQEf72Qc5PMKb_PiIoAby6leMMriwKHzhrp4q95M6EEtq1rIHMxDlmpWKFahIq9fshoTtRO7coDnF4FX86vMrH68DjdZ6lr_VC2mRP7eC68P1sJwTjrkyRTzXyvV6aJYaPrNnZU0wBsdi95FOuLo-ivBdCKJS_rmvswmxrGoXO854rScQlejQ9MkZibUINzEbXgfg9j5V9ZFmGNHVStc-4DvKXvenxnbWirXiufyPkjMi0W8VOrfB94dooYFU_XVq4r_t7axtS1uE4DhjHJwFk0BAf0YrhjQoZ-gapGDGxB-unTb2WAIBtypsy9Cfp9OtPvwFTks9Y61jKOSwhjfkJmtBd6DNnTIRUnH-BASX2JYbJ3XfhwFPzC5AxyA1M5CRkNjYNs_eOIOwgut0VjlSIZmnDXlpQtJNjf1HFOdr0P13hu6vkVGxTOloTCfSIOsyX8NTizzJtdcCER2x4TOhMu_GseLt8kLes0bHuK8c7OvR2Kafwmk30dtVcg1AryLgOO2CCruUWNRd1QMi8QU7n_CEmroN7by_VwJ2S9yAH7ES-Q5ZMP8SoWD0UBqz01kd0B6VaxSogkvTFjAGVqDofGUyaYtMkMzWIoOff5ul6skGZNBRN3LNNai6PV72CK1gChh6_nDb6EjDqu2hVmT8ywtuL3xfOiRjlVz05sQB6Gc1ySSiEfDNK7PtybRl6mYjYehEGFrR_6FHa6ykYaosqBomntDK9f0CoI7r-FIgIu79ZBN_Wa0fA8hlQ0QLFGd_Wz6ZKBXHPDZK0pi-Zm9TyClr49YKe3Ml2Leyd0ezEE9RLaKuIk8jo0qiz2uLi_JlBxkJPQrEiLdHC2ckTjYFNifJwPjCEDgltWnXIW0ma-5mQ-KXXgtEdHRm2pQgSV6h27n1fvGHkQEbxJA0T5pIaBBO3b0NCNGKSLsLw2bnZMuuhJplAci1-hIZ8fczHWJpmlDH8hqzVPxhpHXJ_IxnR2YbeQ5aBD1damUZoiUzabBhqm4WNHxvtgLhz48JTUUfvv0bePF601DW22VKsuW3hm6--_SAAuw-4s7yX5DNxJsOXiy6pNuF3lhDR7yUzrssfun1Rqc5NJ8stSZXxdHaH5M5GvTyGNJjelm5p8jMo9nIhEI9gibVr4uGbokBPcLrQklOgfle7y3uVe5g_bmj9yDTC-npoU92pOCfxpaRVAZjDuXLNUEjRORJF9CXwKvEiQl-demM3gq0sDetzgrwp4lBESSvfn7nsL-h9JWdxGrDYF7_CF76Np2xf-wJMyEhJ3hB3oxRS0E9Qt6QDVbYNtOoV8B8KOP6L-3197iwwbMAKtOf2QiWERHfaEab1J-nArb4dsleFY2VC-VLlbKo33g23ezh9sgomOZ3g_H5bZZV-7A",
+    "summary": []
+   },
+   {
+    "id": "rs_0a72b6a66b91c280016a9c6112a92887d29909be0b2b46c1ec",
+    "type": "reasoning",
+    "content": [],
+    "encrypted_content": "gAAAAABqnGEfipHf8rkHcvx6iTI-eVA44hischIET2D7iL18b8DRruDOfBSS9OENtoDpH846iOqIZOcI6Zw6drxiFkKlZTkt9dkcw-1hSSO3SOtaxFjWazbjDByhyJCXbtgKlCYGKYuRVcUsIC5O5t9g21M8cSNOr-QzT6qGS7S7d4rpy1o9dhICexdGKV7tsgy6ZTPss3GI-5Hh4Ug2rpHOYddmV1C03NU-TY1l3nd55a7snenSlXvbieZI8V8mFCAXdb443gpDU-VomXrF7avvGuzX6lcuUnr4d1y8nJGw3FBP85wRz34kTrEjbq90lCIPVBMrEM8e_WRHIpgQ7GmXyMplRJORcZtq3UqFKcpxrZZgEISz_SdM-nVOZBFNjPe0iAA71AhxYooVko2ZmMqgaIm3xYMl8HG-MgqYUtjmOiF2OFHGjhTv80_t2uusR3si1B99GTADA1iQukTzhxOCpLV1dG-G5kT0czDx8VzUwYE5vhOn0o7k5VF3g3EArD6OpHePlLvH2ZLarEeFQobreFzlGlbFBzvTuIIleNjl02K-_7erSTJWEF-mZzM3npmgbXkCi2gFpqgaJYReAYgGdbwA__Gs0EMRElDwRzKR4PybIeLhqGWoeb75anQ2by8_1sXZu1lGL-FfZYsd1QjiE7iczwPK3AMXcUmf3U8RPI75F2ej9VnEJQw4fulbKnbsqQ7IzL6ubYlG3wDLttE_pWTR_CGo9ODPv8cH27BLPvzWf4Jg3Pz71JyUIsjWWp_nhjA7ZRVR933TCeMan5jt-mBWkNjPgbP2MbTFXseAMNVBCBT64TXqYspSqvf0FDWx8PIJo-GognkQLj9mD9gtCBH1kR0HEUYM9Px9dA3--E9oiLApdhZNmdF8RT8mpnk8KReNmQETZjfjWkP-G6mde0XF9v7k6_rX8-rAwmU1oDP_VCiU28z-ZNfNXlJdqCnmlZQYQdHu80qFXGZtnJ8Geu2QDYkSBkMYohQrT06Bg6itmo3_bLDip9HlLC0zn0Kog0Z033H4aIyDD4MXrscfXrQWj6qUN5bo2gEHKzIVq4rpwzFgrNfxSqUYHD6ZQvjJ-LYT4PvUmAgSEIAHoIqX81MYAy1v00ckrsHksxlqcA_0hhiPoMNssowetyQ5ydoDHDhJZuAjrIsqRGZqV1-RTch2bLhcvAL6TRj3Sjef71RHfoWCGrIT9_zlorfRuKJOt23A4xtllh1a8uj0tYYUWmkbbkHIfG-pw5M7kqsKgubbp65D6QSpQoNAuhgFJrjxCcGBLpR1GXcqpxpjVesvb0uuLjcCWp7g2mJl8Jl46xBaorEgWVHjnGyyQWGKxluHRuv3_QL2y5iZ8bxbXfGoop1gYWO0lqYYWVVvZXqjLOw_OO7HH5DjJ7AMzCBjPSaAyI1GQM9WGr0KtVcxi7dxobqIBvMV4k5QsUMThHEqjF8g6hpE2dm-hRUOlDYcevqi-eAjcbe9E8BNRMIkwsgRldbZwXX4b0rklq40OLN8_YRIaK-Y7fLLicGJuvieRMe7e7m930Lo0ubf6bmDNsvwj1lzrDc9RCc1vUAkpnHE1suaOkTao2jMquX2qr55t3sS1vkkH88dA3EYrwp8JF_i2zHd82H787NyP8FmWn-mhgnsIHC-3n1HP8cOD169LVmweaAQpGeXp3jCmc86N1yLpiULgwdPe6VGuIQWwUWZUckrIVmobZal59KzlCSmqsejlck-04-Za6NZcBvORZvjHlNTT0OZdpEL7hDXaI7BFm8IhT-r7d9VIzJfKgRVLY2ISAaI39cEb38NXNe2gGa2HrFA-rlZIypccwHC3otRGXnbXbQDAPtaW3cOBTwPMESZ1q7kdAOG_qMcfuF5Xj9JdBRy6KO0hjRowtcK_Fn63u9P25hZfVsXrnIfj4_d_hvjMtvHQ3hT8ou-LUFFgUcCuYTNfm_TeTI8l0xfe80rOKbo0D8NVerXlTykGIWQ-MDqfYsK1bpERorBbgf0s8LBMR3mpMZ32xK9xXER3KIImQOZGB5AqrN2FGHFh5v82HgV6wNZDP3f0oxKcKeNJqaV1fDiqnWndv7Nr8Z1pQj2LL9YW9LNFBper0samRr-BmsBksBQoOcZwcEYnG2Tg4xreFcGIwNARjkrZVQtFN2sShSV4qNuBED-Irf6Utfh0GjGFjGfPBoG5Bq72eYdnwtram7DOgTSnTXby4Zu1gLRpAmkfiqB-EGJVHbZNv5gUQhrZTSX2uDOPNAJGHIwwic__nY_5tALCVDev8bdyTiJHI9SIWnZUeYCLiBSk-YCt4dJgXKgmetRXySApXmTybOdmCLmz7ZtJfugcbKTcfJjjrnDYieqyaTBweNVp21TmWNtVzdOhqQeFUP5aimqR-pThojQky0AdmOKenTCPXEUdh4QVItydHfkcMNAUkip8wIPyB_r8bmh_l2bYQD2ba68iP3ybW-BIInn_gKKCGMqylNMi8p5R5qBiAaIUBBCYlcn9kralTxUlxpXYJkab_UpwS7wqAFsJKjoyFCt714xGlw5klGv5BBK0IF8uKMTVtcZj0p9TkVDNRYYrTOR64eKT6SarcnYW6PBxkd_Ex9NMbNZzyJyNgB2as_dAi13CqyeKwN3RCf8ShnjKVba2XkjNS8ElsuSBPALZcAS22HeZhWJWqqV33gPfFMR0Asjz4vC0sJ_lRahhF-R1fsIxklId35AQa9pUGWDbjrHoi8_qfYpRSOfRvy69PpxT30XC_eVYPJOb6Xlh4D-lLqwksKvLRUybgqRBamOrOz1XLs_7CPr23JymSp4QdRf4VHzQWXL9_1XqEJy5MaNi-aiOSqo4fRXmsme6J6JEOVEaf3CNuuxenvy884Q7n_KGsof3k1Js__huH02BXiEL9JGONQTFVyJgp98IgEGx3BGrqRcjV7Sg3VlbypqVTfuAnyk6YDpoCyPaEf1wVtcwqoY2399PUeaWy0snvpdGHZ59Mxxy97VmYM0tdIM9TjBcODntTYLDtjMSLDDxHMkKbx14lXxTng6mjQj6FdGBYwvIx3XpOWwlj8NI2GF9nRDQktEJToJ2m9V0yBzgF3UpZV62TdBTNLJORNeDKyeHuZtveW7nNJFc83X8tgrvhHwGhSUqXFGcqNKtfdTGXx1b6CIEJ76-sOR_V9mGs_kEfvcNVaRzGQfLfI1ZJp0Aw_jW9VVdXjs3Y4NsNVo9sDDuf1kxtXpQjE22XQCCmwL2w2ZYcYyVV1YPlUCouD1QGdsw3h65W8-gxdeY-WsCB8WTuqr4zKDxwaklnVmRtzEh0UszCtiCQA1fwKUY4OYBGOAkODVXOfVYvi0I1WB8fCmvz7sGvgTvfIL-lvBFf4xmwgFFtqM-Dnt4pxGckgUJgh84FCsDn_jD8KPzrKzBSMs4icJUZqLKkbyO68RwCQk8OhL0d1-c4vcVhSgGfVksuI_H8Mle2AH1wucD7XSmB-OkdTAWgGE5ykY0k3Q1kcgc_Bui9bIE_yjlpnZ3HA=",
+    "summary": []
+   },
+   {
+    "id": "msg_0a72b6a66b91c280016a9c6118101087d29d686837fc569eb2",
+    "type": "message",
+    "status": "completed",
+    "content": [
+     {
+      "type": "output_text",
+      "annotations": [],
+      "logprobs": [],
+      "text": "Below is a practical shortlist for small consulting firms. Prices are approximate US list prices with annual billing; G2 ratings are rounded and change over time.\n\n| CRM | G2 rating* | Starting price | Consulting-relevant features | Main drawback |\n|---|---:|---:|---|---|\n| **Capsule CRM** | **4.7/5** | Free plan; paid from **~$18/user/mo** | Simple contact and opportunity management, project boards, task \u201ctracks,\u201d Gmail/Microsoft 365 and accounting integrations | Less sophisticated reporting and automation |\n| **monday CRM** | **4.6/5** | **~$12/user/mo**, usually 3-seat minimum | Highly customizable pipelines, automations, dashboards, email tracking and easy project-delivery handoff | Costs rise with automation needs; setup can take time |\n| **Freshsales** | **4.5/5** | Free plan; paid from **~$9/user/mo** | Built-in email and phone, lead scoring, sequences, workflows and multiple pipelines | Advanced AI and reporting require higher tiers |\n| **Copper** | **4.5/5** | From **~$9\u2013$12/user/mo** | Excellent Google Workspace integration, relationship tracking, pipelines, email sync and task management | Best value mainly for Google-centric firms |\n| **HubSpot Sales Hub** | **4.4/5** | Strong free plan; Starter from **~$15/user/mo** | CRM, meeting scheduler, email templates/tracking, quotes, marketing and service tools | Professional tiers become expensive quickly |\n| **Pipedrive** | **4.3/5** | From **~$14/user/mo** | Excellent visual pipeline, activity reminders, email sync, workflow automation, forecasting and proposal integrations | Limited project management; some core tools require higher plans/add-ons |\n| **Insightly CRM** | **4.2/5** | From **~$29/user/mo** | Relationship mapping, pipeline-to-project conversion, milestones, workflow automation and Gmail/Microsoft integration | Higher entry price and less intuitive interface |\n| **Zoho CRM** | **4.1/5** | Free for 3 users; paid from **~$14/user/mo** | Deep customization, workflow rules, Blueprint processes, analytics and broad Zoho finance/project integration | Configuration and interface can feel complex |\n\n### Best choices by consulting-firm need\n\n- **Best overall simplicity:** Capsule  \n- **Best customizable CRM/project workflow:** monday CRM  \n- **Best value with automation:** Freshsales or Zoho CRM  \n- **Best for Google Workspace:** Copper  \n- **Best free CRM and future marketing expansion:** HubSpot  \n- **Best sales-pipeline experience:** Pipedrive  \n- **Best CRM-to-client-project handoff:** Insightly  \n\nFor most firms under ten people, I would shortlist **Capsule, Pipedrive and Freshsales**. Choose **HubSpot** if marketing is central, or **monday CRM** if client delivery workflows matter as much as sales.\n\n\\*Ratings are approximate G2 scores; pricing, packaging and ratings should be verified before purchase."
+     }
+    ],
+    "phase": "final_answer",
+    "role": "assistant"
+   }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0.0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": "24h",
+  "reasoning": {
+   "context": "all_turns",
+   "effort": "medium",
+   "mode": "standard",
+   "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": false,
+  "temperature": 1.0,
+  "text": {
+   "format": {
+    "type": "text"
+   },
+   "verbosity": "low"
+  },
+  "tool_choice": "auto",
+  "tool_usage": {
+   "image_gen": {
+    "input_tokens": 0,
+    "input_tokens_details": {
+     "image_tokens": 0,
+     "text_tokens": 0
+    },
+    "output_tokens": 0,
+    "output_tokens_details": {
+     "image_tokens": 0,
+     "text_tokens": 0
+    },
+    "total_tokens": 0
+   },
+   "web_search": {
+    "num_requests": 0
+   }
+  },
+  "tools": [],
+  "top_logprobs": 0,
+  "top_p": 0.98,
+  "truncation": "disabled",
+  "usage": {
+   "input_tokens": 29,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cached_tokens": 0
+   },
+   "output_tokens": 2205,
+   "output_tokens_details": {
+    "reasoning_tokens": 1552
+   },
+   "total_tokens": 2234
+  },
+  "user": null,
+  "metadata": {}
+ }
+}

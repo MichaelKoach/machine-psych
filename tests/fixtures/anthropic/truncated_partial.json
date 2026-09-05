@@ -1,0 +1,45 @@
+{
+ "_why": "TRUNCATED state: max_tokens WITH real partial text (~944 chars measured). A fixture truncating to nothing passes under both the right predicate and the wrong one that calls this incomplete, so it must carry text.",
+ "_collected": "2026-09-05T18:31:10Z",
+ "_request": {
+  "model": "claude-sonnet-5",
+  "max_tokens": 400,
+  "messages": [
+   {
+    "role": "user",
+    "content": "What are the top-rated CRM tools for small consulting firms? Compare at least six on price, ratings and features."
+   }
+  ]
+ },
+ "_http_status": 200,
+ "response": {
+  "model": "claude-sonnet-5",
+  "id": "msg_011CekmaZmLRePqoRSVrd74w",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+   {
+    "type": "text",
+    "text": "# Top CRM Tools for Small Consulting Firms\n\nHere's a comparison of six well-regarded CRM platforms suited to consulting practices, based on commonly reported features and pricing tiers (verify current pricing directly with vendors, as it changes frequently).\n\n## Comparison Table\n\n| CRM | Starting Price/User/Mo | Typical Rating (G2/Capterra) | Best For |\n|---|---|---|---|\n| **HubSpot CRM** | Free tier; paid from ~$20 | 4.4\u20134.5/5 | Solo consultants, marketing-heavy firms |\n| **Pipedrive** | ~$14\u201324 | 4.2\u20134.5/5 | Sales-pipeline-focused consultants |\n| **Zoho CRM** | ~$14\u201340 | 4.0\u20134.3/5 | Budget-conscious, need customization |\n| **Salesforce Essentials/Starter** | ~$25\u201380 | 4.2\u20134.4/5 | Scaling firms, complex client needs |\n| **Insightly** | ~$29\u201349 | 4.0\u20134.2/5 | Project-based consulting, PM integration |\n| **Copper** | ~$29\u201349 | 4."
+   }
+  ],
+  "stop_reason": "max_tokens",
+  "stop_sequence": null,
+  "stop_details": null,
+  "usage": {
+   "input_tokens": 41,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 400,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global"
+  }
+ }
+}

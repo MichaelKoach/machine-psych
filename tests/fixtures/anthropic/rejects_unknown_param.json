@@ -1,0 +1,24 @@
+{
+ "_why": "Unknown parameter named in the error \u2014 the API validation this design deliberately does not duplicate.",
+ "_collected": "2026-09-05T18:32:38Z",
+ "_request": {
+  "model": "claude-sonnet-5",
+  "max_tokens": 1024,
+  "nonsense_parameter": 1,
+  "messages": [
+   {
+    "role": "user",
+    "content": "hi"
+   }
+  ]
+ },
+ "_http_status": 400,
+ "response": {
+  "type": "error",
+  "error": {
+   "type": "invalid_request_error",
+   "message": "nonsense_parameter: Extra inputs are not permitted"
+  },
+  "request_id": "req_011CekmhLSbPCTL2yzoPqVWM"
+ }
+}

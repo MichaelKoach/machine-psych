@@ -1,0 +1,11 @@
+{
+ "_why": "genuine 503",
+ "_http_status": 503,
+ "_request": {},
+ "response": {
+  "error": {
+   "code": 503,
+   "message": "UNAVAILABLE: This model is currently experiencing high demand"
+  }
+ }
+}

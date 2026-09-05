@@ -1,0 +1,99 @@
+{
+ "_why": "THE SWEEP at 16. Every incomplete arm has zero message items \u2014 this provider has NO truncated state, unlike one that streams text into blocks. Found only by varying the budget; a single small test cannot produce partial text by construction.",
+ "_collected": "2026-09-05T18:33:30Z",
+ "_request": {
+  "model": "gpt-5.6-sol",
+  "store": false,
+  "max_output_tokens": 16,
+  "input": "What are the top-rated CRM tools for small consulting firms? Compare at least six on price, ratings and features."
+ },
+ "_http_status": 200,
+ "response": {
+  "id": "resp_0ca5db0d0e6dc76f016a9c6079d24087d29cd95b4f4aa39649",
+  "object": "response",
+  "created_at": 1788633209,
+  "status": "incomplete",
+  "background": false,
+  "billing": {
+   "payer": "developer"
+  },
+  "completed_at": null,
+  "error": null,
+  "frequency_penalty": 0.0,
+  "incomplete_details": {
+   "reason": "max_output_tokens"
+  },
+  "instructions": null,
+  "max_output_tokens": 16,
+  "max_tool_calls": null,
+  "model": "gpt-5.6-sol",
+  "moderation": null,
+  "output": [
+   {
+    "id": "rs_0ca5db0d0e6dc76f016a9c607a64d887d2b327fa53fca5f290",
+    "type": "reasoning",
+    "content": [],
+    "encrypted_content": "gAAAAABqnGB62Z1iJmLtdbYV_rJB140cPB7eO_jn2uZwfn_myrxxPHsKf0tuEjJdEu9tD9Jkk3roXo7XBLT12vkzIoOgaOJrK5CclDsQrR4LHcy2gnJ3VIc191kakpCxd87wUHl2na8_HNLBdOeSyk4FZd7QhBLASHw263SDI7ISeJO5vqeK3Ktu4KHx2JceYU1SMMShxjDGttC9Qi80L0iZw-ihdDO_2gKwXWOlKC5e6_Mv9BMb3f0InYFteR8qMSxgLoa05fxpDotAE_wYAcUIFgzLxoX3dFpbAa6hunmduQBYG13c2S35REtASbYt_foaQV5pe42xv9YqOOzEpoaifTsHrnCw15yIunAyYNWqaZP4o1I1dZTvbloTfXIt5YIbCGqALL1JlfBDE2qrqv7zFXNaAiJNMdLdg5KJkl7JOFsruaGwPL-d-yNb1zjrov1A6pGo7JhLDjI5DpUzJ7CdLj-a6ibcUYaMYAXe7iJUdG9tgJhbk2NN4NTrFn_nA5dKoLndJXsepL8IRZR2D_s4vvvauktcqD_Ne00AgH2kcDZKcGMPHPvXUdla6Gi1ozFcbD7aiwM7TE8FcaCOQO5LiE6HRwVO56qNMrJF4N7HUsscyjf9-f2R2ibfpm-dlX92SZyN3QoLrmPlJoLsMkpHAggRIUc8H3uoeb5Qkhrpsr2EoLaD3QBvpyWtCEz2P2L5MuPlyutmoBZpnfJFcm53NhdeZQNVsaxyQeb28UazgOJBVK_cbQthz9R1YsWps-hOQDnVNsmkzgBGVMW9Sm9RKtH-pnoi_nBgpvcusxa0oqZx1kKVu5lWFMny1qmb8Qa_Ok8vJ4vzRTsRTPCA7GTF4b2MRhKuMnktyog5sjlaI4-WhfAlrndt1Y3YoIfr8qP3-SXq7Ot7RZIWlGdlUHExMzSErTInXSlyydsVWoWg48CKyTC95LvlN2Yaeo-YLAahK4TufNbHrAgpCQ6fJB29UGunIIfMl0k8Nmb8ok8ID5ZW8M8jyh8ZV2ogM1bNJfy6Ef7MCUD7LEqdgYkm4oHN6BtSk1My94hwKuMK_e1Tx842HeKwW1XyQwKxmRfBRtpF0a0PW9EXFjEygRHou_TrNkYtHQt8CbT5iRdGm4nnzQ0TVGEYt5dNwDAFCJGkm4NFc5gYGUekJOVxrs8TdEr1DEo8Xr3106-ErSt2-kAa9qosBWT9ZVWpK30v5a12Db-yx1z948yrtzeiHx6YifrrXSi8vn7UALodXo06aAC7gZk_CqP-8Q5CouMK5M4UYj-PemMmVILw",
+    "summary": []
+   }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0.0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": "24h",
+  "reasoning": {
+   "context": "all_turns",
+   "effort": "medium",
+   "mode": "standard",
+   "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": false,
+  "temperature": 1.0,
+  "text": {
+   "format": {
+    "type": "text"
+   },
+   "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tool_usage": {
+   "image_gen": {
+    "input_tokens": 0,
+    "input_tokens_details": {
+     "image_tokens": 0,
+     "text_tokens": 0
+    },
+    "output_tokens": 0,
+    "output_tokens_details": {
+     "image_tokens": 0,
+     "text_tokens": 0
+    },
+    "total_tokens": 0
+   },
+   "web_search": {
+    "num_requests": 0
+   }
+  },
+  "tools": [],
+  "top_logprobs": 0,
+  "top_p": 0.98,
+  "truncation": "disabled",
+  "usage": {
+   "input_tokens": 29,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cached_tokens": 0
+   },
+   "output_tokens": 16,
+   "output_tokens_details": {
+    "reasoning_tokens": 16
+   },
+   "total_tokens": 45
+  },
+  "user": null,
+  "metadata": {}
+ }
+}

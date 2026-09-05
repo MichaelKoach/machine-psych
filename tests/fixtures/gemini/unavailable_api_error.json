@@ -1,0 +1,11 @@
+{
+ "_why": "CAPACITY FAILURE AS `api_error`, NOT 503. Keying on the code alone means retry never fires on the failures it exists for \u2014 measured ~1 in 6.",
+ "_http_status": 500,
+ "_request": {},
+ "response": {
+  "error": {
+   "code": "api_error",
+   "message": "gemini-3.7-flash is currently experiencing high demand, spikes in demand are usually temporary. Please try again later."
+  }
+ }
+}

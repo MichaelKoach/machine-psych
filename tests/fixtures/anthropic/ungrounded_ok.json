@@ -1,0 +1,45 @@
+{
+ "_why": "Baseline: one text block, end_turn, no tools.",
+ "_collected": "2026-09-05T18:30:32Z",
+ "_request": {
+  "model": "claude-sonnet-5",
+  "max_tokens": 2048,
+  "messages": [
+   {
+    "role": "user",
+    "content": "Name one CRM tool for consultants."
+   }
+  ]
+ },
+ "_http_status": 200,
+ "response": {
+  "model": "claude-sonnet-5",
+  "id": "msg_011CekmXoAfCTYZEoA1mBBJh",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+   {
+    "type": "text",
+    "text": "# HubSpot CRM\n\nOne popular CRM tool for consultants is **HubSpot CRM**.\n\n**Why it works well for consultants:**\n- Free tier available with robust core features\n- Easy contact and pipeline management\n- Email tracking and templates for client communication\n- Task and meeting scheduling\n- Integrates with many other tools (calendars, email, proposal software)\n- Scales well if you need to add marketing/sales features later\n\n**Other options worth considering:**\n- **Pipedrive** \u2013 simple, visual pipeline focused\n- **Salesforce** \u2013 more robust, better for larger consulting firms\n- **Zoho CRM** \u2013 affordable with strong customization\n- **Copper** \u2013 integrates tightly with Google Workspace\n\nWould you like a comparison based on your specific needs (solo consultant vs. firm, budget, integrations)?"
+   }
+  ],
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "stop_details": null,
+  "usage": {
+   "input_tokens": 19,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 275,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global"
+  }
+ }
+}

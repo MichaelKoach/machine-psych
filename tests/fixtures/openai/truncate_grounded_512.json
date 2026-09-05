@@ -1,0 +1,171 @@
+{
+ "_why": "Truncation with search on: items present, none is a message.",
+ "_collected": "2026-09-05T18:34:38Z",
+ "_request": {
+  "model": "gpt-5.6-sol",
+  "store": false,
+  "max_output_tokens": 512,
+  "tools": [
+   {
+    "type": "web_search"
+   }
+  ],
+  "input": "What are the top-rated CRM tools for small consulting firms? Compare at least six on price, ratings and features."
+ },
+ "_http_status": 200,
+ "response": {
+  "id": "resp_0a3df618a156e13a016a9c60b4886c87d2998d363e2f1d5493",
+  "object": "response",
+  "created_at": 1788633268,
+  "status": "completed",
+  "background": false,
+  "billing": {
+   "payer": "developer"
+  },
+  "completed_at": 1788633278,
+  "error": null,
+  "frequency_penalty": 0.0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": 512,
+  "max_tool_calls": null,
+  "model": "gpt-5.6-sol",
+  "moderation": null,
+  "output": [
+   {
+    "id": "rs_0a3df618a156e13a016a9c60b511c887d2bdeb920ef825ae53",
+    "type": "reasoning",
+    "content": [],
+    "encrypted_content": "gAAAAABqnGC-z2hHf9zYPN97Je_drqX53DNgDcW8cWPGvTNTaqmsgGmPTgnmcMUA3c8RWyfcquwWOgHj3zgYQAuthnDfKCNftDafptwL89k6kFFH712UD-PywRf4PhTqrbc73_3YDIjgufHn4hImLip4Xpd_v3wegnM16Tw1Znq4U9fBn0GUYqIQkRBdDmlJk9EYRb8HmNbK_j8gqEt1l2ay8_hNwNlPAnsm6blGE8oE0ff4iT1kP_-VLTSuPQTZ-JrswFxs_vr7A_kJMCxhXGDURhZLViWAdS5hTSnojxwFLLPNUho5Bnn-CHVMzUAkJM1Fe5ubOCLN6tsDyP8qVeLPUjO06kF3UpjSKmSjNC0L7y_JRltQzkmdju1miqir-Mk7njFO6sdHjRtYJERtGvvgKnrn0fpKub7Jq2cRimKNTgskbCOqE_Exc2MyxSJu5YWKgO-2WUcSYP28pojjVmjz2DJyuW2vjM9z2l9MgdLZc_XQoqACTn1e_yO5W3iEVPEyvEYi3C2qbBo_nZRPAOREeMgTXozfgNAB66LAAcl4ytVYIweX53ptF9KCW2ha1rgT0qHhXzPv0pwFrmK0yEsJ561z4Qd59bim77ou3OfqTbtUCGFqEQJ9zJRgIcTAEZcu67tc_nH0kO5tf0pUzf14CAtzHsamVOUQFcK5iIpJ1LpW1h-HG4uSJuz9KED4YJJqM0XZHWea_Eib5s0xW02X2i6rvpKVXMQoH8uh9IH_BfpKfFTiwtTYqjCSNp53qmBB6W2rw-EDGhGDVv8IAbDspGRd4pnFzff4Qf0lp0xb-dzmBfwrcFDasaMUi6esAlkEMCwG9HZURbhfBeIcSYhQT7pTpFwK1q20MGdQc1GBnBcZvPVu5swwGeOD7vRIlwEjkjuMTr9boPS9H_Vu9c_YT95BcfjDnpecaMuewprP9OvXRkgsZCNaJaQZGQPkOCWZIe0Q9onHj_qn6GkxFWKny5CRgIAiErZ2Up8qz-v5liCMql_sPt5h7KaN1140NwPql1ApnoFJflnz5pO5RidT15EHHhuRY9Wcp4r8_drbD7imbTBNqjUgm26no6ePDGxkJ01L3rjaAjDEFVCBt3t7HXUvRqAU9crdDSrb4K1MNFMGYXPj4fPcdOyg33BXNRrRbYlmfIF3tcvAavR12bJMmoGtWeEgEoCrWos7z2W3FHboYjNzL08s6NQYDTHGVqndOwXdi4FJu5Xe42EFwCNLBxbeWkop9FrZNyCOZ5pdn4yVsyezgN3hJxtxNEUCgp7Yu0ID8BnNoB-rFPW1lMSWEX9fsPd8vdLsMsd9MCk6UekKOK3Nr34_bJ3_EISEFHrF7YoOPRH9uNyfMlzKrpmCWgpKNoziF-7IsZBlFMTVkSsNNbLbIXp1GCYo6JtIb7-a0JS4MElKQ-TdDh8YitQ3Le2mJjvldx7c749R9h77kcUkbsPuxlVZfwQur-5W1ihC8gtr14oEOM5mjQOPIw_PMkaiMH5kLYNyzeUEu5rE4eEMRW5c6z4pGXwDDJ1vn-fjpQJLVMDERFwQrZuYREj6YI9Jfzpo1qcTtARGDBh84sRCUs1wdJGBOUhdn8sxc3uClWtmIR4cQ7_lrLM8IAJecL3NfdRdkbp7UTmKn8l_-HQ7T7WBME9l7tP3ZfIE9O6Dm5KGtM6EZFgdipHTi0dUe0ZkZ0cFii_M03i9avLqh6jI-lpcT4fA0jk4CeK0N6X7RuQ5Wb2QjAw_PxOSBjL5e_POt8nlgkoSMJzpGgLaOa1cz3EkOxmimf8p8tGug_RUC1EjwzhLfZx2Mpz101_ZRxHZebsRpHm2B3IzXZlF9uuPCY5uziGLsa76srIZ4marg_S7ostA7Eq2KBa_2306R-u_cmexw5glCrtTqhFGVXQiGGRwHc8ME9hPIb-CXvx-vjpnF9dqs-qNv9ctJGVCGKD3gptYmrBwBScZCpT6uYDZtPqbS3durlzRXM6WRhOOIz4AVtKFhBOEUMFZJ6d2OgFPb2IMB9MA9ZyYodRgPGtTMwL88qRQLTixMNbKJvLuiZJ_zufJsVUrmM06nbKBMfANStBQEjFiJm8xTUS2ksT4D8gPeldq1SNpf2q2WLd0sx1FXUgj_LtgR1-kbIbQc1wqNhpno5aivVd9mcfBvo2zcYD-WVmaZlwgpx_uUQ8w3taXc1MuZLmnRBzoyMFsfyg0CpV0WgduMRCz4wfBqseRwnMYlus1u2yx6DS7MiBULZWGrbZZQn9ZZ9ipk9d3-X2o1-kMF86dY3mcfKQTuRFz5Loua6ER1Tw4K1-PaTt3caQQGZdj3e47_GTb1pabOrUt5_gwBek6aHN3EpgYxtSyrG3aesGjaW5k4R2wo6pbFURc_BXAUvkSvlzrdHaCzbro4BUqU8-9v3MC31N-HDVoDxrcGViavfaLiR6jpboaoXGqdZhkogFg2JxG-0ae_651mxWn18wjtTlEYr-P1xlaR3P2n_xLaCQ4bnJB9WmwtarClhG59zHUdioIpW2umyK0KHb_cA==",
+    "summary": []
+   },
+   {
+    "id": "ws_0a3df618a156e13a016a9c60b76da087d2b2f516bac9a425e9",
+    "type": "web_search_call",
+    "status": "completed",
+    "action": {
+     "type": "search",
+     "queries": [
+      "site:hubspot.com/pricing/sales HubSpot Sales Hub pricing free starter 2026",
+      "site:zoho.com/crm/zohocrm-pricing.html Zoho CRM pricing Standard 2026",
+      "site:pipedrive.com/en/pricing Pipedrive pricing Lite Growth 2026",
+      "site:freshworks.com/crm/pricing Freshsales pricing 2026"
+     ],
+     "query": "site:hubspot.com/pricing/sales HubSpot Sales Hub pricing free starter 2026"
+    }
+   },
+   {
+    "id": "rs_0a3df618a156e13a016a9c60b9a2fc87d2baf139e7837e61ed",
+    "type": "reasoning",
+    "content": [],
+    "encrypted_content": "gAAAAABqnGC-EJh5YyDE90qtBRNJaa-9tsjhIfT1mpQQqF-esRsdpyqJCnX9xy0wjiqUO0Lun0eXB4hReS6265q8eW_hU8K7hI2e0SJs_-mHqT4H0v1BnANk2KPJMaYh_pqMx2UNR5N-6rU4Tltdba_65zYfR0xdiYtG_ixLkl8ZGfxFIJtqr1oZk_r4Q1_lgVg4JBrZIhWJBhOA2tYZPUWj3UfnLg7r4FS93PjBkyH1C2enmgoxsY1XoHwKmJDgMS51yIgmGzwwr72X5LB3LhDV_FQl1FENjfjUZYg5VJqmoDAyHxjRtw5SiIolQN0TvnsZSuUGXd9tqT_AzW6q56SySks6UoJaNnYnxJR3uE0DtRbGkm87QsxIdMB1Sg7JvlF_gvrO4zWVMl-u61AdBU-IxTPSbgGrkzP3TRxLb9qlIkc3F1MBs0WGmCqugmwyDagkyEoFHI1KoDsJ1RZBnnRSzxRjXWjEz7g0D5sJPpJqJ6cJwwpEdyNIeb9-us9RLFT3Hj61N3-OgS8ufW1gtmqN4VlplSYhKw6RdQMN544SHc29zuLdN-uXtjP7YS35imBCb0-uKu-gyN9jAnCx1VPgo22pf_xqikM3QWv2-CKKNIARemT8qxd9jTOPNlK_Z13Wgb_E38MgwIpas8cW0ENflQdV4ijduhZeQ0ta-HsDpDBvSEupjCQhW7sPSgXovGENNsl4x5pj4f8CnCf-AQIMqzyZEEuvZeQkAfdbG4vY1uMbveaXXF50l5VXxZ_6GRU24UotXMZVF1Xp3oBAtDLHsFoyHgWdmyJlI_heI4cT3ThLOLiUKzFExlMlPdfea7e7YoQIEnB6zvE6P49mBgjN0VIDWlpoHKmiZDjm1P2KoeakK5e_JNiBzAFQdnYDaIL_yMDdrW4o5KVSWMwuD-V5_tTqCfhNrHHLcNe5XE1h-A6vWAKC157d1SRrKnuu_RcoD24xgXnj13-HutHcspgLhyTxRm-UKvlnCV4xHcFIk1f5C2IKNdtApcFRsKiNJoY_pOL1gWPmWB26ZBZC80irfzMxL8gKCmBwUkl_bVR7EYs8rOGMDeJm_TQJAh-S3340nNJ5XZVfCsDeGH8hCXJ0J_Pyar7ityHeDRJR2Bffw8kRKCF5Ht2pfgd5Zkkc1uTRx68J2g9odbwHvEzfowbAMBQIWmALIolJZi37MlmN-7xqSAtPwKN1kyoPpAQ7hYHCKemnvF5FvabQbEBPA-S7ENFq88QOP-DCoERlNwrx9J3aREc797lrhzoB6dK1LNp4u2opyc54Du_FMLDu8D7kgJw9MXlOpyRJI0ylx8moRiHDYKyo1TBGcgIcEwODd79m3y1LEvRj",
+    "summary": []
+   },
+   {
+    "id": "ws_0a3df618a156e13a016a9c60bac95087d2b31fb32c8c135c19",
+    "type": "web_search_call",
+    "status": "completed",
+    "action": {
+     "type": "search",
+     "queries": [
+      "site:capsulecrm.com/pricing Capsule CRM pricing 2026",
+      "site:lessannoyingcrm.com/pricing Less Annoying CRM pricing 2026",
+      "site:insightly.com/pricing/crm Insightly CRM pricing 2026",
+      "site:bigin.com/pricing Bigin by Zoho pricing 2026"
+     ],
+     "query": "site:capsulecrm.com/pricing Capsule CRM pricing 2026"
+    }
+   },
+   {
+    "id": "rs_0a3df618a156e13a016a9c60bd0b5887d2acf28b7c4be08362",
+    "type": "reasoning",
+    "content": [],
+    "encrypted_content": "gAAAAABqnGC-g0MGvbSPM_DpH6zfPD1XiIBYh7XVA8O_AICporFVDVzmx3mo38aE9g4nJZRnAz2edpNOwtYRFHDGgvxGQGgJ0eBG9QT5xjGgVjPRfD23OISVmlW9kk1d_fbXhlcQaam6r2K-78m9G-Qv5mtDz3bHEQK6g7sBbXynW8jJGQtIsNZHzGrN_Jv9ksZ2JdR0vpVkk41bKUXb8Qcs6aTvb_pm7AV6e46WG2mI7XCEoRgQAHzeiXw2HMjtUPJ00G2XXAQsN0EhHxzO529paWVTnI0K7vRIdwe7VJGzZBVcA3Ltu5fWs5qwmAx_03x_i_jaMGAOMaqdPpjwkuAnn9JoOSCgNrpJIoFPd4d9XDsOWufDPkFHl_rPuUXgrzoqVBDgympZQVXQd_8GzzA-bBRmipfvzTsporwGHdHm8SLZLcse_7Iz-hjyW86HxzKoMR0awk3TWdO-iiPIrGPN_GZp2WW2Fwr8l5CkXXKayc3CvHL8tILsolLq67soxOrxlTBfI7jMmsdicgxY9VNqoc3Vv5eGTyBO5k8OcAiac2RTQe2NNXJXcNklDRMWOCrf5gq6BAc78nPZmU-DKuszv_IjqVzSfjfh9BOl6hCJ13XX7XAb6qgHDJ3JhXMmnE4DHu2erU1MDab_ur_I-HSegyARqLnmbIrHPiduHpP8cZFzfLjcyA36WvLm4-jv5x_mBWOaRRjyq0wq6Zb2cV3pEDygDrquqOBDaLMhLr5KQRKltbnYeKmhr_IIIz5Z7W7Z0V1fwkGxrFfD7Xwi7LZzi5XvPJm4fClUpUSY6pZDDSl8ZIiGcL4JTgcGQjFq1efZXXc8nkeZHjaADp4VW3CB4HUNEkZm8ncGp5fuDEL5GivpLg5M4JwaDIPeevh2VbDgwQJiUeaBJ-b_7JXn44GQIkCICuFrPAgheL_5OpfZJeWCgpmM9q1xWydNSRpM0Np3lo3VA504xlrZ2ZJIJamn8hrPswer4hrDGsfraHEmvnaP3mFxOxPal4Rpz_MOhu4Dww6mxG6oI5gGamil9zN76GMHPMK8wVsXw32jFj14fyet9_j2YzkKy5Ije5I7kZYj60OLGwvbpD-pinYUIb2UyzbFRfOj-56tREUPbt2DnBUupNN5hGHhYVH74N2K81DSZdubO4oEJ9ti61PFtvY8fuxnJiy-iAnXPiz4qacApQyX2owK3m6iyYyintZEln4OPPbVqxyyVXzSURmDrZ1o5sBieT3uf3O-j39xui47TSBvVawddI0=",
+    "summary": []
+   },
+   {
+    "id": "ws_0a3df618a156e13a016a9c60bd4f2c87d2839063af6c461842",
+    "type": "web_search_call",
+    "status": "completed",
+    "action": {
+     "type": "open_page",
+     "url": "https://capsulecrm.com/signup/?tier=growth"
+    }
+   }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0.0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": "24h",
+  "reasoning": {
+   "context": "all_turns",
+   "effort": "medium",
+   "mode": "standard",
+   "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": false,
+  "temperature": 1.0,
+  "text": {
+   "format": {
+    "type": "text"
+   },
+   "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tool_usage": {
+   "image_gen": {
+    "input_tokens": 0,
+    "input_tokens_details": {
+     "image_tokens": 0,
+     "text_tokens": 0
+    },
+    "output_tokens": 0,
+    "output_tokens_details": {
+     "image_tokens": 0,
+     "text_tokens": 0
+    },
+    "total_tokens": 0
+   },
+   "web_search": {
+    "num_requests": 2
+   }
+  },
+  "tools": [
+   {
+    "type": "web_search",
+    "return_token_budget": "default",
+    "search_content_types": [
+     "text"
+    ],
+    "search_context_size": "medium",
+    "user_location": {
+     "type": "approximate",
+     "city": null,
+     "country": "US",
+     "region": null,
+     "timezone": null
+    }
+   }
+  ],
+  "top_logprobs": 0,
+  "top_p": 0.98,
+  "truncation": "disabled",
+  "usage": {
+   "input_tokens": 21196,
+   "input_tokens_details": {
+    "cache_write_tokens": 27,
+    "cached_tokens": 4370
+   },
+   "output_tokens": 499,
+   "output_tokens_details": {
+    "reasoning_tokens": 499
+   },
+   "total_tokens": 21695
+  },
+  "user": null,
+  "metadata": {}
+ }
+}

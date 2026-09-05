@@ -1,0 +1,81 @@
+{
+ "_why": "Thought text arrives in `summary`, NOT `content`. Reading `content` reports zero on every record and looks like the API withholding reasoning.",
+ "_collected": "2026-09-05T18:38:35Z",
+ "_request": {
+  "model": "gemini-3.7-flash",
+  "store": false,
+  "generation_config": {
+   "max_output_tokens": 16384,
+   "thinking_summaries": "auto",
+   "thinking_level": "high"
+  },
+  "input": "A consulting firm bills three clients. Client A pays 40% of $50,000 total revenue. Client B pays 1.5x what Client C pays. What does each pay?"
+ },
+ "_http_status": 200,
+ "response": {
+  "status": "completed",
+  "usage": {
+   "total_tokens": 1153,
+   "total_input_tokens": 44,
+   "input_tokens_by_modality": [
+    {
+     "modality": "text",
+     "tokens": 44
+    }
+   ],
+   "total_cached_tokens": 0,
+   "total_output_tokens": 340,
+   "total_tool_use_tokens": 0,
+   "total_thought_tokens": 769,
+   "raw_prompt_token": 75,
+   "model_invocation_token_counts": [
+    {
+     "prompt_tokens_details": [
+      {
+       "modality": "text",
+       "tokens": 75
+      }
+     ],
+     "candidates_tokens_details": [
+      {
+       "modality": "text",
+       "tokens": 344
+      }
+     ],
+     "thoughts_tokens_details": [
+      {
+       "modality": "text",
+       "tokens": 769
+      }
+     ]
+    }
+   ]
+  },
+  "created": "2026-09-05T18:38:35Z",
+  "updated": "2026-09-05T18:38:35Z",
+  "service_tier": "standard",
+  "steps": [
+   {
+    "signature": "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",
+    "summary": [
+     {
+      "text": "**My Thought Process: Solving for Client Payments**\n\nOkay, here's how I'd approach this. The core is to figure out exactly how much each client contributes to the firm's $50,000 total revenue. First, I need to break down the information, then methodically calculate each client's share.\n\n1.  **The Objective:** Determine the exact dollar amount that each of the three clients (A, B, and C) pay. That's the core.\n\n2.  **The Given Parameters:** I've got a total revenue of $50,000. I have three clients, and I know that Client A pays 40% of the total. I also have the relationship that Client B pays 1.5 times what Client C pays. And of course the total revenue is the sum of what the clients pay.\n\n3.  **The Calculation:**\n    *   **Step 1: Client A:**  This one's straightforward: Client A's payment is 40% of $50,000. That's 0.40 * $50,000, which equals $20,000.\n    *   **Step 2: Remaining Revenue:** Now that I've got A's share, I can subtract it from the total to find what B and C together contribute: $50,000 - $20,000 = $30,000.  So B + C = $30,000.\n    *   **Step 3: Setting up the Equation:** I need to build an equation. I know B is 1.5 times C, or B = 1.5C. Substituting that into the sum of B and C:  1.5C + C = $30,000. Which simplifies to 2.5C = $30,000.\n    *   **Step 4: Solving for C:** Now, I'll divide by 2.5 to find C: C = $30,000 / 2.5.  That's the same as $30,000 * 2 / 5, or $60,000 / 5, which equals $12,000.\n    *   **Step 5: Solving for B:** Now I know C, I can find B: B = 1.5 \\* $12,000 = $18,000.  I can also confirm this by subtracting C's contribution from the remaining: $30,000 - $12,000 = $18,000.\n\n4.  **Verification:** Now, I'll do a quick check.  Does A + B + C equal the total? $20,000 + $18,000 + $12,000 = $50,000. Yup. Does A's percentage work? $20,000 / $50,000 = 0.40, or 40%. Correct. Is B 1.5 times C? $18,000 / $12,000 = 1.5. Check!\n\n5.  **Final Output:** Presenting the final answer with clarity is important. So here's how I would lay it out:\n\n\n\n",
+      "type": "text"
+     }
+    ],
+    "type": "thought"
+   },
+   {
+    "content": [
+     {
+      "text": "Here is the step-by-step breakdown:\n\n1. **Calculate Client A's payment:**\n   * Client A = 40% of $50,000\n   * Client A = $0.40 \\times 50,000 =$ **$20,000**\n\n2. **Find the remaining amount for Clients B and C:**\n   * Remaining = $\\$50,000 - \\$20,000 =$ **$30,000**\n   * Therefore: $\\text{Client B} + \\text{Client C} = \\$30,000$\n\n3. **Set up the equation for Clients B and C:**\n   * Client B pays $1.5 \\times \\text{Client C}$\n   * $1.5(\\text{Client C}) + \\text{Client C} = \\$30,000$\n   * $2.5(\\text{Client C}) = \\$30,000$\n   * Client C = $\\frac{\\$30,000}{2.5} =$ **$12,000**\n\n4. **Calculate Client B's payment:**\n   * Client B = $1.5 \\times \\$12,000 =$ **$18,000**\n\n---\n\n### **Final Answer:**\n* **Client A:** $20,000\n* **Client B:** $18,000\n* **Client C:** $12,000",
+      "type": "text"
+     }
+    ],
+    "type": "model_output"
+   }
+  ],
+  "object": "interaction",
+  "model": "gemini-3.7-flash"
+ }
+}

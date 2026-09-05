@@ -1,0 +1,19 @@
+{
+ "_why": "A generateContent field. Rejected in ~0.2s on EVERY call, which reads as a provider outage \u2014 sub-second failure is the tell.",
+ "_collected": "2026-09-05T18:39:06Z",
+ "_request": {
+  "model": "gemini-3.7-flash",
+  "input": "hi",
+  "store": false,
+  "generation_config": {
+   "include_thoughts": true
+  }
+ },
+ "_http_status": 400,
+ "response": {
+  "error": {
+   "message": "Unknown parameter 'include_thoughts' at 'generation_config'.",
+   "code": "invalid_request"
+  }
+ }
+}

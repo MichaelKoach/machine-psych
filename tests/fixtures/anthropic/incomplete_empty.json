@@ -1,0 +1,53 @@
+{
+ "_why": "NO-ANSWER shape 1. Thinking now runs first and consumes the budget, so this returns a thinking block with no text \u2014 NOT an empty content array, which is what an earlier measurement found before thinking became default.",
+ "_collected": "2026-09-05T18:31:11Z",
+ "_request": {
+  "model": "claude-sonnet-5",
+  "max_tokens": 5,
+  "tools": [
+   {
+    "type": "web_search_20250305",
+    "name": "web_search",
+    "max_uses": 8
+   }
+  ],
+  "messages": [
+   {
+    "role": "user",
+    "content": "What are the top-rated CRM tools for small consulting firms? Compare at least six on price, ratings and features."
+   }
+  ]
+ },
+ "_http_status": 200,
+ "response": {
+  "model": "claude-sonnet-5",
+  "id": "msg_011CekmavZz2rzNzT1xwJotn",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+   {
+    "type": "thinking",
+    "thinking": "",
+    "signature": "Ev0BCpABCBEYAipAg52uQicdA2Mo8b6CcPr1dIhHIrSHlYBKs9EtCwILctAbZADYZRBSXaHuij7fxUBFLVTnE8RTtD+bXOOEZeYUJjIPY2xhdWRlLXNvbm5ldC01OABCCHRoaW5raW5nWiQ2YTczMDczMi1jZTNmLTRmOGYtODRiNC03OTJlNTUwNzExYTmoAe+/8dQGEgw0kgBEM5Kfzf+Mc84aDD+Bt0ibHMjGk6U3kiIwl3Vx2PAbmHFdaAcPYfLmkYzUJ0f9gs22Zp6NLugvHRTBTkjoWEdzpglmepnEnVzKKhqFRVqaYjTUSTVkgGxYB8jxPifpBH4BLWXJXhgB"
+   }
+  ],
+  "stop_reason": "max_tokens",
+  "stop_sequence": null,
+  "stop_details": null,
+  "usage": {
+   "input_tokens": 2835,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 5,
+   "output_tokens_details": {
+    "thinking_tokens": 4
+   },
+   "service_tier": "standard",
+   "inference_geo": "global"
+  }
+ }
+}

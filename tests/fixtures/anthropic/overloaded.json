@@ -1,0 +1,13 @@
+{
+ "_why": "error shape, http 529 \u2014 SYNTHETIC, never observed live",
+ "_http_status": 529,
+ "_request": {},
+ "response": {
+  "type": "error",
+  "error": {
+   "type": "overloaded_error",
+   "message": "Overloaded"
+  },
+  "request_id": "req_x"
+ }
+}

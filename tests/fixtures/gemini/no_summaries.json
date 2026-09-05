@@ -1,0 +1,74 @@
+{
+ "_why": "Without thinking_summaries the `summary` key is ABSENT entirely \u2014 not empty. Absence is the signal.",
+ "_collected": "2026-09-05T18:38:37Z",
+ "_request": {
+  "model": "gemini-3.7-flash",
+  "store": false,
+  "generation_config": {
+   "max_output_tokens": 16384,
+   "thinking_summaries": "none"
+  },
+  "input": "What is 17 times 23?"
+ },
+ "_http_status": 200,
+ "response": {
+  "status": "completed",
+  "usage": {
+   "total_tokens": 283,
+   "total_input_tokens": 11,
+   "input_tokens_by_modality": [
+    {
+     "modality": "text",
+     "tokens": 11
+    }
+   ],
+   "total_cached_tokens": 0,
+   "total_output_tokens": 60,
+   "total_tool_use_tokens": 0,
+   "total_thought_tokens": 212,
+   "raw_prompt_token": 42,
+   "model_invocation_token_counts": [
+    {
+     "prompt_tokens_details": [
+      {
+       "modality": "text",
+       "tokens": 42
+      }
+     ],
+     "candidates_tokens_details": [
+      {
+       "modality": "text",
+       "tokens": 64
+      }
+     ],
+     "thoughts_tokens_details": [
+      {
+       "modality": "text",
+       "tokens": 212
+      }
+     ]
+    }
+   ]
+  },
+  "created": "2026-09-05T18:38:37Z",
+  "updated": "2026-09-05T18:38:37Z",
+  "service_tier": "standard",
+  "steps": [
+   {
+    "signature": "EqsECqgEARFNMg9KfjCwWNOcqkjN+9YE4N5fB5N5TTBv3jPM0swgMaNBX7ipFx+9vtN9L8LN4XXvacdAZQ49jUJ3Bb48OUEj3B/AzEolKRZog0jarD93ZLX8iB3RN1V70ohAyYMfJXpTKYjqsUV8s/OcEMHn1gLTpvuYtkN5IlF/hgArRXkIXsJeo/KE78ZRWkwTQn1+O8pPJKTk06b1ba8fOOLOhtHQ2LM+23sTTSDCtmP4NaKOeWwR9z6ICiaqWDwBbaQujmddw19Jxz954I0qOd09Jfl0SKJvppQZrsAy085QJ4ubuwtckjmFDYEg5WzHrPWEc6uo2PEaKS/z/Pw5cgxvKsH/B6Km3nzEsu+gJuy8DfG7qYFqSTG5pBG/KuZmzg3t9rvLSofjzoF4mMgf5eSqWhJyElaN5p2mf18ZsAbd6oOpd6UKjJptjI1lFlufXDKbcWRqZl+4/WmHg/W5WrYW0+JinPr0eD8zbfbt5YQDjiYwV2xcJ3npMEPSmBYduPgyCjTOiCr+GYM7g5PZYwat4lJRl+9Wio6p0We0sweAd08gWsINADthHPTVwiCuMAzEpi4cbb73AABCegsmP8oyfVRS90lkN9HCvr0ZMAtCXFFE2jSRUKlN9cIMhSCM/nT+w09929eM9lt9+sH6Aq2SPszZHxPyd/fx8fPQnztN/gSAlK1ppZ1xgvDgDX2HZGTNrudGCre6hrfVp5q8e2SrckaxIEQ3re4C",
+    "type": "thought"
+   },
+   {
+    "content": [
+     {
+      "text": "17 times 23 is **391**. \n\n*(Quick trick: $(20 - 3) \\times (20 + 3) = 20^2 - 3^2 = 400 - 9 = 391$)*",
+      "type": "text"
+     }
+    ],
+    "type": "model_output"
+   }
+  ],
+  "object": "interaction",
+  "model": "gemini-3.7-flash"
+ }
+}

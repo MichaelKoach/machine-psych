@@ -1,0 +1,13 @@
+{
+ "_why": "NOT ALL 429s ARE TRANSIENT. insufficient_quota is a billing error wearing a rate-limit status code; retrying it means five attempts per record, hours wasted, never succeeding. The error TYPE discriminates.",
+ "_http_status": 429,
+ "_request": {},
+ "response": {
+  "error": {
+   "message": "You have no credits remaining.",
+   "type": "insufficient_quota",
+   "param": null,
+   "code": null
+  }
+ }
+}

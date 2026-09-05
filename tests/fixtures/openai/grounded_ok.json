@@ -1,0 +1,325 @@
+{
+ "_why": "MAIN PARSE TARGET. CHARACTER-offset annotations, and n_queries from tool_usage rather than the item count \u2014 items batch ~4 queries each.",
+ "_collected": "2026-09-05T18:33:29Z",
+ "_request": {
+  "model": "gpt-5.6-sol",
+  "store": false,
+  "max_output_tokens": 16384,
+  "tools": [
+   {
+    "type": "web_search"
+   }
+  ],
+  "input": "Compare CRM pricing for consultants. Use en-dashes in ranges, like $14\u2013$15 per user/month, and cite a source for each price."
+ },
+ "_http_status": 200,
+ "response": {
+  "id": "resp_0f9750201891ccd4016a9c604e71bc87d2a5ca2c46523258f9",
+  "object": "response",
+  "created_at": 1788633166,
+  "status": "completed",
+  "background": false,
+  "billing": {
+   "payer": "developer"
+  },
+  "completed_at": 1788633209,
+  "error": null,
+  "frequency_penalty": 0.0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": 16384,
+  "max_tool_calls": null,
+  "model": "gpt-5.6-sol",
+  "moderation": null,
+  "output": [
+   {
+    "id": "rs_0f9750201891ccd4016a9c604f5ff087d2a0238152102c53fa",
+    "type": "reasoning",
+    "content": [],
+    "encrypted_content": "gAAAAABqnGB5tlwA1bIspMpy5XuAFO7HzZ1L07HnbYaVuasn4pRE2bhxle7YKo9bk-T5B3DBMEw3sKkXJa8txmKWO7MUMli-eBoCkRaf-98D3A-4nmMLYAHxzOcKfGghjLRdcai5kle2nHX5kLRxECAp8Y9dJt1emffrlg4wrzapSfraiCKRrqW6EPnt7SssQ8y3hIczhp5otoLJGqp-CcgiVgUWTULdTT0YPb8sWHEUAGv62_j4bqWQVxK2Gb0TYAaTurizdLqeLp8WTLcM_Bh-SUklBER7ytp0dliCY1UfkjxrjKmRSLes_YwZ6ME47rlcUG7fRm4rsqLHC7xp1yDUUIHOKPY3B5K-iKHM0f9-EEMl9IiVJkdHJvoT9PDtmdrgRSt3DUsyb_wGRu0FT_mI4nqV8Mr-tzPXbQEJuSjw8wYJwopQKH2CpzZbm38vFgu-dLXQxFhXBxRriWOnsLV5cDqdBkueEQDoknPOMeCKz0a37rC54MrZbaRNGrjNt9RW1zZwFv-KPYB9mSP0I6nSGBWUyITljmMeR-tV52Sb7I482yhMMQAWmL0KyjhO4gyq6KuwQux8SbenHqQ2MbJafZk2CkxPJE4IH-6glDhAxoLQ4eVJCkjicN6tGwdd4jEv3hFRcqhsyu_4_61R2nyBTIOz7gqksVxYRST37SHTCHzD4SquRbcAi9lOs0v6aJZTbxOJKy4pjBIyj3rE2i8rok-B6WrEzqwCBxeHhtDDfUuGTy442Ven_-fajjd6rwLe42sGRBw0MOx5VzDy-_GB2aLjPfM52Sdw30nDccuBzTY_5CfaTmoKG1o81WxA_007qcM74094PKeEMaWAhbDHzbYZ1e-cHHGuvdhHa2ggMeYT6hhhoonOrm6Qqb0Ngpx6PK3BQYjchqFg2T8OVqADPVppbpz1cYQrXTkMKyyOjJuLwtdRNBiWTpI12WSARgxk7VvKhmnH3H5CP5zMVIS3cMCQuaplSnrH-twlgiq0VPd50CqsvAorVrMDsdsoEQlqj11SnoYCpUQvIUEH2irrdeoLATDEHdhaSOvKW4cr9cd4aCIQnmEVYCLSCqG-ULXDpbLQtw5Iqju_Z3DBuE5ZYWKhvlKg2WML2GCmR1dcEGrSPw_6DNfPUKcWDAC_M0zAFoBt2ytZIB-0MZZIXIl4V4-aHjNK0YaEyT-jt5kebRjhezMG7zcYpqnb0mlf6jAAzJdN3I9czJkxs4vcrqyTH8v0nDy8uUbdek54SqJYGbqVpn2p-C4e57sG62qySDZz9f_PiHhOm3h015wxeP_6Q7PsHqe39k07mhI2ysZO1BjWUMQxxgpKHBBoXrPVmlKmF3HI4hGAGjmtQEo2aMPOyMOrjvBwzTbZss73jHkjhUFUPNBcmZflgQ88nRleqTBunwmt55PV9EuoLqbGbq1ZBZTPXF8s3rKVawBlPI-HgaPWNF3beqNsIbWb4MUlCQbiFwoRgERVSfHmEOE5QVbKnvGNYFkPEzySQtqUrSIF4vBeb-DRo0Undf-WQX33MI7hUokKlUEharNeG-ZVMtxLhDBoCXx_r3kULi1s_hfl09dzYIiXI9eTXqmFR8rpk-C8DtPVgl5L2eFC2qWuQIOgFsBHNUdVQNnLI1z37VseJPNuEesbVaJzH1A18_Q175CjaE4RAYZjdR3YvKIu3UrxHNpHHJMP6Bn3NVVEUvXmbj5iFsIU90dorpXH50PeHZByCoNLbOusKtHqGjv7k1FjLxc1EnDpkV8lzPKN_t-25_48TPkGNt5G58Kv5OQueorDqSBbsm8eizYqSFi2UIr-31bR0Skvalbnde0HCXryHO5xHerBG-vwv2vx3HNYLivdwLJvX38sG4ULpJXcjgaiLhcbQFSIFVyCEUv33o_LWZfCIsm8tEMQlWEirjco7BjFSrQo6AXTvWx68lD1FhKi20GsUPhwlNn_9uzgSkZNA_ZGrFTNeqtHetgzfc1jf8o1TDLQseqHsadKTlWJLkb5LcgMjbjgjwmwbfQhLdfwE0N3A20mTHOTsBcrtX3zi1coDQ0-BOwktMoFFqyBRFwIN1OuM4t326M1gO4v14i4YhZq9PSffNIxrjmphzI9i1JGX0_N3MTI",
+    "summary": []
+   },
+   {
+    "id": "ws_0f9750201891ccd4016a9c605126f487d2a73ec0880f7c8bff",
+    "type": "web_search_call",
+    "status": "completed",
+    "action": {
+     "type": "search",
+     "queries": [
+      "site:hubspot.com/pricing/sales HubSpot Sales Hub pricing per seat",
+      "site:zoho.com/crm/zohocrm-pricing.html Zoho CRM pricing per user month",
+      "site:pipedrive.com/en/pricing Pipedrive pricing per seat month",
+      "site:freshworks.com/crm/sales/pricing Freshsales pricing per user month"
+     ],
+     "query": "site:hubspot.com/pricing/sales HubSpot Sales Hub pricing per seat"
+    }
+   },
+   {
+    "id": "rs_0f9750201891ccd4016a9c6053da8c87d295356c8639a3fa9d",
+    "type": "reasoning",
+    "content": [],
+    "encrypted_content": "gAAAAABqnGB58h8WnelcOfwgslpO9emY6J69rgp0Se-YG8bToqTbaH8h7Nnr3Nqn9yTlYbdjYmKosyqgg5r0Fa7ukrX_X54y49Pm3211t5BIWgmSFkkEq2sZxiOgrwqyQ851g0pR7F-Ru40qu14NGePiCc4uIgnMAFLXmaIsl2jyGYdikmf7ZCwOuAW9wJ03lole4pLKHbDMBql-F5SxHYpp2aUmAV32mXrBHYTxvJX6MtY_T5U2MwMZrlUDh-eRVqdD46d-uuBQZj9w6SMHr2gWr89Ol0EQAxuGfEyD3fTDmZNpgjF_hT6AiiUMYgpGuY02fZLFnSwZE_rLErbM1CeUtXU9aBWYagpldonL2sfKJTP4qh171wFnRt8MVoT4YZDRjEM726Bq7JbcRU8uw85Wh-ANtmmbnoxXURQSY1TotGzDY4omKpP9kyb37rMics9LxE04XsY7RiJttnieiPQpEMf4d1AnxGBs2a7C1JAqXl0VVC_hzIvJbRgHIFk3Y5n7G6u1ALvmHDKA_eHrd-YDSnWbmAAPN5XVuvzyvh0TdE9eYexacNAHE0HcyI4EcrMEfJxjppZ-MsO6qkIzz9kcevN8VfhOCLxpCaIFVPhlH8JOuPMs-GAuJlHwYqGnbtFoHXPU1LIRlUOXqh5DJNnabGxSm9ciM4WW6Tm9IIv3SpHobcKqvTkQHxtK-PnnSv7FOyULRURsJnSI-fHPaK_nPmUDNRIXSoFv2K7bMNvARxke_r02CnpVL5hclJFyLwAu2arX3Z7tDCDvIUwoF0Pr0nMHw0-xuIkndXiXXM2gZR2Uw7ydGeVfAoKXCm9B_mrPOF0QaOldxVud2ZGvaq1RqkqZlZpItHerg6BXMe1iZ1pIiYu9n0sM6y2zJ58hofJpO1aGmGMbOF3WKA0KlfNe--5ncC4vX3JPv7sEjQITiPIOY4fwJgtLuRt__ygGz8zAagqsBekFBLlDg2yHmEYMrF6kqUpE5YSSGyMK8RzyrUy4bKslk4eB1-sGqMFEkmX9vN3mmH-jQ8pb7U5OaV2m5QMnqsgtT4RBEQ58MRMguKJkmpHgdLm45cLtOxtJ3X_vJFfb5aFY0wz-EsUQM00Lq93OM4rIgwwAuQv8LeLBnQcoi3L6Fkqiq_0OSoowTcAsxHwz8J7g-G8-pJoNK18OOhH8ekmowg4DfjahVbqP5PCy2zZPJqQJ5dKPEWBRZsYoDUI1N9kVcdOrSr6jUyz8ZXoah8U8jV0N3rQRi1ZHF5cEpHgQ9i83UvamMdGhdcaONBApZqTTqUq19fDEB9kjWh8k5nYjmeGm23O8u9ApUt2f_-obz961kAHa8ZJx7-AAV6B9rehC",
+    "summary": []
+   },
+   {
+    "id": "ws_0f9750201891ccd4016a9c6054589487d288a3dbe4af1fea96",
+    "type": "web_search_call",
+    "status": "completed",
+    "action": {
+     "type": "search",
+     "queries": [
+      "site:capsulecrm.com/pricing CRM pricing per user month",
+      "site:lessannoyingcrm.com/pricing CRM $15 user month",
+      "site:salesforce.com/sales/pricing Sales Cloud Starter price user month",
+      "site:bigin.com/pricing US pricing per user month CRM"
+     ],
+     "query": "site:capsulecrm.com/pricing CRM pricing per user month"
+    }
+   },
+   {
+    "id": "rs_0f9750201891ccd4016a9c6056af8887d28cfea695b73b3882",
+    "type": "reasoning",
+    "content": [],
+    "encrypted_content": "gAAAAABqnGB5XSksGnAOP_c3cWMXuUzoI3CQCJJZ8lIFaw-vx0zVGvUY9do6L_9hkBPn795qjEhSOEhET3qQu6d5I-9_gRwFNi1JYj-vjWHzWxmOdg2T_tC_oFxHZmq8TN99EMeBRt0Sia7_4HTC4y7Y_XVKw8Ous35qOumk815SSyZhhf7-OcYx_kwXzsN7VyMa6mxwRf4gcsG4NEemsvYKY75Ikb42IHyf_Om5R37cC6vDnF7uFWT8Jkh93peIOUv8sXOs05zsFGpR6kgUnhWJE0ZaLtxjyFu-Q_5naenZpXgY4_jjTRKIvC6lMCi1qZo-rJM6yukcqlNSNqLecXFQO8CLrcv5Uya9CkGWz74k734LM9-vqK75OZER__rGbInB3_Zb05XOtA9kcadgHugN3qU_muAqIeZrQ2NczFodeKpVkPp7Vw6-8QerhIxJ12Dp97wETn6CMdfl5-fJJJlNfp1LkzmPJiQfueIK16hpbOWvfGa_v8sQ_bA4AKyue6Z_ELO9AQ4RW40Ta3S8U0rdWaOr0ShX-uDg4HB-l-oDG1RKJWwPomIbM3b0yFo8dbH1rCkqWZbHW_4rDzI6sVgs0IqQNWU5isSB3VexZfFtfsp4UmFvuVC-nbQqhkGf8wBsJ5xUi68zgXrj5OXTYEh9dF_TvNfPE2x8R-GF8pV3_RCYynVwlqd2pVMVdug8mChyUadbQYdM6y9CVSD22TsVIHa96n1OKrU6hk8YN0d150RRurRS5nUsENtV-7v9fRd4d8qwawh41gtamCbPbHzE0bv7CL1Cs0jkJb8dCBYFkD3ip3EBIe-gfsjfoiNP_-ZV4EebT4AgnQAuZyA2TN9jwXnSvtP6V2mx8q1NFxAeSwfNnnxmmMeKRsOXiJHkaC51pCK3BRACw4RMYMXYPaXP8WK5O3M3UUjgwBrzjUyIH1SZMlgU4dkuMttpcS9S2copdZj4oBXFt2FUrTS6DIwz6PgI2eKUncTIiIwB2Oz_1E5eQC9Ba8A-Tq3X-_G6fPBHVv3VXFrIKWTq8x1MP08P48l8wT4Ck9O5VLcIP9-SZ28-mQIlm2EQ90Bl0o03S0qZWc8gC6uQ1GCS8JEZ6hbgf4VJ6bh4m2rZLpswsZTX_vX6uncpZRyOkuwTL4wD2KdG94sZfAWMgN-lohS_5TpE1_zlUp6A-O36Fu6eIRakaV-NYaegIS0CWUwqQMKp8u9gs_NMPrpT",
+    "summary": []
+   },
+   {
+    "id": "ws_0f9750201891ccd4016a9c6056c53c87d29bfa8595b6174644",
+    "type": "web_search_call",
+    "status": "completed",
+    "action": {
+     "type": "search",
+     "queries": [
+      "Capsule CRM pricing official Starter Growth Advanced Ultimate per user month",
+      "Copper CRM pricing official per seat per month",
+      "monday CRM pricing official per seat month",
+      "Zoho CRM US pricing Standard $14 Professional $23 official"
+     ],
+     "query": "Capsule CRM pricing official Starter Growth Advanced Ultimate per user month"
+    }
+   },
+   {
+    "id": "rs_0f9750201891ccd4016a9c605c87c487d29c311d528bb6e4fb",
+    "type": "reasoning",
+    "content": [],
+    "encrypted_content": "gAAAAABqnGB5ycu-no96jsTX7aUERG5eBocwgLRttZnHAVKABR8pnjCyUFlXSw8Swwozl91_4Bvo09UzHQW0OkjWCpX-7fyk296VvwnzZd-EvTwubXT3k7Rph97oCnaF5hOuhGXRSC-7X3IHMjUKXZUh1faauNYDU7IJC5a3UO5uy-a96NdpSxyN2f5endNZfvIQV31qW4tWthAThjwTghKmJt8suFR2crKzXMwF59uDjLVVkmLnYyemNA9X9Cpn0a-4v9mF1WTZ4ik_LF9-nfJY7Zy2HCaSXQK9D7WpmxEPQu68H0QhdqjKUJrsOxYuEFdLAdmpspVxMeD4fxQ83qeJINGozuCFy6pr4njQcO42TYUPR8fNjnmd7BXPRgjx_2-hwpceM56UP5GOqejDbMidSF6YhCSVUnROpa35qAYXiyP9dlQZw3z3iPR0m_9rk9wr9oAHuX1cayJcjAtMyy_AsSC7XfC-8qA4TagVqVT6nu3n5g-otw9ZOqBUJrTrrRHaKRewEcX8Fd4Lc3NNYYAwdXmce-xvdOmxQwpB-DQWBCQ3uMlU3d3l_OCD31SKEEmK9t9vO1mbecjAaImVCeO-NQK7ujvkrLIIghQ9GGlMu-rmxcs6Q4iPnMOhZ8EVXevBZp6X1H6qC2ENvXSPF-WY7YAGk7iR50xzxq20TMMoDxEHxmZAhPYDP821UWLHi50RxgSma_5n-usJDE4xNCAaIOzhE480A1mvR0U4bq5O5uI1Auipyo-ue1YluADVWZVMpc8EUolrn8T5wKQmIGDQh_lecxt8oj_gPGTFqaEFtOzmMbf63MwgmTMQBp4iJNtGw6ttQ-shOkcwBSt6q7aCDrE0lHYJHprRE7E36HOhm4kICgd6O2bElr4wdHh6DjvI9xJO4G_MhX3LWBZnq_RKarxWR_odytqLGOzZjzpLX2K13R4BXbpZEd2wfsVEWkpwTZ8tf72T-RjdlI8bluj8uDRWQ9EsmaKIIBEFVlXeqkLayoGmc0bbqicUe5oxl13ysCGcqxPJjW_HAncQzKSjXv1z6wnQecCLVw1VpnnEfhE0MvSHlGRhNkciHnxCXmE-DiXb8f4T8_mwaIRdO_pZ7gctWw1KOu41VJWkj_5iPjnYb2ATa-FXyqwzg9FhRj1IbvgaspMJxS4v2tFuKU935LRkEZIHbFgW7jEb7BgarlKyhZvPLSP6eJq7kHJOVWc7_lBiLE9Ub1eXIepnyAE_MS0wyTGfiIZ6ZO9xrR_N7l5_ZUIg6BKtT2w4UeuoaE8TiXMX_mxHiQstvOhwxmY1pjkOloSGzCXSUbKwZUw5PXd_RXPR8yyimUEQVeNUH68YaF-pVYx56UVKM2NlD6dz0B2YES6LM6s9LxYFbRKaRJkmksi8gd-c3Af-Oa261XkZXbRpEgMygEkjOKdCYfgveyodiM4PtQO9PyVkNvVrxMiSRaq9Z1UVf3yma6PpzfZffIChAyeJHzFCp61dUprxf5rDc4deRUyA2qsEh6TWm8Sc-I01N8qkQXTtVUZmhIoGEUlS_8BxCd8tBf2gO0g6DajlgiVrfJg9HIsnS0cZ8lO0NSrz71KyPTAjltTi4bWR1OddPpap4G-5FSfvXwwl2-aBhWMu9A3C8xsVy6j3w3TlA7YokuIITPZFFSTA8dRzI0TVF9vk1hRQr4_M0xYTGPyDbyi4Nw387k6-E0hd7WpjF_5WUUFjqzUORfyC_DPpp__OUb6LQEte-OC1JdCJO2TnC0L4MDMSt8UdRGrs64CvWIDFAiFuCHvQ9nOfqWKrrz-Pxmp8lXHLFtiQTRXuEhhOmKDiZqz0-ckQtgFJqQe4FIE4OSz7ZqjLUrihelPa7Q4wdu8VslTajjLkW4QZfLNQoQ-8bQuli-3-q0FKQUf9mbKp0wEnEX-gYOUKxgNCjAfkYmN9-x7d7Kvl8sqg186YZD--zP9Mz4YmvPzpbIIx8jkFamLbACCV6oXN11tlQas_7L51Wi2cfi1kz8LCfEIBe2CU_KdTOPW24u2ZLpzOKiKtzcNsELtZ2ugcfxyWpti8aTZ1HpZS6h0r_NwPDxiR4-_ur002FC_mq-nG9-6XzhfwKobFTeRmN8mN3VX_TyZCnKl9hymBK2NMWFbJRiu30-ziEptwvFbotKirLKXUDhOpW1sfcy-UF7i-iCqpqG8Nft_HUZgc1De1lP9HC3W9glFA7V_tYQrZOyhZGW_eBEcjFDwFcxpj0UME-gDa3NZ49AsnK9iu50zNNeLe1ARymaUEITNh-TgTocweP6m4IlZ4XTr1ry5YIgLfHYZz_PWrb5ws7Ng2uiUkvCPXXBAt8fn_IZ4VZgMFFsPa9yu70-2AlxQKS8LO4XX8qYq3auQTQXk1mtjd0mCNOPsUenc_6n3UyAu0O1InX7sU4hH7EnKMrxEvVZCbOcY92D0d34jk3Ww-JXZtMPyEmk34eJxqVWGDSCaZ3LQMyreMOuiFmuR-wIXVCNIYFLLNGwsbVKwOJ5ao43OFMPEqb5e90SRV02U4QbFPVMSgc4gPUCKEact6aTSVFLFFLRxix6Q9jXKeYzJEV5bN8CYkjANSY_IGZrLU6Hys--K40XTBDNEsEWXwfJBJiMq3OOHA8_rqFJu9arKqDOCj4ajE59v9EIZoKNwC6_h6ioyB7DzBNm9dgohJIVCR8-_NWR7IzDWfRgu9ExhfE8wQ95atLjG3lKZQnP_Mu5edk6cxh8xupruH29smK1ZxsGYmWwGbcR0vJ499zjA7XNbnmwezl84uH42-izA4AN0i-yMClEetdh8mecrHINvnzUumnCgBoPAVlH0BhZefEQ4_HZSCd-5EmoMIfWLoXV42n83425DFFWT_AcoaciC1s3lR5iAP6YcuLB1sJMopXqgc96RhsXOVD40swqf7ci9tmz0EtId2anKbRBL36v4uaMTfHIR1FrVERwc5wD07Zs7hy5d9kE1wkst471UQYa2pzXtYbC75y0bGgbbR9G794H-yv_nIL01xOz1RBdtRoOuKRPVqF6QsbWl1tJdn0U_D8yX_4HWeSNxkdfy--Wo59XLXCftdid6f5fdFxKHOmpMU_23UpK8b-cTUgh7j9JcNNRsxS04eO-zTIbfxA_hcVQvWNRPKx4cs2pBLmJE054M690Kq1g9mynso4a-EECwdVH3Zo4eg46kOL2c9Cw8kSSlyEDFpuzyR8uiq2HhGTw9-r8E7FS0cWKBQl4uwEVieY_kOxU1tL1-JF7MwGPfjuTNN4kwPDSXZ1c3PO22blGbgBacVQn1OsmfmysNYjG4Ed6eLnJIlp-1xW65Znuu4JC2lxWDtTuIrOnA7q_kyRPTVaS-kyz4Z_8uzeNGPIIqc2jxaoAuTJIkS0Cb9KPY9WGOaIEUb_ViTcH53JyN1dxJZkCLFa0KOKsRGOq-lZiITYccFj2SyQKuBMs9Kzl2LEfvcm83ahvr-cJCzl9tRxznGqtkN23iHR57cnmM4C3fNqaNpFtkU8Oes9lxTxZUSgfIhQ2hlRk8VoL9K2PZJWXf7Ejq75hx9VvXCgbQmLwJ_Wu9fLC4F3Wla61RWlwmx1phFnMpdVARhbYFDv5iUOtWr6YJy7ENWXzoEmDTH4ThyZfOhEoUpv8pbwNYc0WC-0tkKcBq-DW5Sjx8iuM-7mtKrCb7EZ-06rCuPkZJBHG7BY_JFcBJ8D1qtO0-trJujy8p_Z0oKOZ8aDwhP4UFoZfLxRpp1z5e_JWYhK0NY3YMkKOZGUxwjE5062w_qbfZIEOKpOSVd2uB4o3MF5MAbaYs6-grfWTVUZC0ds2lCCjH163n0Y5Z8V-pw6e1ISOqiLToIzOTPSSycr8tiEZnO8wg-8P7Rr96QF4uizhVoOTLgaaMOcmfdLOABo7kgsYG2-jp6zhS5d6P_-ib_CRgK4I4nuaheUB33sEJz-DrcUtnCPJ9qm1dXr9MwXQAD2YdkzmdXmPfSCEl0kf684vvYROTyOtz_ZZZWayuJLAv98JD4F3UZauhkNLvgglEeyPep-oom5wW2eraQ4EVrHKSp",
+    "summary": []
+   },
+   {
+    "id": "rs_0f9750201891ccd4016a9c605e97c487d2a24610d5fa70852a",
+    "type": "reasoning",
+    "content": [],
+    "encrypted_content": "gAAAAABqnGB5P0wFII3egZSQVrfe8cg5k7OmuxU82Nt509JEgHb1uxkxStGH5nNqLmAtYW5dv_-mH_8tuEHJLkr__07pZrjSJK2De1PwpWUv5iWsOHzmdY4dpdH_9eI3TGU04K8uncvveJNFnZTbZwjx-Wpg0WM9BBQPwnwD_uLUAsoc6YdHQGL1yFaPmqt0mK3uqAGT5O6KGVl81WW9ryv_uF-g7U0giVu0s7QDFDcfVQ3JkMtYu1j_nZmA9EYPK5OCeqxbegqQhqoFUEDXwG_yXjbfU2N_PVTrMjoS76BZqpPbZQ5GdtT-7oDC7QdjZpbj47W1_SPCwN6o6BZYkYHyKzYNk3lNWRx7_ZAQ9jctZcnK450yvoMT8GiciccGzJ53PsP_r0m2GFYU3icXRKg0wvf5VrTjGyaal6MiWHfC0srpOiyDYp2xX_2By5CCySjt6RsFMIebLItd7VT0WvgCETdfYLp1rXWqRvf26sjDVTxzbALO5FRTtkPCYXbo8dbND6CM-4Y8bt5YPBcLThV2Bf8zZmALMBmbLI7m1ZanBKhC1Y8fwMp3ZoJCao12bRz4megVFZNJ3Tm-ztmKyJ0KHvOJ9G06kKEXGFi1C5QdADCAbjIJ0bj6KuC-yJMV4q4YEox4OOoT8laz7z71wp8EXm8gS5wxKoGHqmm6JlMGdQx6TX7_WERZLn94-YffinRk7Td9cAaYcj0c1WjaolxeFoC_TJKoyEwTw4Y1BCisC9bVCmveKrGMuKLUEEJ659-CTioWJ9JqvLAlT0rSo6raklnIDfX1Fvksb6KrAqjXfQqW76PtnjKPJ87nxOCSHCSUea3gGLLtDK5-sXbeq1SaVWNqAoi5iHBKGrbFgDYHkdndKQ1uYrhhcw_6wOvuiU51ql33sfhNjyB-jeDxPCcZo64xkPQuS_ujUGpZnfcf64c8bV7YuQalANgcBWm8dNjZDavj_eZLk1aZsbW71RWYj3eLKT4OynRRvt4i0g0S2yoqi_TzTf4ZxE8ykURoFUqO6wepwJlott-e4m5zqvBOv8wmVLXytljLWlir4q1g_D-Et1B4ZSh29ILVZ946NyHhwTW_qYFXGBGYRysIThAzLBD5SfIWPKMxdYAqWqWsQSai1kEbfp44SP7GEdMi1XF1CO6CwEnFyj44DCPhmAowKczxJOMv51CCcPlZvPbg_Bl2DDjXZelYc7nbbLpOfx6Bj6DsYctYJqoR-L8vX96rMarF5ubm6G3w3CSg9p-echm_w4yPNQMgEVzOB0JDrqRW1s7unJDXVgVupDdk1Qx4M5ShG6nJBzT0Hl_Y4qtx-WH8VAmzWDqKZ3Znb8HsbxcxnMW9jUj8qrVFRZNEZIaLqIxqYU0Spo-zM0Lp1ytdODqK8bP7o4kk4FGVPecUzDpAsU5Gpzl4F7Jm0IMLPeqPUKTcdiv9IfN_oYJZi2lVi06D0VWGMTde1v5BvwcVx5EvgfqIYtvEGNfHGID9yfX-_7GTZSG4MvPTXk0LfKNopSNfMuWQM7usiKXsHXqhTRNL9dmrKVK_76CH10FjZsCusQguW_gr3lXC8MY97VZxOkmj2jPyhE7l7MXEgnLte3hXgJ1FtWW9Wc8_9pT7GYsIhZVW5R7Xcsc7OAft1lcNSJ5X-snnd3WNt3RkRpOt3Nd9qRn33r6VrLcqtSwd6zof5ms55oH9v5F44RCRcRlESmIHg4hwiDDB2nml2qPV4kz0312hXcj4eIZ9Emd8Pz4akbkhaHJxV6ocsoFAKg3gJRl9i591q3jjilZCRZyXj4ISN4XILTPiv0muQLEVwUuoeL2AUjrLEOFIxJuYuhdgeXmTZAT_OCq9QCvWRsiC0dimEACxha_N56t0DtWAi9PH4NvVjVNO8SWvkELTx_KLDQub8UcEhhuHgg82z2k5O250MH6m4xueFy3AVDudBELUPAcCx6EJmQJzyt7yj0--z1aa8a0NnSA7j3ohbhnNYOANpqmdC8HIalKj2uprvm5cYpGGKpUHiV7MceZj2TVsR67QMj9utGUNYF9yF7rAWE9A4hv6GdvEXgzC16kQ845C12AlQKgU-BZawP6rgXX3JB4vqDuWLk5209MmEUSHkYyQNCqiKRwkKbgp5noWH9TIKoFeu16qiJwTBgaVrE3PSbgqhanF-iC_oIrxxkJ7mCy6q6-VpQv9ucOjDb1WPLmLXX8jrowPuhAsqOxe6rl060oZEHo5hAKp4GvSASaM9jb21Y_8YYy4WUCpKtwGAKazyfOVzvHHCh34XankfgSJD-9KV--9lU8LYH2dkbWgHyUcrdFpKUjs",
+    "summary": []
+   },
+   {
+    "id": "ws_0f9750201891ccd4016a9c60610a8887d288006fe1e10852d8",
+    "type": "web_search_call",
+    "status": "completed",
+    "action": {
+     "type": "open_page",
+     "url": "https://www.zoho.com/crm/zohocrm-pricing-calculator.html"
+    }
+   },
+   {
+    "id": "rs_0f9750201891ccd4016a9c606300d087d29f58e0fa3bc7d0ed",
+    "type": "reasoning",
+    "content": [],
+    "encrypted_content": "gAAAAABqnGB5HUiDtWR4RSJcIWSWZJCbB0gJ4mJJURtkSNWy-zZhRK1NGebJUD8qxACzWBSnYaLenvkb1fEW590C8Jk-AAcBl3xRt25E5HdTp4jNlPEycp0uCDGNLvDNsWNe1W1sa4rfo4KBFOvaHPeMFD7WbqxJEuq05FjJkvGCcUSZ-LeJxyq7Vr8y-QfzrjMjurXpVpd_MS5tDII0JzKKN046oEGaVPpanYC7g-S9CacjEELNyUSACPTcTg1LjHgeDp35EW2jIBGaBUi8XBUGbKvfE0McbiKwUOMgpZuh8QusC5TNo0-PdyETQQYDCgpe9MoE3SmrOMuxrJZdL0pUoKLiTPwuXKoY6kICMFGmqvuxY3RQrSzHR6e__cFP7uJfjbCL_vCPlz-5MVZrWcAyxSQOcaYwE6qGGUoo77yez7h_I3RU3SWEELw704sD73jM7DtOmI3B5KZsi8c-tk5QUnZ_62vLvpnOiY3YPGJyPqpDlxIy9ZKHYKe11cj-rLjhs_vQakwUFMnIb58h2HvI3io4x-k5TDYP0WLXm_SNHOYOgoax__W-MWu7ydAjxSQhPUM7x_XIT1zURj5pNmUhU2jQGis_v7Kdx3haruaEjLPAp233Gg23zs-e1c-YUmNZNbFz549yfrPo-17NkApw-RSvHIXGc4Ry5jF5eFWHbClU3d6hbtnQEsSs1SU9CXNz0EAbO0yzj5fr_YSln8rTiDWl45RTVcwJENQDMnBuWBZRdqp-DHJ9TdRwl9S24DfwbPoOOM8nLJ3Qpi-o6H_zYRnVh0jIOFdw-N6PKnqbXRCR0lnLC81_M33wUay9Dt6IQ44Y4xDl89sYCxNZd10X_XADwTAgMD2TmQXuk3Dc7ClYmple0F6cdegVZI6eK-sb81WqFPf-bC45ieDgx5tsJmPGVEJngVbLjBmyajnMn9Dy7hNxrIdnqxE7DOwRJTqPFwJ_SdXatVh9QLr4d6rO4hPxqrh_7tzwWmLaE9A4qifQUmodnNuMXn-OXLfBYH4tABmcJ4NCBF-9bQnsF9LaZdEKt8KAYG69g5AFAy0IMIfWM8tMtrTl20Wp_SIa2A7k5dwZa-SubDfchqeiowZqXnHf8zJufDlNyXdsbHqvMFFbWVkYsD2rlcVehb_NR8x2AvgScFQEUqmiXFKEhI3KdaUtQPli1J_K4GjR-tlerw8-CcgafHKIFNXynTcvpSxhkRXYYStE",
+    "summary": []
+   },
+   {
+    "id": "ws_0f9750201891ccd4016a9c60632a7887d2a0f5dc7c8baba4f4",
+    "type": "web_search_call",
+    "status": "completed",
+    "action": {
+     "type": "open_page",
+     "url": "https://monday.com/crm/pricing"
+    }
+   },
+   {
+    "id": "rs_0f9750201891ccd4016a9c6064794c87d28486921295c760e3",
+    "type": "reasoning",
+    "content": [],
+    "encrypted_content": "gAAAAABqnGB5jAGPOpBiR8nLhADQFzMdEY9v2Kicg4ZQ5oBOuICJA5bvbNmfPooxTDpg6EcOR2yhg1TgdvhWpGI8002H09K2gv9__IZ91pXCJ_RhwYAJn9Fd8-RbUtyC42jWj07TeDKDZYjKrasRvhBSe5Lq9Jlaan2BaJ9HSZm3K4qRiiODf3rQ_5GIgbdrl_BRa0Gc8ZNZf1gLNvV8KoruI0KQFD9yTYpazhBADwQYCrsA5hqc222JrjowxRxFYJZriGKr8eYRWTTMprRYEL5w_jbaK-aGJ-92MxFbOIoOUcNxa9aY6KwY9QyQBM0_VJGH7OzrvxYbW-52IVmha4n3Rrzsb0Nj3HJDZvjJ5acD4oHy_q7TOCN6uro4a-3Fl7wQuBwFpHrgykbvDYzlYSBqSyGIsernMSgFb69Fbj31thKNRicxW0Lh_hNxdnZL-6VzD8O4_pVFAlaOTrDfxQhyuVdRXM2ec785ORZ6rA799ptgxoKXEpaKzlsQj0oXKBU4zq6lpOJOs154WUasrV1xOaxD7xoo1I3fvtI4Haqq_HkIH9lh6u4whm8V6eVwdIFHFmMj9NKQidpbTArmjp1-GiNwqIp6SwVeJpdGD3oCc26Ht8uQ2vpgGhXAeO9b5lOGZXLqB90PES2WSiwAOllHlGuRoAIlMLK6gj_lS34epgxqXBA34sfH9uo-JRdy8cTOkw2X2WS1qD8MktJ4RVVH5GG3bylDUxA0WtgF1tzjHrDVXF5bQVRCxvmDXsIGTCGSCPbv57aPwXTRSizquZKYKzVmVo9IxFoqhBkqP5KqUbzkDiIbqaWRAXbuMOJJ5EY0I_ogJBPKS2MDwoFg3PvKaLMzMrFuSZ2fFYnunKuj4SztMe-jJN3uJxfBOAfcezwUMiUyIM54cSDXerb9fzTTzHb1UkJbATCgeFwIYU7t6OCfyr5reER9cPLHmtdQTfc-wvuwbvFaedWwmX0G50ablpNT_5nEB0BRGv_TR2FyrQ6LnkjRhAbZCXizaDANuabvoguCEF6DIaevhThFkNHxrF9xDSM46aKDE-sX6HzBCmt-EwkYQMkwmudplANpnS_S02mHo5uyNhr_eiWuqNPovJDc5zld59Ya1SaaFGklL75kuKo7btWneO9isW_g9wR4mft8etgXjVXaQOXg0Y984P4RS-BN7tsayvMds7FDetaGtjiGA0th068C9B80b1EElzXNwwveGp1_fiTPleFCWiz1q6-rdYnbA4dgyCuWbXZCFVBASMIqQ9jdKA9WLFNvzPKyHLQtZssTtPUOdCmx3ZdC1cayQfp7CdNFB-HYoeU9n0ekRTh3xjy2oGvgSxAZkBFcSyHozCefBKlXrd5ET7DBGurVA7uWmlRLggaerLs_qy93ejzukhnoBcCDVU2qFQZgSROaOkx0fc118M6MCAZIF5EE8xk5tDPrEe5XC-lrBEP1sI4=",
+    "summary": []
+   },
+   {
+    "id": "ws_0f9750201891ccd4016a9c6064e1c487d295fa4377fa9babcf",
+    "type": "web_search_call",
+    "status": "completed",
+    "action": {
+     "type": "open_page",
+     "url": "https://www.bigin.com/articles/faqs-about-bigin.html?utm_source=openai"
+    }
+   },
+   {
+    "id": "rs_0f9750201891ccd4016a9c6065ecc887d296462ef331ee11d8",
+    "type": "reasoning",
+    "content": [],
+    "encrypted_content": "gAAAAABqnGB57GDyMF3SxYjy3hTxDygJWglXuHyVl_dbASlpTF1ZI_fzxbCUJAUKV4pL4gXXjZY2xu8e0M8fBsMlBnlZhW27M2j44YTxye62k837L53rlsstKEbFyvzsJ53cbqk0jIv718qAqOdf22kQ3j6WgKey12yUBAOOqzjQ2ntPOpUJ-Kf6OeYjJQ7P4gM-JTg4OvQPaQMZ7sTfZi7SBbsf-GsE2XOfSB5_srhuPheuJIp9M8o2atVfeLk2hXr6NvdPDN15mmx6kHG2j70dw5uu0oJXh5GYOTp0gnlkND3cpgqvzGHfoZcQs3Uo_vXWi6A7Bop06KSM3_wkMw4AlD3tYWI0cqRhGOBGdkhMi7rxt_IPIwRTKQZ1LunaSJSEvet3AQwdT2_f24Yio2L60BOytLnO8AZTrUEpGMNB2SHxs7Y-oqruIBny4BsZziqYk4LyMpNOAfO5LKq5Q2jEfQKQw49Cvpe8hs-mPtwR-0CwPb7f_32a1Kmbj4Yhao8f6hcTahIV1tLb2zPsMbW7ndzglvkFW7fjJfn9BWOd05o3XBIC8dtxpgdKoY1mQ8ENezZ40oLsQ3YHdpY4LEIxFpLuRc5BHVzEjAWEXtzfLqW0YVTVgB7BO6UyWfBdLxhKlv8kMlK9DOIOyfiMI3AP1QLFgSBc95tdhGxtvlXYrucu6myeOCgaQ3019Nmm23yC-8axOXPoO-Zq_DrefxtVFmsdRSmYyT1rlX-IRmLV8bkukazvWv6BI_eCxpmi3Gjnw0eSi7mvG6t61fasz0gTNro_QLI1I4hD7moMs2E_XRQt0dtjSarYHsE9QMmy4Ij5HeWwKBHC-dvPr58oqLKRijCE_MJwJpraySshH3frAk6DfTnsVr0z8PKiNG1I4OE51JUujWDAlYmFjvaQ7qDRUSTHNlZgcKlNbBHbcNeAbEt7_0cX5gDlVTtG9Q_7Dc5IhxkQocmCJRdt5bWp4FQoMZWfj4kDg92fjZFMeLLwiFnc-EbrsFk_4b-WjT2v1hFPLH3adoDdW2zqVCUQ-m5yfQ1x9ZWESRREp0trf34Tus7NCQYpbS6bRWz0MZ7bTSS6MzoXBj8S0xS68N3QOcv6cH0sAmyov4yUedIWN-b6V1Le7bW2EL4dW_iTfjK1R8VrsoCn75JKZPEVo3X6acoUDwomVqTk4I6cdyShwhBj5uLMQBxht9P7IMtLRZwlIMcrMcotHL75_OaZybW-gXthgNI71mA-cGG0laf3XlYXIp_7wFsXWfloxWJfTjJH3oPaZwl_Ef5EJOPjhVsf6He60N7D-YE7Th7QVKC5BPXnclMhghgthE3kQ4j0X_wf9DW6R80xGsuIwk_aNoRUqK2gA7GAImXBf7Kg8FDptdc5aS1Ed5QHUPuNFBJODxrWx1tb39FDcfNqAKDHO8rLv8WuahhRkXEeHBolgghDTlUjMOsp7sWox99kPVyXr9w08fHZkEiZxjM2tr-H8vatjwwF6TEA3mcLRm5qph4OEa3EXMGx7bgZd7BtzbZxSXskkKDOJFrT8vY4ksXOpcqglKxQLPn1cSUUxWVzpExZsiKJe1JmxCGhkhyHKWlXe0gCQRdJu-Cpr9NsKcF98hPhUpAdIA84PuoP31NAzM6iOqOzuswFlzi1PB6lGbbmZnXoCKA_FK4i5586BrAFDOHS2dpA60RhW6gNTyq1vXzvsnAxu7MCqLtbPwNvPtfNAuWIdsEsqgB12zKm1tgPY5kVJULuA0zINyykp9jVMV9glFjoDHe2x5Npy5CwtT2ciYt3Z4N0a7R0AWOIErlkNtZRxR43T1xSWeJmNRJEKo2ZyIKJSZ49bfwaLz0HcpQTdvb3CDtUb0dJ73nDjwz6ZrUEhwjq72MstxTRnXOAb4bds3hqsvTwCf2XOKUpDB85Ny3quY_RvnPHZ5Hkiy1lcTS89I5CoMDKICbzA1zoTVENtNA3Wo9ahghNWOStTzn-_6EjTlcKiZDnUb4LlzsAQiDmhIlwNM-8-643T3Vzw8oVX7eoEM1fDqlKpWmz_hGtnxUV1ykHt5_7D96X61nQhK1YLjpmX6lr8mr3MQu_gGsVXoEnkrWJeWlYMPzf3-0BKFJXEgJAJirsLGYqB3fJZ7ExMjKu1rXbtrr_cMwS21EnMOi17OiuTs4Fr-iziL1VnK7XO-LljGjBTk9f2Q-fqjHBDvpAw7mZMfpAxuK14sc059qAdOmhJ9aTyoMN-Yrivx-PI2nbNyoXf4vbmpqIe6my_49JUmyNzKocp_W0_O3tY2UZdmRZakvpEtEGA3xwtNm2TOukQojoAcs4K0Wr4ACDyYlC2cklVntrz8vr9231I-efmlxtWOnIZ2FHCr6hRuCdokLy9GBSq893ywhDzn5Cl688z9Yh4KisWHc8NaYMgS-n920_Qs6LngJVHdz1UX07JvPxqboZb1bpUSjiPtqwih9XMYhOYwa_O-HJGmC3F5u7CxKba4eNUnKOtB27s1bvAfei3biGw6I3_Nx0bef39cHFE01RhJpA4ewoS7-hW1Ff9UChvdBZyK7_0btWuccoKgQEtERqaflIG1CEDtORxGUx21nFQyQnJjuAb2I6M2gHNymAzEYh1bloUAVHkXy8p-YEJErkrh2AGoqEMFcXOQtYFvAsQ8_U0_zY3G1Ir-dt2Jr9crqrVOePZxqB7fJcwvlKLfMIB6V5a5M5cbzkUIr8Gf4SGhpJzu8DiVUmVv-iybGTU1hBazCRLUhaghhbJzOrPT0qFMADB34KnoWAbE-e4oqZBb8472Zw575UQBBHTWUrnmqF762nTh0I3Wwu76vSNXFD-0B44xZ8tCCly3ZRBaIy-LiXPmHbkkVcHvbcxLjBtjqjKe_U6m_wtEagm-fcw-T-ZNjWiE1EehdXVBZIwnQlXxF20ZVGBlwzQa_r05uphIMpSPZWOxfBfvzVlLNfoRYnfQ8GmqlVwI_U974nC36c307MbPVGZIT96ITItEz-IuVq3TXRXf7JC3qub7DwE_Q4wHo3_MmUJ8jsEWmr3DDbIn65iDzLIAXguk51VkrKJRDM_n16eXqbkyrgYF567KPyBfF1qt4gVml4Y3x5clDP70RLrsa8LeAAKSBbvv7lEExhupIwR2kleJDjqRZbj1YazvvCCxNiR5Wk-362651hMhWmuKRG9Cxz6WJgL-9IdPlBpn7NIRlFAYTJoW8cTT6WLFdtbY0IFx6ajXF1qNJHBe6LGgeyIOLf9_7mps4COSLaZ8R-245BqwVC87jVm4m6H8jdmAJCm5XpUWHLiXxdgEnw905xKHCVTm-pD_tDL00IUMnI6GMNMyxom-YqpAGPiCl1PScvAZ8isPlh2-S0dFdlLms6bIJDCOMoQe-MoVR1eQAvwJJk4dVMQ1lCVV2eVFwB0vCWsOjCYZq8wfwTKVddsowPYg80P-IY68OOhACttXVa-eSWRmUkyoafYOMMkrh3Sh4oQLyzXN4TvH9SrarDQv0_utH1rEGpPnxLSV5V32DOYNaAGfMJ-qlX4s0TrrKojgT6kz0hZ8n247-K4-V-QiEVLalyXd6DKhPKKFFRKubjBG_PxRGhnNQaNSXjaCiicxIpE0vrLYEMOHovV6wRS4FgNKppfND46NpSe2hnAKo5Y1g0nl33cYGNRKKNG-5ZDCzgWCeVlHfGC-LJpc89Ml6cutZqZtuKfNts8Lxt6iLKC0ZKNvFB2PdAe-VsxJOCm329lM7Yy5509GWPF_VX8AtQUiLFeHgAXiiAlIggEJDnMczchzJXbkSppl5T8hvEWA462AKVuEKbncVD8xu1_cH8ChivsbvHdFJsA6IFe2012s5L5QMcFRB8ZbVX57f29at4XZ8N0qa9v4rTj2BVxJ8lZjYLPVGmY1wh_NW2J2gKGX10z1XtyxL4a7ac3V2FivL10VDlwm9XjrF_HAkJXuNAepexK-Cvku454efRoyGqJKYe4EDTi5waCapnMj2QUJDaIdt9RZnaniE2YLwG2a8uWeZNoB4YIkWN_b_g4LrdMNFzRAgxkYFeMD7m2MW4_ps7CUAuzzzHZ8wosNnaQ2cieLUwJigHrgnPRa_l5VHphDU5UVXo8eUP-lUwKuLnKxbUy0mbey0BeMvp0QAMaw==",
+    "summary": []
+   },
+   {
+    "id": "rs_0f9750201891ccd4016a9c606aeb3087d2813a5384b7b7906f",
+    "type": "reasoning",
+    "content": [],
+    "encrypted_content": "gAAAAABqnGB5oRmcR-DSJywZVBTFnX7ytVjql2WRHaN4dkxxM7Zm8tAWeRcvhdLS09hdlqERT7RSxnhJ4jJwGK2JZzkMstvotsl7-_dj3Zwv8QwNAogCrffJgrPkGgxoDw9OGBZKYhMgwhnNRqbOVmaAeG7kalyFCVPxS7k2MPRSfwE-2kn6LHld2Iu1ucL6w6C5YEWLMPRd5kN_nIm211xN8hAM05VnWSXSAfNxi9LkouK28vh59q057fVIFfEjgNP2X9gL9gIcPCJRIc7WdDf7K2IdUy3xOQztQ7H1oGnOHBax2Eym7kXKcnJjfX-p-zYQEkQ2nBKzvb8CXYElN1YoTvOxAhoRJhElUXwJR2JrV9osb5VvWZ8vOPUFbVsZ6SfY9HkEmE8AqfU3ZkUEz4aqkLByig-kr1t0XicDF5_l8o6lin07vvAekfxz_rP5DcOHMcVoEWmj5YlYszKAP03vIB2efoe1gUIUP7lxb1uAzX0gLXBAjXpvw575Zt9kL9HUUYEekfybH7gL1pVIjhqtsIgocqhJjrF3WREZX7dTgF6E8cLXwI2-ly5ilq1CN4KQknqF-hRhcwHCCTF7-oJUtmus_uULkGucXrfduBKVZAThoAmSGqZOFBo4IfTFxD1IPL78GGIZjWIS9eGovLWAxe4imgc_Ai50Ap5kAB9gL8hN0DHlXDsrQmjouoLVBZs_ydlfmPfofT5P61-tLNSDBtbjTR03g1hSd11eZ-frjfcvVz6Be4SU6_AqQ5dBY30M9jpXZtiarpf41H7CnrftKqOERk5Pa_fz-T0oKLM1im5vPbIA_Sdd10icFRv_Dj0BNQcppDmqWhNd17eDlHi5sJlgHX4f2zvnLVyYuLhbkc4LHntxxyUQJ6y4fS9Gy9bYeAdywjUdEav74Zd3RzSN_u4oDmGoVL7G4Lbl3KYntQ_9l9tQJEGmBsDvSP-l04ZR-uHRUFu6biP3YQ7nLrVNCCqXWL1ioXffcnoqhJ8mtLiN94SmR2bYFIUBdtbuGbTVfrhvU-MMDzALvjWgzQguX7wD5w_wIdYii5B-lra5RQGnW37iJPMo1mgvXefYjCcpMAodLyhQ6a6h7Z2__5QdhrIOP1j8fn2-DO_X4UjJ467xQrt27GuEWWypmVDIjkp1MwdYvQMjbOzydZvHyDqixHBh2psbpFOcgReWO3i8jVIP5pbSKKBDMhL5RAw6WJJWiE5X5YucagdfK7BWTEEuhce_eNAvJhybJTdkxwvnJx-zM_zQsZrokYXuIIquPELbFJWAe7oj41lo2aeFo68DnkbrR-5MH9rwSdled68hVjFS1bGpXrnqaxJcJdL6RjOPdJ0ahSxWNPEQNMgvgh9iNlwinBbzxDn_Wd3rWTa_LTEzZ8VnnMLvYtsgfzMbnyG430xy38Pad1ziWJOTA8_GI6KLs-_dOLhlNEZZL-95nU8p2MtSwy62migTJMQ4rwRvEoew31_slfjqJZNTECgEZbpxp7HZP6a5d2CqCo2l-bPXHwIsHVJ4g-irJxJQkNVfTPQAmw-BdwOi0dt3o2IopFxar8eCsy1IW1yr59PXn9vs0ywYVs_V5Zz15VkrDTfFlZX8juo0rBgCMrwG4S2wPVQbC3FbFjq4Rzh8Nc9-vZ1T9-pnPxt7GcQAwRdcVNiAi5Kk-We8qg0NNoAJmoMFoknxaAeEcip7Nc--1awOvlsCt6etYLbt9-7sPi05KWRbZ9Q4ghWbFIkE2TLqPqqLBlD8nOOFyIRCYa4fqlKoB9imstFMb6ZmqYoYWhnKm03Pg3pKiJ_aDKoMMhaSp7SQvG8SpPiLB6knllLucc0hlmtrsMi_fO_BMDJv_-mHpZ9qWwU-1suxDjbeYozTEIA2oMPGpIfQbEuTPX55kBE35h7YBD68ZoZ7hekED8Qwp3oXtLzbjKIUr-n_71srbHcn8rH5Tg5AS-fNeeVAhtNKdeApnGy-_Tyml2d7Xtx_zLrlsA5xZcIc3odFr_FysiomZCKJsSazcaIQPn1FzapcJ2DtJ-gYXnLJ94M4t8USWn2nmyY2QwoRCK8qXO6hb8Hb6BACsT3jRicuqP5KNsXs6mII3ncxsYUNzn0UEZYTkSCWHJ5UZvFKaHTCIj1hHrXmUcvMqbyoXaowf-yhCoS3O5k7CdfIhp4Nzc9IFxpg1EZnSC7rnI1GqQzZpLH5vMtixaW-ZxKe7ew81FetPzEX2L8b7pA0cNMyixLKthTPXlooqQkRjA6GT5RswiAmeBjvrsDM8K26GIeJfftLcJblBkguRryMQBEGaPC0IZGt3OfY1Yemnaedz42iI-BOBLDG1yZyUOoSwqTA1Y1UWXiJdQ0LW322T8S9FUeE_qmSzBAdwcmkY8vKFRqVnnP0_es8xSgPu-d75QGP57chgGQDAXo52SzI59NKmno1v_llYXa4byYYW2xbLiaYkfHstm2fiz5J_1of5THx-4uKiZKVPKd5qC3jrWAXcejBtCCZm7kMHrNSTTQue7-INUKu_qTetrExAruFARlKKCnMqfOnD92m46tHqMCq9vzNQc981g18taN2eMACTqj21dqPL3KtynO8veyPwIK6wS8EzYJ_epTvtH_YLFv5_XFq3LeOxP5NIa6sXI-PD-HIULLjUdZnWpihPYlLgJmAZCCvQCKvaIEq-nNrj6ZCbvmzq7QSvMjE_nt7S_8JK_7tFN2dXpw0O_GGc1UZXqon--KWVw-G-ol-kFNyrczALCaIugnk4su6vWEUElzttzfXOT_oSwoJ3DsrlAE4lUMyoG8MI5ekjyxShLDUxhUiym_vD_jTvK1AZKfMoxVkhB9sRh1sIrRokuhOGoGMOoiP4XPgXdQ7Nf99ZFFYYVeDGwtPUedRGHDMw2LPWIQhKZhEOnaejkdHmMiD-zlJPpNmNaZzfls0KbIuTMHapyLC-2aIuV-sfmiPhBG0xggK1vSj1In-CFvisc0QBls45Zgg_9GpZKFhIWat3riQbyPB0ugbu6GSigIcfIDZNJs4fMoPN8Zs5p7GFwBnH9nkfyIhj4ff2jQ6BBvN63b3aP6FmQc37uKx2GtjgNhaDfHZ2vUYkT83UxICw_0JMottoMxG2hsbDvHwnIIxpD2RMUvSGIe1etKlvdq5_3Ma1Z8hWX1GRhF9fwMg3znTiEfjRAEAiBiDwd2w5a4OSlXKA3q0IYfZFnXh2HM5_yYbLOVjCIkI-1iwc6HbwFks6qjGiLqkdB_tDfpP3Bb1kFPvLV-lJJ9S50Du8tVX98WRf-XwPQQWDX4udxRZYlu-Sy36eHvOVkKhV77z0HoxodxVm43YzHGqrcL0VDadiLYQDYIH8sz0x1OEB_q48Kqv0CG3w5iNR0eW-5rGOGL4MAF8UAHTLrXHXD_AJIRHg8r3wLE6OeUbVKVA6Qb8IC7lhFDslSeqy2B05XXCYrHf60G9ScHXvU_AdtMGPvE-0Tt7Alfod1sLtLtI-Elu8k0OPGCmHQQRcSQoYGp1YuATBhDUSs8dtNp9RJpHw0B9VKSkAKWGv4SD6XWclZPhVZcVMgKGuAtkoUVybpALZT1vQMR27UF65lVQJaMPP1PTDcBBKJ0RaczvxWot2g7Ag9msWi7GjqMthVi2gtrYTHiUlUNnIOx4CpFvCyD-gqVF6tawQ6Y4zR4-FicBw0K2nF8kFrEeuSf2hLh-d02KPPz3xUweW0SLNDMn2z0CqGuZvCTMrnWK_fWkuNvFkBKGEYpf4tpVCdE2-pMaKGp_YgwCm4iU0H_EC1G6dVAtcH_pDyT7Chz03UGoafqADAKNcXcc1liQXgxmseMkZjTEIKPP37b8Ggyrbbs0atrgDWT5bdwRjSRpZEmPubWCBc8PZY5yUqY53u1lfkHDQhZ5nXY1-Lc1rFr68Cva3lrX-zax2cli-Pi9m6TfOU4XIJRIrPXnOyqS6vnViLdxA7q4EZtQx4MrjShFKzGoDRi6tkC9dVku6g-ah0JQ7YqnzjD7KtDrTOtPZgSoqpAf-JO6WQ3QH90zIDSYm5_LVlEG5xvIJC8zVt4hdux0h6K5teuaKmsSvaf7kIQcQagFUO7LOiqgdhKcu6Fi9fnHCD7I_yaHrkNEUFr8AXDZHJ74AaMQM7yeaZHNOVOjSRTR-TBmHxagmkE85qqPNf5MdtU4BP4apyeEe4LagWk6Ju1JLTs_9c6DROXT5w==",
+    "summary": []
+   },
+   {
+    "id": "msg_0f9750201891ccd4016a9c6070bf1c87d298add8d4bf447484",
+    "type": "message",
+    "status": "completed",
+    "content": [
+     {
+      "type": "output_text",
+      "annotations": [
+       {
+        "type": "url_citation",
+        "end_index": 450,
+        "start_index": 365,
+        "title": "FAQs about Bigin",
+        "url": "https://www.bigin.com/articles/faqs-about-bigin.html?utm_source=openai"
+       },
+       {
+        "type": "url_citation",
+        "end_index": 778,
+        "start_index": 713,
+        "title": "Sales Software Pricing | HubSpot",
+        "url": "https://www.hubspot.com/pricing/sales?iframe=yes"
+       },
+       {
+        "type": "url_citation",
+        "end_index": 994,
+        "start_index": 927,
+        "title": "Freshsales CRM Pricing Comparison | Freshsales",
+        "url": "https://www.freshworks.com/crm/pricing-compare/"
+       },
+       {
+        "type": "url_citation",
+        "end_index": 1256,
+        "start_index": 1210,
+        "title": "monday.com CRM pricing: find the plan that works for you",
+        "url": "https://monday.com/crm/pricing"
+       },
+       {
+        "type": "url_citation",
+        "end_index": 1523,
+        "start_index": 1450,
+        "title": "CRM Pricing Plans | Affordable CRM Software Costs | Pipedrive",
+        "url": "https://www.pipedrive.com/en/pricing?utm_source=openai"
+       },
+       {
+        "type": "url_citation",
+        "end_index": 1816,
+        "start_index": 1728,
+        "title": "Free Pricing Calculator | Zoho CRM",
+        "url": "https://www.zoho.com/crm/zohocrm-pricing-calculator.html?utm_source=openai"
+       },
+       {
+        "type": "url_citation",
+        "end_index": 2095,
+        "start_index": 2030,
+        "title": "Pricing",
+        "url": "https://lessannoyingcrm.com/help/pricing"
+       },
+       {
+        "type": "url_citation",
+        "end_index": 2339,
+        "start_index": 2274,
+        "title": "Pricing | Copper CRM",
+        "url": "https://www.copper.com/pricing?ref_lead_source=fb"
+       },
+       {
+        "type": "url_citation",
+        "end_index": 2638,
+        "start_index": 2551,
+        "title": "Salesforce Sales Pricing | Salesforce",
+        "url": "https://www.salesforce.com/sales/pricing/?bc=OTH&d=cta-body-promo-8"
+       }
+      ],
+      "logprobs": [],
+      "text": "## CRM pricing comparison for consultants\n\n**Prices checked September 5, 2026.** Amounts are USD per user/month unless noted; annual prices generally require upfront annual payment.\n\n| CRM | Free option | Paid pricing | Consultant-oriented take |\n|---|---:|---:|---|\n| **Bigin by Zoho** | Free for 1 user | **$7\u2013$18 billed annually**; monthly plans run **$9\u2013$21**. ([bigin.com](https://www.bigin.com/articles/faqs-about-bigin.html?utm_source=openai)) | Lowest-cost choice for a solo consultant needing contacts, pipelines and basic automation. |\n| **HubSpot Sales Hub** | Free for up to 2 users | Currently displayed at **$7\u2013$150**; Professional and Enterprise also require **$1,500\u2013$3,500** one-time onboarding. ([hubspot.com](https://www.hubspot.com/pricing/sales?iframe=yes)) | Attractive free CRM, but advanced automation becomes expensive quickly. |\n| **Freshsales** | Free for up to 3 users | **$9\u2013$59 billed annually**. ([freshworks.com](https://www.freshworks.com/crm/pricing-compare/)) | Good value for a small consultancy wanting email, phone, chat and pipeline features together. |\n| **monday CRM** | 14-day trial | **$12\u2013$28 billed annually** or **$18\u2013$41 billed monthly**; plans start at 3 users. ([monday.com](https://monday.com/crm/pricing)) | Flexible for firms combining business development with project-style workflows, but the 3-seat minimum hurts solo consultants. |\n| **Pipedrive** | 14-day trial | **$14\u2013$79 billed annually**. ([pipedrive.com](https://www.pipedrive.com/en/pricing?utm_source=openai)) | Strong pipeline-focused option for consultants with a structured lead, proposal and follow-up process. |\n| **Zoho CRM** | Free for up to 3 users | **$14\u2013$52** across Standard through Ultimate editions. ([zoho.com](https://www.zoho.com/crm/zohocrm-pricing-calculator.html?utm_source=openai)) | Broad functionality at moderate prices; useful when you expect to add automation, quoting or customer portals. |\n| **Less Annoying CRM** | 30-day trial | Flat **$15**, billed monthly with no long-term contract. ([lessannoyingcrm.com](https://lessannoyingcrm.com/help/pricing)) | Most predictable pricing and one of the simplest choices for independent consultants. |\n| **Copper** | Trial only | **$23\u2013$99 billed annually** or **$29\u2013$134 billed monthly**. ([copper.com](https://www.copper.com/pricing?ref_lead_source=fb)) | Pricier, but its plans combine pipelines with task automation and project-management capabilities. |\n| **Salesforce** | Free Suite available | **$25\u2013$550**; Starter is $25, Pro is $100 and Enterprise is $175. ([salesforce.com](https://www.salesforce.com/sales/pricing/?bc=OTH&d=cta-body-promo-8)) | Usually excessive for an independent consultant, but relevant for larger consultancies needing extensive customization and integrations. |\n\n### Quick recommendations\n\n- **Best for one consultant:** Bigin at **$7\u2013$18** annually, or Less Annoying CRM at a predictable **$15** monthly.\n- **Best free starting point:** HubSpot for up to two users or Freshsales for up to three users.\n- **Best for sales-pipeline discipline:** Pipedrive at **$14\u2013$79** annually.\n- **Best balance of price and expandability:** Zoho CRM at **$14\u2013$52**.\n- **Best for CRM plus flexible workflows:** monday CRM, provided its three-user minimum is acceptable.\n- **Best for a growing consulting organization:** Salesforce or HubSpot Professional\u2014but onboarding and higher-tier costs require closer scrutiny."
+     }
+    ],
+    "phase": "final_answer",
+    "role": "assistant"
+   }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0.0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": "24h",
+  "reasoning": {
+   "context": "all_turns",
+   "effort": "medium",
+   "mode": "standard",
+   "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": false,
+  "temperature": 1.0,
+  "text": {
+   "format": {
+    "type": "text"
+   },
+   "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tool_usage": {
+   "image_gen": {
+    "input_tokens": 0,
+    "input_tokens_details": {
+     "image_tokens": 0,
+     "text_tokens": 0
+    },
+    "output_tokens": 0,
+    "output_tokens_details": {
+     "image_tokens": 0,
+     "text_tokens": 0
+    },
+    "total_tokens": 0
+   },
+   "web_search": {
+    "num_requests": 3
+   }
+  },
+  "tools": [
+   {
+    "type": "web_search",
+    "return_token_budget": "default",
+    "search_content_types": [
+     "text"
+    ],
+    "search_context_size": "medium",
+    "user_location": {
+     "type": "approximate",
+     "city": null,
+     "country": "US",
+     "region": null,
+     "timezone": null
+    }
+   }
+  ],
+  "top_logprobs": 0,
+  "top_p": 0.98,
+  "truncation": "disabled",
+  "usage": {
+   "input_tokens": 49041,
+   "input_tokens_details": {
+    "cache_write_tokens": 4405,
+    "cached_tokens": 0
+   },
+   "output_tokens": 3261,
+   "output_tokens_details": {
+    "reasoning_tokens": 2448
+   },
+   "total_tokens": 52302
+  },
+  "user": null,
+  "metadata": {}
+ }
+}

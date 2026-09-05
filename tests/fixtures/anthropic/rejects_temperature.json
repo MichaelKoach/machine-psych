@@ -1,0 +1,24 @@
+{
+ "_why": "REJECTED, and that is the fixture \u2014 this provider 400s where Gemini accepts and silently ignores, which is why a client-side guard exists at all.",
+ "_collected": "2026-09-05T18:32:37Z",
+ "_request": {
+  "model": "claude-sonnet-5",
+  "max_tokens": 1024,
+  "temperature": 0.7,
+  "messages": [
+   {
+    "role": "user",
+    "content": "Name one CRM tool."
+   }
+  ]
+ },
+ "_http_status": 400,
+ "response": {
+  "type": "error",
+  "error": {
+   "type": "invalid_request_error",
+   "message": "`temperature` is deprecated for this model."
+  },
+  "request_id": "req_011CekmhJiQzpJv5DN1kJGYS"
+ }
+}

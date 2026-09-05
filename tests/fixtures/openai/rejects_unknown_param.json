@@ -1,0 +1,20 @@
+{
+ "_why": "Unknown parameter, named in the error.",
+ "_collected": "2026-09-05T18:38:02Z",
+ "_request": {
+  "model": "gpt-5.6-sol",
+  "store": false,
+  "max_output_tokens": 1024,
+  "nonsense_parameter": 1,
+  "input": "hi"
+ },
+ "_http_status": 400,
+ "response": {
+  "error": {
+   "message": "Unknown parameter: 'nonsense_parameter'.",
+   "type": "invalid_request_error",
+   "param": "nonsense_parameter",
+   "code": "unknown_parameter"
+  }
+ }
+}

@@ -1,0 +1,19 @@
+{
+ "_why": "404 shape. Must be error, never retried.",
+ "_collected": "2026-09-05T18:39:06Z",
+ "_request": {
+  "model": "gemini-nonexistent",
+  "input": "hi",
+  "store": false,
+  "generation_config": {
+   "max_output_tokens": 1024
+  }
+ },
+ "_http_status": 404,
+ "response": {
+  "error": {
+   "message": "Model 'gemini-nonexistent' not found. Did you mean 'gemini-pro-latest'? Please verify the model name against the supported list: https://ai.google.dev/gemini-api/docs/models",
+   "code": "not_found"
+  }
+ }
+}

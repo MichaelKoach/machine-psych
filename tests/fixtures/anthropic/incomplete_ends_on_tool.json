@@ -1,0 +1,71 @@
+{
+ "_why": "NO-ANSWER shape 2: blocks present, last is a tool. A predicate handling only one of the two shapes passes half the time.",
+ "_collected": "2026-09-05T18:31:14Z",
+ "_request": {
+  "model": "claude-sonnet-5",
+  "max_tokens": 200,
+  "tools": [
+   {
+    "type": "web_search_20250305",
+    "name": "web_search",
+    "max_uses": 8
+   }
+  ],
+  "messages": [
+   {
+    "role": "user",
+    "content": "What are the top-rated CRM tools for small consulting firms? Compare at least six on price, ratings and features."
+   }
+  ]
+ },
+ "_http_status": 200,
+ "response": {
+  "model": "claude-sonnet-5",
+  "id": "msg_011Cekmb3BrDDaP3mdjAJwKW",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+   {
+    "type": "thinking",
+    "thinking": "",
+    "signature": "EuoDCpABCBEYAipAgBiDoh7+kGZwZ/Kj595Rj5WiB9OqKoPuu+m3aaJykVCmrQALt+YziOliDNOrS8PdfOiHfGHf4eODI2mUaql1cDIPY2xhdWRlLXNvbm5ldC01OABCCHRoaW5raW5nWiQ2YTczMDczMi1jZTNmLTRmOGYtODRiNC03OTJlNTUwNzExYTmoAfG/8dQGEgzuhsXeX+HAGtDNnXsaDJXpoZIT/dONlBCoASIwtwH+DBRHbGkVI4ljinVOgOpwg1tdu+WGy8GcCIPngUh88EHUm5QHoaVy3q0iCtDOKoYCJCm1Nku2XmNGZBAYBVElPyWLHDzIC9Z3YwIGmHBAExtfO9dBKyT2Ii/UezZI5LUr7TM2Dmiurl9BhAprGz5FQhhYCDvRxOM2qg/+3aWyC6rgkqV5/iAUjDmnMFnrwjAlHtdtLfNfGpSUtYXwvZ8H8yYo2nbN+lPjE5fm3HHr0g+fktJx39hzmg6rk5J2iSEXKzmyBGlB66j6zm6Wkcl166wTgME8VE3xHnDqOhq35jkCvUT+DLdCo5xJU7jXSbh/8EBYiUoHFjuFTS2EWfCqXfeTRv6FaVban6b0zLHPhpOKuEWg9UHQHwNVZah40qw1myMy31Hao4msIBKhFgMen6nl3oMB1hgB"
+   },
+   {
+    "type": "text",
+    "text": "I'll research current CRM options and ratings for small consulting firms to give you an accurate comparison."
+   },
+   {
+    "type": "server_tool_use",
+    "id": "srvtoolu_01WToG1tnXDL4rLdV1WaEPuL",
+    "name": "web_search",
+    "input": {
+     "query": "best CRM for small consulting firms 2026"
+    }
+   },
+   {
+    "type": "server_tool_use",
+    "id": "srvtoolu_0144dkco7fYffFWLdChQXpp1",
+    "name": "web_search",
+    "input": {}
+   }
+  ],
+  "stop_reason": "max_tokens",
+  "stop_sequence": null,
+  "stop_details": null,
+  "usage": {
+   "input_tokens": 2835,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 200,
+   "output_tokens_details": {
+    "thinking_tokens": 70
+   },
+   "service_tier": "standard",
+   "inference_geo": "global"
+  }
+ }
+}

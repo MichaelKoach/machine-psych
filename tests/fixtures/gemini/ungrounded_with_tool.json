@@ -1,0 +1,73 @@
+{
+ "_why": "CONDITIONAL GROUNDING. The tool WAS provided and no search ran \u2014 the only provider where 'search on' is not a study condition.",
+ "_collected": "2026-09-05T18:38:29Z",
+ "_request": {
+  "model": "gemini-3.7-flash",
+  "store": false,
+  "generation_config": {
+   "max_output_tokens": 16384,
+   "thinking_summaries": "auto"
+  },
+  "input": "What is 2 plus 2?",
+  "tools": [
+   {
+    "type": "google_search"
+   }
+  ]
+ },
+ "_http_status": 200,
+ "response": {
+  "status": "completed",
+  "usage": {
+   "total_tokens": 17,
+   "total_input_tokens": 9,
+   "input_tokens_by_modality": [
+    {
+     "modality": "text",
+     "tokens": 9
+    }
+   ],
+   "total_cached_tokens": 0,
+   "total_output_tokens": 8,
+   "total_tool_use_tokens": 0,
+   "total_thought_tokens": 0,
+   "raw_prompt_token": 224,
+   "model_invocation_token_counts": [
+    {
+     "prompt_tokens_details": [
+      {
+       "modality": "text",
+       "tokens": 224
+      }
+     ],
+     "candidates_tokens_details": [
+      {
+       "modality": "text",
+       "tokens": 12
+      }
+     ]
+    }
+   ]
+  },
+  "created": "2026-09-05T18:38:29Z",
+  "updated": "2026-09-05T18:38:29Z",
+  "service_tier": "standard",
+  "steps": [
+   {
+    "signature": "EmIKYAERTTIPJA+dBZcNnufEZ1KuEA+72HQB5yvqW+UBhWnIpAaY1mpQKDa3LjV+ppCOlUDGC7zIMRzwC7ICd4K9RoaibJWX1lQySOV2+Xf0UkyxgYB4vp17l2mC86LffHcNvw==",
+    "type": "thought"
+   },
+   {
+    "content": [
+     {
+      "text": "2 plus 2 equals **4**.",
+      "type": "text"
+     }
+    ],
+    "type": "model_output"
+   }
+  ],
+  "object": "interaction",
+  "model": "gemini-3.7-flash"
+ }
+}

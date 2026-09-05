@@ -3,44 +3,76 @@
 The model is the research subject. The question is how it sorts a category, what
 it recommends, what it associates with a brand, and what moves any of that.
 
-Installed from git and pinned by commit, so a corpus can record verifiable
+    import machine_psych as mp
+    mp.install_report()
+    mp.set_base("/content/drive/MyDrive/...")
+    mp.set_api_key("anthropic", userdata.get("..."))
+
+    run = mp.load_investigation("discuss_cross_provider")   # sends nothing
+    results, raw = mp.run_investigation(run)
+    corpus = mp.load_corpus("discuss_cross_provider")
+
+    mp.index(corpus)
+    view, report = mp.normalize(corpus)                     # what was set aside
+    mp.citations(corpus)                                    # and what still is not
+
+Installed from git and pinned by commit, so a corpus records verifiable
 provenance rather than a version string someone typed.
 """
 
-__version__ = "0.1.0"
+from .paths import VERSION, install_report, provenance, set_api_key, set_base
 
-from importlib import metadata
+# A plain rebind, not a call. Computing this at import time coupled the package
+# to the order of its own imports for no benefit.
+__version__ = VERSION
 
-DIST = "machine-psych"
 
+def where() -> dict:
+    """The directories currently in use.
 
-def provenance():
-    """What is actually installed, for the corpus to record.
-
-    Returns the distribution version and, when installed from a git URL, the
-    commit it came from. A corpus that stores this can be traced to the exact
-    parsing code that produced it — which matters because parsers have bugs, and
-    those bugs get fixed after corpora are already on disk.
+    A FUNCTION, not exported constants. `set_base` rebinds module globals, so
+    `mp.BASE` imported as a name would keep whatever it held at import time and
+    silently show the wrong directory after a rebase — the same stale-value trap
+    the paths module exists to document.
     """
-    out = {"version": __version__, "commit": None, "source": None}
-    try:
-        direct = metadata.distribution(DIST).read_text("direct_url.json")
-        if direct:
-            import json
-            d = json.loads(direct)
-            out["source"] = d.get("url")
-            out["commit"] = (d.get("vcs_info") or {}).get("commit_id")
-    except Exception:
-        pass
-    return out
+    from . import paths
+    return {"base": paths.BASE,
+            "investigations": paths.INVESTIGATIONS_DIR,
+            "records": paths.RECORDS_DIR}
 
+from .capabilities import (CAPABILITIES, ENUMS, ModelCaps, UnknownModelError,
+                           caps_for, known_models, provider_of)
+from .spec import (InvestigationError, UnmetIntentError, expand_conditions,
+                   probe_hash, prompt_hash, resolve, validate_investigation)
+from .runner import (estimate, list_investigations, list_runs,
+                     load_investigation, run_investigation, save_investigation)
+from .corpus import (capability_note, citations, load_corpus, load_record,
+                     queries, sources, thoughts, units)
+from .analysis import (NormalizeReport, format_stability, index, mentions,
+                       normalize, read, verdict)
+from .export import export_corpus
+from .providers import PROVIDERS, ParsedResponse, Provider, get_provider
 
-def install_report():
-    """One line, for the top of a notebook."""
-    p = provenance()
-    commit = (p["commit"] or "unknown")[:8]
-    print(f"{DIST} {p['version']}  ·  commit {commit}")
-    if p["commit"] is None:
-        print("  NOT installed from git — provenance cannot be recorded.")
-        print(f"  Use: pip install git+https://github.com/MichaelKoach/{DIST}.git@SHA")
-    return p
+__all__ = [
+    "provenance", "install_report", "where", "__version__",
+    # capabilities
+    "CAPABILITIES", "ENUMS", "ModelCaps", "UnknownModelError", "caps_for",
+    "known_models", "provider_of",
+    # specs
+    "InvestigationError", "UnmetIntentError", "expand_conditions", "probe_hash",
+    "prompt_hash", "resolve", "validate_investigation",
+    # running
+    "estimate", "list_investigations", "list_runs",
+    "load_investigation", "run_investigation", "save_investigation",
+    "set_api_key", "set_base",
+    # corpus
+    "capability_note", "citations", "load_corpus", "load_record", "queries",
+    "sources", "thoughts", "units",
+    # analysis
+    "NormalizeReport", "format_stability", "index", "mentions", "normalize",
+    "read", "verdict",
+    # export
+    "export_corpus",
+    # providers
+    "PROVIDERS", "ParsedResponse", "Provider", "get_provider",
+]

@@ -1,0 +1,108 @@
+{
+ "_why": "effort=none gives 0 reasoning tokens: a real off arm, which Gemini cannot express at all.",
+ "_collected": "2026-09-05T18:37:57Z",
+ "_request": {
+  "model": "gpt-5.6-sol",
+  "store": false,
+  "max_output_tokens": 8192,
+  "reasoning": {
+   "effort": "none"
+  },
+  "input": "A consulting firm bills three clients. Client A pays 40% of $50,000 total revenue. Client B pays 1.5x what Client C pays. What does each pay?"
+ },
+ "_http_status": 200,
+ "response": {
+  "id": "resp_08d2a29393634e60016a9c6182ad7487d2afe15fab51ab4f1d",
+  "object": "response",
+  "created_at": 1788633474,
+  "status": "completed",
+  "background": false,
+  "billing": {
+   "payer": "developer"
+  },
+  "completed_at": 1788633477,
+  "error": null,
+  "frequency_penalty": 0.0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": 8192,
+  "max_tool_calls": null,
+  "model": "gpt-5.6-sol",
+  "moderation": null,
+  "output": [
+   {
+    "id": "msg_08d2a29393634e60016a9c6183681487d29b45a20a3bc4b636",
+    "type": "message",
+    "status": "completed",
+    "content": [
+     {
+      "type": "output_text",
+      "annotations": [],
+      "logprobs": [],
+      "text": "- **Client A:** 40% of $50,000 = **$20,000**\n- Remaining revenue: $50,000 \u2212 $20,000 = **$30,000**\n- Since B pays 1.5 times C, let C = \\(x\\), so B = \\(1.5x\\):\n  \\[\n  x + 1.5x = 30{,}000 \\Rightarrow 2.5x = 30{,}000 \\Rightarrow x = 12{,}000\n  \\]\n\nTherefore:\n\n- **Client A:** $20,000  \n- **Client B:** $18,000  \n- **Client C:** $12,000"
+     }
+    ],
+    "phase": "final_answer",
+    "role": "assistant"
+   }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0.0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": "24h",
+  "reasoning": {
+   "context": "all_turns",
+   "effort": "none",
+   "mode": "standard",
+   "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": false,
+  "temperature": 1.0,
+  "text": {
+   "format": {
+    "type": "text"
+   },
+   "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tool_usage": {
+   "image_gen": {
+    "input_tokens": 0,
+    "input_tokens_details": {
+     "image_tokens": 0,
+     "text_tokens": 0
+    },
+    "output_tokens": 0,
+    "output_tokens_details": {
+     "image_tokens": 0,
+     "text_tokens": 0
+    },
+    "total_tokens": 0
+   },
+   "web_search": {
+    "num_requests": 0
+   }
+  },
+  "tools": [],
+  "top_logprobs": 0,
+  "top_p": 0.98,
+  "truncation": "disabled",
+  "usage": {
+   "input_tokens": 45,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cached_tokens": 0
+   },
+   "output_tokens": 151,
+   "output_tokens_details": {
+    "reasoning_tokens": 0
+   },
+   "total_tokens": 196
+  },
+  "user": null,
+  "metadata": {}
+ }
+}

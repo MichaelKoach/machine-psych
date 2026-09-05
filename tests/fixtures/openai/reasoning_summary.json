@@ -1,0 +1,121 @@
+{
+ "_why": "READABLE REASONING. Returned EMPTY arrays at characterisation time and populates now, so this is no longer unique to Gemini. OPT-IN per call.",
+ "_collected": "2026-09-05T18:38:00Z",
+ "_request": {
+  "model": "gpt-5.6-sol",
+  "store": false,
+  "max_output_tokens": 8192,
+  "reasoning": {
+   "effort": "high",
+   "summary": "detailed"
+  },
+  "input": "A consulting firm bills three clients. Client A pays 40% of $50,000 total revenue. Client B pays 1.5x what Client C pays. What does each pay?"
+ },
+ "_http_status": 200,
+ "response": {
+  "id": "resp_0b1a5f2ca2084df1016a9c6185eb7c87d2bf95ceb097878a35",
+  "object": "response",
+  "created_at": 1788633477,
+  "status": "completed",
+  "background": false,
+  "billing": {
+   "payer": "developer"
+  },
+  "completed_at": 1788633480,
+  "error": null,
+  "frequency_penalty": 0.0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": 8192,
+  "max_tool_calls": null,
+  "model": "gpt-5.6-sol",
+  "moderation": null,
+  "output": [
+   {
+    "id": "rs_0b1a5f2ca2084df1016a9c6187181c87d2b33f9228c2a66065",
+    "type": "reasoning",
+    "content": [],
+    "encrypted_content": "gAAAAABqnGGItHvEdfwCJzqmwncl4KqcKXY_FoHDsdnPCisa3KCJlalP-mTzm9Vt29WBmQzML4dnYkDVOaw0hyQWmyFY8ctzUtEsbRh2ghdyOZRKWKmcTW-9LmfMvv-e05WUoZdw6hirqc6ZZhH-M-dqANtECdQ_mOB9mava1VujTg143FcHZGr9hCnD1PXN41SmToxpidyL0ImamnkMM-uYZwLtSNSGqdgW_zj-2Zl8W7psCGJoBEt8sjzMnlxxEeEyodXVPBarOn124q5i08kpv_4Amyh4nAidhpOmwavFkCJ6VgmmVuAFs3ZK1uYuLxWETsMOb11Aq7Tg7C9pHw2nKxiULrY7m4Q9aLnCo9busP-s4JazwP3IumpNqWSOxGOuHlt-Flufe3P7pqeZbXKOjVEUiEvO6dayObxSPM5gEntbwlRSL_aFKIfWicDcTEriaaybaLIOUYdSl1IxMFew8xJcnIvmwpoHMVHaLeSPY3zcZvqbGjsQ0l7bWK0A0fZmEQbkE798Zx8jt3XA7YJSWvMNSR_YdikdwhfQlMzf8LVQtHVZTd_YKX5zBCQEpjqPwbZTNgU7WwVz3Yk3_8JfhhIjqupEp1k8-JkVs3B7EzRLNmZAQTbxnVcTUcF04oQE8DRy1FINpXFvQYhXAhNSlmrZSl3MDGdD0v60I1XWMOzILLmayls6Kl2hq2xgPHp2PFPkacl10Hi9deACZl0F6o1kBy8asCeYEgP1LGYa_xZkkxrULgk8wp7MLvIRWd9bCKuJdq5bqHcHUj0obSUMe7mJFTenMg_AsQKVi1oBqPfolUsCPAOOjZZS-lXTBFJmaZYy_pC0gAgY5U29L345Cuygfb7BhtA76WPHQvmS1mbtVGmTuxOtsfz7THLXJc8BpbM5hxXtd-D7RQ4ujJJfOXhYtf8SDNA8LPW9LiMZb3LA1euTercX0pGow_jTCg7kdOUc8aG9R0I5nB_yhZ7bggkbnxVAnM13DU_rc55OpJ_uCu1436l5Oe1rTG5znb75GUlG1MZ4wU3H575yNFXrvLnLU5Efg3Ychwi4EVkxiIS_aNMAGGq6xv6-6H71HSzLwuFgdk8TRD8EZ9GSQQBC6R6jVgw2QlQCkR3wFdyYNEV0ssB90T26SWv0VdVn8evxcuhh1gxN95X7xw-yf8E2A2FcR8QNffmTB8NHdTcp6rGCLNPRfOggd9EWM1w6aOOhvZI0oLy4GI5Z_I5J0g8juBdnG0bxRCsriU42ESmcY48z7LCSjoHWZ6Dgtae6Mx5Y8_B-iywyGDjeH8m8XApUiIGv4k-8Ag==",
+    "summary": [
+     {
+      "type": "summary_text",
+      "text": "**Breaking down equations**\n\nI need to solve a problem involving totals and some equations. I've got a total of 50k with an initial 20k, which leaves me with 30k. I have this variable relationship where B equals 1.5 times C. So, if I set up 2.5 times C equal to 30, I can determine C as 12 and B as 18. Now I just need to present this concisely."
+     }
+    ]
+   },
+   {
+    "id": "msg_0b1a5f2ca2084df1016a9c61884d1487d29888a6cbf3586789",
+    "type": "message",
+    "status": "completed",
+    "content": [
+     {
+      "type": "output_text",
+      "annotations": [],
+      "logprobs": [],
+      "text": "- **Client A:** 40% of $50,000 = **$20,000**\n- Remaining revenue: $50,000 \u2212 $20,000 = **$30,000**\n- Since B pays 1.5 times C:\n  - **Client C:** $30,000 \u00f7 2.5 = **$12,000**\n  - **Client B:** 1.5 \u00d7 $12,000 = **$18,000**\n\n**Answer:** A pays **$20,000**, B pays **$18,000**, and C pays **$12,000**."
+     }
+    ],
+    "phase": "final_answer",
+    "role": "assistant"
+   }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0.0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": "24h",
+  "reasoning": {
+   "context": "all_turns",
+   "effort": "high",
+   "mode": "standard",
+   "summary": "detailed"
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": false,
+  "temperature": 1.0,
+  "text": {
+   "format": {
+    "type": "text"
+   },
+   "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tool_usage": {
+   "image_gen": {
+    "input_tokens": 0,
+    "input_tokens_details": {
+     "image_tokens": 0,
+     "text_tokens": 0
+    },
+    "output_tokens": 0,
+    "output_tokens_details": {
+     "image_tokens": 0,
+     "text_tokens": 0
+    },
+    "total_tokens": 0
+   },
+   "web_search": {
+    "num_requests": 0
+   }
+  },
+  "tools": [],
+  "top_logprobs": 0,
+  "top_p": 0.98,
+  "truncation": "disabled",
+  "usage": {
+   "input_tokens": 45,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cached_tokens": 0
+   },
+   "output_tokens": 178,
+   "output_tokens_details": {
+    "reasoning_tokens": 47
+   },
+   "total_tokens": 223
+  },
+  "user": null,
+  "metadata": {}
+ }
+}

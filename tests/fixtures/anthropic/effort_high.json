@@ -1,0 +1,56 @@
+{
+ "_why": "The CURRENT reasoning control. thinking.type.enabled with budget_tokens was rejected on 2026-08-27 in favour of output_config.effort, whose enum is OpenAI's minus `none`.",
+ "_collected": "2026-09-05T18:32:37Z",
+ "_request": {
+  "model": "claude-sonnet-5",
+  "max_tokens": 8192,
+  "thinking": {
+   "type": "adaptive"
+  },
+  "output_config": {
+   "effort": "high"
+  },
+  "messages": [
+   {
+    "role": "user",
+    "content": "A consulting firm bills three clients. Client A pays 40% of $50,000 total revenue. Client B pays 1.5x what Client C pays. What does each pay?"
+   }
+  ]
+ },
+ "_http_status": 200,
+ "response": {
+  "model": "claude-sonnet-5",
+  "id": "msg_011Cekmh2FxZ1ToDr9kCbSTb",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+   {
+    "type": "thinking",
+    "thinking": "",
+    "signature": "ErsDCpABCBEYAipACMEn/o5UUYdAzqnHpCNH7Om5iogRIB7+azT4OjH2c9yfnu4m7LggC6LWSUWGqp2EXJFqirLQRCRmamZHVJCfRjIPY2xhdWRlLXNvbm5ldC01OABCCHRoaW5raW5nWiQ2YTczMDczMi1jZTNmLTRmOGYtODRiNC03OTJlNTUwNzExYTmoAcPA8dQGEgxObd8OnPmTtUJazEsaDCU0uyFOqYupXt2axyIwnbWPrvKi6cIjBMlcWZ9XioTv8khB0ScJxx9T20eccqqV8Z2wl5G2LKDki65VciAEKtcBSChgNCPy6bVYizhnPK/A8BmhYIxggyCtL2K8iYJae3Hn75XRehTgzR5nvHN85syCj+DmGak9JHRAyXmZN6szY1LCyTAwa3qSlIrFRrurP36Q/nVCe3ragHUrwN+wQeniRrEocOu1tqp737Ug7e321wTlATapX6zG7xPqSeX1YWIGURlZs4lsPkGgxktJTDthRcqeoY+r8NSEFsg29kEV/ZYfqlkcdZCw1Kx/ibnnBhgNdF9qWSLnptmPvmx8tZ4r44pnKP/bQfR4Gayk82rCkKDPuLJ2/x8YAQ=="
+   },
+   {
+    "type": "text",
+    "text": "# Client Payment Breakdown\n\n**Total Revenue:** $50,000\n\n## Client A\nClient A pays 40% of total revenue:\n$$50,000 \\times 0.40 = \\$20,000$$\n\n## Clients B and C\nThe remaining revenue is split between B and C:\n$$50,000 - 20,000 = \\$30,000$$\n\nSince Client B pays 1.5 times what Client C pays:\n$$B = 1.5C$$\n$$B + C = 30,000$$\n\nSubstituting:\n$$1.5C + C = 30,000$$\n$$2.5C = 30,000$$\n$$C = \\$12,000$$\n\nThen:\n$$B = 1.5 \\times 12,000 = \\$18,000$$\n\n## Summary\n\n| Client | Amount Paid |\n|--------|------------|\n| A | $20,000 |\n| B | $18,000 |\n| C | $12,000 |\n| **Total** | **$50,000** |"
+   }
+  ],
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "stop_details": null,
+  "usage": {
+   "input_tokens": 60,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 418,
+   "output_tokens_details": {
+    "thinking_tokens": 112
+   },
+   "service_tier": "standard",
+   "inference_geo": "global"
+  }
+ }
+}

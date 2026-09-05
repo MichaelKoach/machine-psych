@@ -1,0 +1,48 @@
+{
+ "_why": "The reasoning-off arm, which exists here and is impossible on Gemini.",
+ "_collected": "2026-09-05T18:32:33Z",
+ "_request": {
+  "model": "claude-sonnet-5",
+  "max_tokens": 2048,
+  "thinking": {
+   "type": "disabled"
+  },
+  "messages": [
+   {
+    "role": "user",
+    "content": "Name one CRM tool."
+   }
+  ]
+ },
+ "_http_status": 200,
+ "response": {
+  "model": "claude-sonnet-5",
+  "id": "msg_011CekmgrXpEgyUATw7EjVqP",
+  "type": "message",
+  "role": "assistant",
+  "content": [
+   {
+    "type": "text",
+    "text": "One widely used CRM tool is **Salesforce**.\n\nIt's a cloud-based customer relationship management platform that helps businesses manage sales, customer service, marketing, and other customer-related interactions in one place.\n\nOther popular CRM tools include:\n- **HubSpot CRM**\n- **Zoho CRM**\n- **Microsoft Dynamics 365**\n- **Pipedrive**\n\nLet me know if you'd like more details on any of these!"
+   }
+  ],
+  "stop_reason": "end_turn",
+  "stop_sequence": null,
+  "stop_details": null,
+  "usage": {
+   "input_tokens": 15,
+   "cache_creation_input_tokens": 0,
+   "cache_read_input_tokens": 0,
+   "cache_creation": {
+    "ephemeral_5m_input_tokens": 0,
+    "ephemeral_1h_input_tokens": 0
+   },
+   "output_tokens": 147,
+   "output_tokens_details": {
+    "thinking_tokens": 0
+   },
+   "service_tier": "standard",
+   "inference_geo": "global"
+  }
+ }
+}

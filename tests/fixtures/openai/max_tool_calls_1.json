@@ -1,0 +1,228 @@
+{
+ "_why": "The only search cap of the three \u2014 65-77% cheaper with a complete answer.",
+ "_collected": "2026-09-05T18:37:54Z",
+ "_request": {
+  "model": "gpt-5.6-sol",
+  "store": false,
+  "max_output_tokens": 8192,
+  "tools": [
+   {
+    "type": "web_search"
+   }
+  ],
+  "max_tool_calls": 1,
+  "input": "What are the top-rated CRM tools for small consulting firms? Compare at least six on price, ratings and features."
+ },
+ "_http_status": 200,
+ "response": {
+  "id": "resp_018c8f89f7cd4253016a9c6159258487d2b37e43efff4dc269",
+  "object": "response",
+  "created_at": 1788633433,
+  "status": "completed",
+  "background": false,
+  "billing": {
+   "payer": "developer"
+  },
+  "completed_at": 1788633474,
+  "error": null,
+  "frequency_penalty": 0.0,
+  "incomplete_details": null,
+  "instructions": null,
+  "max_output_tokens": 8192,
+  "max_tool_calls": 1,
+  "model": "gpt-5.6-sol",
+  "moderation": null,
+  "output": [
+   {
+    "id": "rs_018c8f89f7cd4253016a9c615b8d6487d28dce37172df2b002",
+    "type": "reasoning",
+    "content": [],
+    "encrypted_content": "gAAAAABqnGGC2J7kCeK6xsIRHPg2KQwGbogy90QatgCC8QJrhO4POuUeW6OVHRp3ComvCaQvub_ZLs48p0sMa_Gw57XjiPpoSl2cHovg_WVECHBBYHLlIGQn65nKJOb009o4G4vnhpH4N8U31zBna3MBRy20h2cXxiNDZ43iqBM2oiNBNzBwURvt93GCFAWdH3Y85L9NlwJarFVzLYUN9Z4eNZCx1BEC6hQmvQ6_RwqQgX-59Ki-PUJOanp8YOMVRgLVSZAF-JolUiLinZDpHBf46AsYiKp9VW7iVJLKzc7djBSSbB4sWgJDXLAyj43jGb_sLOVlP55XnIknCoAewXiJy2zS53vRSEG-vjU-lRrVwSynbHZ6i-8Q_B5wEpJHTBi--NEL-ApsO2Osj2ruWKhrbwllkv1f5NIKMkABXIzFWbTLhOS8wrvSfMznCHOKYA2IZwbZKr25wILR1XubmgQZSalqokJJyYub84t2RkzlaJdbUDVGzVc2_POHLWOLrR-4CGWhQGZP-hcYk49Oni7nF3cuw5d0EaVQMen4xMfXdJp4wTbDJzOZPFeS2yiEXMP2_tiIjPr_e5IbCu45GliMxpMQDXCSb16V_2uCSm5Kq6pxhHOcDdZsFanXr8GIaJYE8fvBGyseHH3g6kHQ_m9mGSWcH_F2qrIoJzQuN_4Nv9Q7WeSRm0nL5XQ3zQSrjzTmxfvoY19SjnxHnRASztTD6w3aLLD37H9I0fRxGQn75yAHYrDYH7UI7pkes3mThs1LTKEzqlVvC5uYxVfQguM6KOYv9IPazRZ60Rf-O5-WFHizahDlF8qFo9b_al3cQiSJulzqiJ_T05t1WT9U99u49tYtx1xCZ7dPvKVgn6c6UO6fm0wUck9Qn1Tu_9Uz3cY7PVAfKYLneUTHzR31pLgenC_p33E7T6cbRntR2TBTbLVHPMTEP-_VrmvbVEyk5IOC8wFltl0bwbZG58IisLmKJZKzLtc4UA-5pTnIzoRx5lbY76RcJdfM55_ih6vA9RvYvsmE46X2dcT2naX63FFXcfJEymuVo-W7e0VCQ6pk0xqzb2_VVYKPx4pRciP-7cUzZpWLbs9pQ4EcntVLMj48h0lFGD2N5mmKiI1yFPPx02UIRAW6cbuZPFnMMzGS5dKrZpORsqiMP8Af-ObpHzZ_2wwO3ljrcdCF9GaMPdqz1J0MNMQ0XLRNMhpTlVyMeUN0AtjxWFe7Uae-II1ScEhHEescaVth9vKIpE-Ug-kYt-UDmSfR-HwyR25-XOJAAsSKTTkvDRqJjaHeBX1J672zfXPJDF1QGymJ3YM5iCPc5gk-LttSx-WN0g7Ob-myQrmU81EeNTjb-DTlTBoVRd8UMUuBGMBNAEvQ9U0P-PeyJIe6kVDrnPSX8mAp-eYCZo2LWKHLl_-mZO6G_sBTy2OVjwCqVFGKTTzUS2FawQnqgfMax8SrVTOOYCge77fpVWNMS0uko2y3zsyEv0hrWyQhJygUGoM5_r5Cr5Jgm3rELXkW0CodRJqm201ABmuPx03mv5WrAWZ3VtCGu9GBtUxM8-iBT-UEryQMJVm4tfBxcHUQq1-_5MaUSZF5KUPjv-6lAeYHxx8d9K7nHGhVki1-OnlcAqNw9v_r3iR2QW87eeRlrVBetOmfhZ6lDLUzpA0YYKfpayuONOx6aEZRyLmWt2os0E_mY34ixIIU_H9xZN2OAKSwLUpHkYW8pVdwN1QZs1Nay3fz3C-S4JdBdHUVdCqFVZtg-3c-QctHZfZKw04zK_jzHFjEQXcgTtcdr_nDVh-iIB40UAcieHr5mxM8TsKbple2G4BFdtc5CHyNg_6SbDv0mnQ1xIx4NC5R999UfNRzXuBMhqDkQlteX3imvpwGDgKVRZk6Tr1FbsfaXJ4cNkC1gJL-pevOc2X9AAsTOHzs7Kd6tVJI54KHDPKVLgDJcBjNOA==",
+    "summary": []
+   },
+   {
+    "id": "ws_018c8f89f7cd4253016a9c615cfc9887d29e369876391a16d9",
+    "type": "web_search_call",
+    "status": "completed",
+    "action": {
+     "type": "search",
+     "queries": [
+      "site:capterra.com/p/ HubSpot CRM reviews rating",
+      "site:capterra.com/p/ Zoho CRM reviews rating Pipedrive CRM reviews rating",
+      "site:capterra.com/p/ Freshsales CRM Capsule CRM reviews rating",
+      "site:capterra.com/p/ Copper CRM Insightly reviews rating"
+     ],
+     "query": "site:capterra.com/p/ HubSpot CRM reviews rating"
+    }
+   },
+   {
+    "id": "rs_018c8f89f7cd4253016a9c615ea61487d2bb8a028c5ab677da",
+    "type": "reasoning",
+    "content": [],
+    "encrypted_content": "gAAAAABqnGGC974RS5wD6Jl8jMv0NbgzYZDKnlRdVVVVO0eCkOivodrtvsm2ArQK_3FTTecO5isIG-BA3q0SVT2PKT8xuA9RQxPkWKs6nY7bwENQ0hbQ4rGTEJxS2b_-l-ZvHMnncuFhJtXIZIl5fTsMkd8vbOYWKg2DJ7An2L9OlkBf7rWbVWe3W2dye8eZbmm7oWpBfrz2_THejjlJiMLmKJjAqi8zRDZr-CzLzbPOhRuVvKWQ0rfFD4lnKW5lIXZSKJLiQ562sg7SxmFF-vwRyesr38LozWGRaYhBbhbds9Ll6vKJl-rGFqRjItmP8JOMK_fxvX9gBC7FQfeAVm252aKegnCFZ_y7tsBevJ_V9NUPqRqMb2g6k7Ho0JgwNiZfPiJGXHt8QqWQfsM7oiwZwva8FB6ieaE71va2l0g1LK1fFANFXnxcHPDyyViFouvr9MbA0i3tF1Na0x4QMzLqqQacSCU4_TL52_fxa8xlp2ChQ05tOLAHjjl4kiYPXwCGCKPokgTydplr7PD6akUg3dMMBEmpx63q_6yT8gbMuAbRyl2ns2gQ2fnNUPNe9VbKTOCWVnJ2PzH1pTrFUk5Pyv-9dNBhyauVEr_Vlkzx5no4hExRhW1JOzgYJ51DA2TOhuhe8qZ5Ut1odOtPCF87sjHpw6WrQQ6bTTD8Ky_n_227Fd4vTNRrPCaAvXAtzxn8zyRcFO3R2Nee3T4Kasd8vHNi9MFcSLXacI2_2xawRZo9rvqE0SRb0tJ5ZqlIDIpOKcLhlD2hoRvw8j2tXD2ANvCvucdzSAHDu4Cw90E-s3LDHDM8706nwBbCg8nBSILCd_Q4_BoGXyGEBAM_LejlPH6IRJNGeACFW5aG-on__HfnOQmtZun7444xv0WN-wll2DX1Xr5XGVbXMdAMFja_pi39o5rwfPT9Q-nVvJ5DFV8ubQIeC4vYRkJ7On9ki7YPA3uOSSh5ccBvSbxoyb0YJCjK1FPzREYgjm-AjA5naFloQBA2HSlN8z9HxsKdJXk2NRJZvHUavhHEldVdvnRHQ4joZka9QzYwWEnd_E6BXp2ru8yTM-8Ux1j0XMUAyUh293JtRC8dXnBYZ8rF17kCAyPnCJMZfiWx23AKNGkuZ8yD2FIHysISrEe2EdUoNmqcDe9cuIAtGj1LRRl29YRs-w1B2KCeyseWQo381wARYEv7z_PtrNZnQI-8ocSnvvoqzuQkwS2Y4lY9kygkwB5oSDptJNy3suut7vqZz_ZwVKsTMzbvUiktym_97kYAT2H9ACE6RWS8kBJG8RRt9aQ8wl7y-dn7671bMGu9cOngrwk4oXc7dluj6QWL7zJQgeth3Wjl1jgFKHNzCYhOyGLym_MqVlO-EEvTdNVUB0OWZql8R00PIms8G8qhDXqlNbjBH6uY14GyLKsN5aX-6EirouTdbbN3WL-cfNClc3OZHrsh_Xq81i-wPIui-1FYn_g2nojkhUSoOHuPozWfEyXyKVh8b4to7kMcsF_DeaBMwOawvCOibgFD4EdTwERGpbwunnCt-WSJabWgJ_nSI33JrYIdJVoV3lJYv2BS3JeOP-x5wmJadlMxCUrbkSy28tuBoCLKOcgWSeUn8dre1KWegtAl3F5acn0skruFkZGVs-UqxjR2kBcUGeMRHqS-6ADEULJF93iOqd59lBuRo3GHrFlGgF7nuM2iO2LrKrjTBYxn_q9HILXmfDC-Hk6REP6dsCBMA8_0Z_Qk6VqYXXNPP2fANXopmNDUCMtOATDeVZE6t2BodZSnWgxa9KSxT6EUpYRpJBf1",
+    "summary": []
+   },
+   {
+    "id": "ws_018c8f89f7cd4253016a9c615fa10c87d2a47e584841b6e470",
+    "type": "web_search_call",
+    "status": "searching",
+    "action": {
+     "type": "search",
+     "queries": [
+      "official HubSpot Sales Hub pricing Starter 2026 site:hubspot.com/pricing",
+      "official Zoho CRM pricing Standard annual 2026 site:zoho.com/crm/zohocrm-pricing.html Pipedrive pricing official",
+      "official Freshsales pricing Growth annual Capsule CRM pricing official 2026",
+      "official Copper CRM pricing 2026 Less Annoying CRM pricing official"
+     ],
+     "query": "official HubSpot Sales Hub pricing Starter 2026 site:hubspot.com/pricing"
+    }
+   },
+   {
+    "id": "rs_018c8f89f7cd4253016a9c6160e6c887d29796e927142ed192",
+    "type": "reasoning",
+    "content": [],
+    "encrypted_content": "gAAAAABqnGGCutD0aJczC5kAGn2vF0dGW-rmH2RY4E93TYRkMfB-HJRHrp6UCQ_rnSDW2vvhUn0uaovsUUG3XM3GYGIDfTxv1GlYtrzZSnewji0nvgAOzaq1BWgDyDTEnwXJsJSV5zbMSw49WkSsRX8tEPdK8RYoBKsT6wKcDdOjjflYez59A3NHtxpm-4fwBsuQ0qhuMaIluMFM8XfFe88Qwz52Z985XYYvpukKIfEGF06wkdSi2kKNnnY_XIPEYye2B1LpGYp2af9Z78pdpExPF9gdY5cGeVC7_XfOgi4n08vQvLDe_5u_xaB1YKqUO1nTT5W_emT1AyDKUAukUZcONI2CScs6xPo5MCg6qB-1FNJWDcN704jW7pSSnaVFBbqaVlkZ7DxQy-9cm-GvR_tKJkLieVa40-mM9MkkxyKwm-jYJiCXVOBn4IBlEfh4cJOz5synCHDm96S8nABVjXCS2R1CAcQCLycG9F9lXDDc4A-CHOznA5KDoyaJtBuQL9FM2KcNuN_ZXEjSaAVoSoQ_L_sjmxByZDKRlr9CWeO6wuQ-zWpjkHJtJiVBtNeFKf4KMfPLOBfnrOMF3XeaakqpkNvgF_ZDNdYVPkuaYnALYU1EpBdKBLD07oGKPiWmxElATdzYX9Z2ZrIM-fc8P_OMvsd6s2yj_bFScFrtk2wbUrhV61l-zbDwHoeyQe5c3zFjsbHR_1_ZHW14G2mUL1vdYldtGkgzI9eA-lImn6fxVD3vDP_5MJN-7LCH09gPnNgd65ISR1uAFcj_OQtMBC0U8AR33UDxYYap7VNt_IaggzgzGRhSWdPymPJrCDSDDZ3yhg5X1hkDfOAXRLDXWVCCCAU5da5K08MqlsVVwxG1C6ldzBrdDeHkkzhWmuuAEK8POXEZZUWmOBcZ3YxMKrKCCIRZlSEVVNP8UOxCNcYzFyhudjaIlutWxQN_H6_Oz3wc_t3pjex9uBcK4zgJGf76Bn3dkorV_z4fjHrxzGuUTQM_cT-xs7kDUoASIeeYVUxyVkixikHQx8yG5Bwb_pMiTqlhl9ZBCa0e5mXZ6XSkkrK5I3MHEL56oYasL_1BAOnQclJgdvgm0W0L2a74cOXyWAFQRi-EmFbTqW1uAbgSg1yQzRbmT0ECK_bEmt0fBCbDVR4xWhFHHMTSpW7RuyjIBWZQ3_PacSCAYW8wrHn4GWImQynjZAAjzcpqLeAFKsy6AsKkArobLtTAZ978YRIUMEIJqTKIYx-6x7KAfO_sd9YRaQbohuqJ7I7-GXaTYmt2s7-r9WzSQ8U8tL5SikB4NCSDATstiBMFK1n5oCYqcn1PoKxT36KXCuE-Bp_Z52472zBq8suASL9PEwBZtiPi18Ru4eDjHpr9UO5sceUfF_QsIvQGbrNXGwh7lHZ34EAAJ8Fp4Qqqcg-IcK-4W4RoFdaWjBjyrSzDo7nzG4W88LVQ3lcSf57eI7V5aZxTdSRCQXHmuE_NovF1jCTUzIOP_WJyoE2fXShId8i7U5t3A3YMkUZkTcrOPP9NDpoHfxiZv0WQx9TuSkr583nmyPS4jfJlUzunx2bML0ST8JnSFrQqo4JoIXfmPbLsNwYiBabsowtv6YE1CMGps9csSVi7JfooXmAocQW_PsIDPLOCLbGS36PIKcMZVgywClB-_kmc6lE7H8ndxvN3FIjx6-K4PZF92RrHUOkTo0KEwxgJ2Os7_Kr-rVSVHXm9dLaw3qdShwP65EqcvlolqMcKb-AmrIw3wCXyH1OlXuU1zhuquhI7Pa1jsIL-8M_0_Mh2X5gRuwkwvCwrG3d82S2ayp4MilZL-VjTD0UalStES5VE5OKAJenj2qbOsMIRZrkasGj5FBfLCFJ79CUijq3cP3YMDedJhr8Sxf1JsZTS3WFx8eTFzsATT2jv-Ale2KkOGJQDx4RlnvYdwM_H5gI-RgO-3mp_0LTS1CSJdnSbkTX6OCyfydy-JOj-5VomllrukNuF1b8CPePKyOIo1tTbafNqDqo-bQow2weFzwNI4ihL0LHihuq0zhGnK_nwPHuK-2Y3gqCY1F2Cmwl5T_PvniLTsvKiCT5PKHyNB2wNyn3KW3vqsUUd1-3iOGHv4RFIYtSWdT1KHIaBMXbb6KTpF-kG0bsSekfDZA9zDsZjTzsXmtKcYTPPZs-qyepf_yOdqWHk-Q9sgd7Slt3SeOAXhRJL3IFF90G8lWDg7NBeYxk9W1y1RY5Qk3bxFprDyzrDSDamXk0Do5V9920Ez6dLjlyyEawAzwCBdZ934epdCmlFaUUkBHmJ_4d6BIHwcC36-3tBRbmJm-IGngVHH5J7ev8sDW0Ky6mXgaKlqs2dwl8apmRR5CO6iciBBWUNQt7QW0C6mz5ry1QZqn3du4-LSXxzEsKpbDn4r4-mKFCvgdtiZ7wJUA7EnEiv3oWBva3n6ph9OtgN5ytHOP68o1tEJRibPwYl7P6mrBjEWZKjonE-w9w8cjSBjTaL1XTYzW4WP0EteS63TEPDcm2UUBVsPlGhgVSXZ4m0Pk9FCmBi0SD6uZ3s9AWYGctwiaNFGjKuP-EQkeUZXIwqeHtIRo7AsaTCFAq6RRW01s4RDP_CYMwpfuX-PJEh4BhJ-CXj0aasIXMQz2JZBN23i0y9IgQLqBbMHyrztYnz6QiHQA7OZgamuFFkugcW-T0aY_y9HEieR6_c8zRg9WC21Y8B5SgoTOgUGTDgoMZeKVSZaPTEgFF8ghyH_ATcyzTLtI7sCwHYkjZwRJP2LvP9mV8H-f63reRHDv_cOjqE9SYXVv99AeVYOmO0Vn2tb3NJJQrHIzPG3cS0-1217M4mWs2cfEcUNcn826ca1MkLmvvp5o19L5NFVmUYXtZzFuKL-TwPiw1qR4J5vNrY05ScUSHnOar1KHKBgmRP-ESQdjc9wnC7nm3OCbZnDJZC_bdeJ0aKIlvdri2cRVEaClNwf78RUr-XVk8lsSJDXJkpNvRrlTVuGc2lpo_Q_ub8TiT63G3q_Qrcxwa4d0Tph0kKrlO-SrlxrBnjoZ13O6Op49X0xFiccnljWklK6zMC16xMNChN9NTxClcZv467kxL3B-TnwRztJRb8T8n7_Yl2c58TD16NDAMmdnUPx6-U4pNIrgSFv9UsCrAPjfQFbe1rPUq1GTarKpcv_ZApxpWbFy5G_dB7XsfvQSvcsbLEIaWJBOVNiyxOC2zHnNIZf3ipjE1J2apItIcl8yp3uoaHzYokNkxQX7H0Hj1hBqtFdaZEUTorADxtuo9EvwWIHaCRbBEIiMPvumaLfLM_9q6CnjM3wke0QWLEkrWCVn_EBC5rBecMRyZnItNB1AQSgVNaQBaowJPT5-fU2bKu5TFJpA1gG4taqH9PafwDA5QUK8M0dOsvjSAB9f26HNoi8e2Sl3QOk9-JXhCU64sPZwlLehI9WyDS5YalH2a-A6ttNERgxDhI1qcralNlSKsUI4ovWt9USj7vLPHTj06Wn-6v3DtWtODll-TGQOoQORpOBxwn9W3yz5Uhg2tRyNxcGE2H_q_XCerVXuw3lUQohT72eeoRUfY1B9z8NwdGDnBZt13OGFleuWyhxmbH-bJYfhj3i5T8s74hmJTQ0OuNze8FXjT9HqfFrsdYDNPZrCbUmpZ3NrH71fdso8dIa-61fLNtOqsETvENXwX628XvRkw6pMCVlLwVDFhxB-edRsvrXrX6VSS0dM7XiMEfaV_APH3kg6Cvz4joY3S4VaC-lHdclrbUXQkruoKX50MMAnDd68OJy70Q19hDlQbP9GJT6zrIgfpZd8Ihl320SVMRYzpAqpEc6UcX625PZJGBlAuQ0OHB6YqGN0hXNldSUVF6uxyhopF6wF6g9zIc5J0PtGPBovEUdglKvSBvKIv2Nz54rjDJEZYsGF2TteHWxD1htzEmHkqpt9BtwARQHufo8XhhKBVRw289Oks0s_0aKIw6eD2kcjEa6L6z1HjeN37fJJTmQNi8WjeTI5PA0DmTQ2OM0S7JgyUpg6qtoRWnjFg8hzsXDdIliaroVXvsWYLEBy49reuWnZ2F2MAKrsqFZmverAiC2ZZbW0IMEDCUEBcehjI=",
+    "summary": []
+   },
+   {
+    "id": "rs_018c8f89f7cd4253016a9c6167105087d28ad1b5f0ba02bc0e",
+    "type": "reasoning",
+    "content": [],
+    "encrypted_content": "gAAAAABqnGGCR7x18r-Oyt5HiWSsBJ-emVEgvw2FpM-mjafMInW2WrrYO8hK_be3xy1UgWkVSL1gYO7HrSFJ67GeU3giDX2cubM6kdsgsUxyCMecBn1Zh_AnIcvyQdBhaY8hhf91dbTAW86t-uYltOTSh-U3o1CfqaD1wmrHEP9ruQarwndw1_fQEaLM8NUq1EZigEcKbBmCy5Bf5vDjih3FsM6pyrbuyVnLPziE0BjKKZkEIxfTBkv1N96PXCkrHmhfiyEVw8lPzLQR3PyyGJkxoX5ML6vOsk9j6d22NSrzkgAd7ZpVt5xEPpMWj02orqBVWWiEqS9DJJCE_oDQFe-3k91FzoK9h7_5O3LGDjqAZw_uWxIhZbQlHmJwppQzpcobbHFE85oV85O0mXAuH9CF8GF-6FKzRfGXNnSaFxIusxe7f9WpY3gZWsSgr28JXt3gqXF8wtBXtNaKSbmHG6uRgNTJDgIb8Z1C485Ynt9ByX_zm_c_b5CdfWKIBHnR6J577XENvCNHvA0ZmvMYbeOnjXP9zgDB_5SxYOzVwf2t23wLiJhncrY4B2PNE9IhODF1SdinK_EUUBY2ws8yY-uZwlJnkM31kzGr3wZBzFNTLn3sfhRQ_p18NAj9rmexSh3wy_aq73rSMQIbBm5etuWjSDTC9SJb9Q30ZcXaULAPMKRFyRbZYK0xZWo14xG0aSXsXuA4H3EBJ0Mk6WuULMUXi2LcGqk-gsZGh-V07_Usnum63D_NDxayDg5GakmbUYCwZeeXWamFR-Xdw30ro7r3yThS6EMkplYNYEMNGEx63IXHRhspeyAeIfxTBg1OhSi2yM4gv6zwahFeIB4lPDyoFSJGdeIxY4B3Fb9PJppw9pXlfl2LB25OSh8Lp42MSlm5J4p7GF6TPMgj9gOLM8h86LZuWBLgRA5-bU5WnsmXSXFnqzEcwdOa7mtVzhkoS99OLCmI20aoiC2eCZTfNCLA8kHgPnnfvPJcPVgWNHYcfUwKJGI8j4wAHcbS6pERjT5KlX1hUIFlz09TR_m2cHn2nya60vwK6FXycYoTKJOWhG0jjmxaDmoZ_WABa1mqMtK_FiWHbfmpQ6_bdfM9PY_lMZk7shaP6rgnwcyXpGCsc6jxL8W-amfte_UItsDFPYOnRGviH1fpew3Xsg7nkdQFM4oIM2d0btkLakEtu4ZiYlFl4wgEwFu2XwmBHYyCPvjgAYHtZVBBi9QlAwmtp72f4Ym6tyfExS32zr7sg-JhOb4I7-LOYYRMdmRvn-9CQVqTEcLC1p4dmkrrnjTN1dSUZ3EOZR9my-hDu_FzXa9dj6y0r6FhboRveiGqYxbjEvWjtJ0p4yxLPSKxkxl5sPeVJXmQRXDfD2zoKMDNfBJg2vzwstBzHNCsNBp5Ooy7FbHiOebFqhea4Te6z3m4Lazpnb0Q_fIme7K-kHfIrIjgWWxA7Ig3RAKozyOz35BXmWHl3y-eFE4zdglmFwa7oJPW17XqPwFDwZfH4M_bY9qs_JI1qpVgl9ToBqZ4NdY3Lu93w-kJMmNFh5QwQ5dqoNGQJN8g_LmWUzsAEkd5GILAwkZZ4B4bXWlpulc1e67L3kScvLLku2Mi3qmRIG2Mm8MiYWwhCXUqKKw1UoeO02HFDQROhu0Xo1W8DZJFbTmhV76IGa5RzHx3otcF_xykGfUZJwf1-ycfYZzyvsZ9ZOiZwngVpFk-7klMSm0vYi8E-jbIUGngSsK2NmSLPCrm7zW1lzFO6OEdm7uggLcADHpIKYAdOjNmO3_ltZ51us5sSRd9UWIHTdM6X8-fn1-Cnl5zA-Yy2pqaKstn2ATbFdlrK76LDI7PAPfMSlrQMpvqzoBD-qvIxRHSgqBxWrlSo8fDTBocRK5yottF3chJR98pbYRklAz0hOtJ5nbPYrTksXYpZZU66qlFCS-otu0Tff0EuWuZ8dumLd6wCLJPveNDcnxspEMWA6nWGPqUGxj59IWrsGIDDBUQij_wUx02_6IMQ33O6KdrOKX2jkPIrUYbVdDrmUg6x_ZqiVwR6Eue9541Br7kuDvOVqld7mnKRTbaK4UefSrUZusx_Ugs_-k808Px4WBmf_lT8RrECXZcQ1iGWx0WMgikruRWikNZaZ2bt-6_3F8lj-79a011OgG28Jxs0IRp4C9Chvwk4e4vnpI3aDDgAzi83lh270_7FyQJzFwDx8XFSHFjJj_yVcnmM1QsQGw_epfkDMPOOu6zn95DKb2l3SF-l3udTzhv8BU1FV0R-IELtoHfTQuQV9jNN_Sqb2aqeHRd1Ye2AS3aYEDLqHHcJSXCmsuRAnCouSvyPJqaSU_haiWmRleKJqtCdCP_jJigEp8GFkrnoOozuRVvnWiYqZpH8co4qyxoMBEE858Rlby2bNcf7eRgMh37PJw57Yc92mi3q84plv-bJmKj2RSKKD74HY4O8_UreD2y4iMlhH4aG88hiIw2KBre4W3-yUpjAnNv1ubGpWVRl0XPblhAUkTp9B7Ip8OgUeYaJvLvgMwSzKNh_3ZDHAua_ZGzi0OdrFZA3YNDeDe9ktmmxhwCzkfjpw73VuK_HBY4tbS9SAq81xgReZ9rPGfR-Hf8GzGXgknI0dviSgtgmYMlrxmgr5CXTjsLrBXsGjKLKhv6Sk8VpH3hiQPDppMRXXJ-WggO-nByCcKf68qSRZO5wGXHXZ9IPtZfV8GeZWI5qjebVxS89cEuM4H79AdmJ3Ee5TRTudDgnvlMhw1CtK0xSae_iCtev4FTgBl0GsH-QThelO3E7f-hYYIjb7CYFpQy71M3_6-YV30UzQc4nDsCJGQOGTcUipX-qvgRzuzjP8oyuJmb41OwKOd54kX7K0IxHG8Qvej9IGf7niu3PStupAwwVRE8-WGLftfg6i6K8j2BzFEAt7WfvKsB2h61norpDnhHVwFhP32xaq6sefCbcOT2JmTF7MFMcLsX1-_pFA6dzq0hZQt5Pt8WhK8NeJBthHBwjwhO_C_hO3iMsonhF5nNtlN3bbxmPveixmWI39LgxzhwGgs-_cyWdrovHykLcOTwoQFItryrJfrwyG2KFLtufaC7RpG2pwQd2oF66JPuufJn7eX4GlX5xcazxnPx4tA5NQDKy9DY1-HV6tyAPeOcyrM9zRraIWxHiOiCUqW2jo4kMLqUueFergUCbTdMyo1YaIcCERHmyMr6aA-_IO5KLWo8YQFBiuOh6QmEW3PXKar0nO2VerN-TJe6IwDqdV_d23jqwthKT1Ym_RPKJkFyvpfIYP-bNLdJB-s6RG2FN14jBJKOst_mPle-nq9yq_1XOiMk2zd4imC-cqQryP7IetAtxEvP6GrzF9ErhDI1Nr3_MWrx8cF2hwccSK-tvy4Tb61Dn1THSan_adhGR9PVQ_XM0H6XqfTqtQgq5P7-t11b_A33fY-VG_3BdZD_w0FRbOQuoOBPln5-3xnAv7SMaLKBn9isR1CCHQzsasa6eHsTyHbyLCmGd9JQ1HRPvxhmaRTJ6QUllC_-LKxqDREz7EHFWPR2mWFf7WgHK4wl6o8Wa74pxFozAKwMWGf4AZSmICrpDtAa9wFDeAkznAAZ0TTsgazhYfAlF2vTWl1XoAuLCfWni0HbRJH-MZJxDWo_JHx9W7Krz_dJogiebvcdWjUspO6vYOcv_UwM4hF4gXjA7mm1gd6ypSynO8ALB7UtF-lqtlIUYKHdak4eSh8QcAq5QsRWrro8XbiUxPG1GAOqKfKQNiAcb3Uw92O90yrhQdHpJ3dX6TeuWYNIxprJbLS_Wa49euDIwOdZE4bNFbCeAJ0V6HBPjyv43cRpt7RPFDAP2ETYyYz-duW1RLviqGBbcYwbNvN6iTK7sTvDgsq5yfKDVKU2gSnqDdqS6fKxblVevdISsEfq47VazE3egevsACpgc91i8QMj6viRxZIz9RUTcUQh4uy22VFWc7mh4jt9bedssgEIIcHFFrOR5WAs75kIcEuYuInw9-hZ8t4nu-Aav1LFw9sN5-So7KvlzyIpTsvjIM7B8xNOowTtWo_1QYap20xxvzoSH8YwTa3GfWdNt_J6mc4r882x17A1a28-nZFWrA7WPKbi7u5k6tZXzQx5MeUrDOz6Z8Inh09VwM2iOh_lwJRx4PqOLLEgmH8=",
+    "summary": []
+   },
+   {
+    "id": "msg_018c8f89f7cd4253016a9c616db72c87d28b0875cece88b6a9",
+    "type": "message",
+    "status": "completed",
+    "content": [
+     {
+      "type": "output_text",
+      "annotations": [
+       {
+        "type": "url_citation",
+        "end_index": 2380,
+        "start_index": 2290,
+        "title": "HubSpot CRM Pricing 2026 | Capterra",
+        "url": "https://www.capterra.com/p/152373/HubSpot-CRM/pricing/?utm_source=openai"
+       },
+       {
+        "type": "url_citation",
+        "end_index": 2596,
+        "start_index": 2507,
+        "title": "Freshsales Reviews 2026. Verified Reviews, Pros & Cons | Capterra",
+        "url": "https://www.capterra.com/p/155563/Freshsales/reviews/?utm_source=openai"
+       },
+       {
+        "type": "url_citation",
+        "end_index": 3924,
+        "start_index": 3842,
+        "title": "HubSpot CRM Software Pricing, Alternatives & More 2026 | Capterra",
+        "url": "https://www.capterra.com/p/152373/HubSpot-CRM/?utm_source=openai"
+       },
+       {
+        "type": "url_citation",
+        "end_index": 4798,
+        "start_index": 4694,
+        "title": "Pipedrive vs Zoho CRM: Features and Cost Comparison 2026 | Capterra",
+        "url": "https://www.capterra.com/compare/132666-155928/Pipedrive-vs-Zoho-CRM?utm_source=openai"
+       },
+       {
+        "type": "url_citation",
+        "end_index": 5564,
+        "start_index": 5475,
+        "title": "Freshsales Reviews 2026. Verified Reviews, Pros & Cons | Capterra",
+        "url": "https://www.capterra.com/p/155563/Freshsales/reviews/?utm_source=openai"
+       },
+       {
+        "type": "url_citation",
+        "end_index": 7136,
+        "start_index": 7049,
+        "title": "Zoho CRM Reviews 2026. Verified Reviews, Pros & Cons | Capterra",
+        "url": "https://www.capterra.com/p/155928/Zoho-CRM/reviews/?utm_source=openai"
+       }
+      ],
+      "logprobs": [],
+      "text": "## Best CRM tools for small consulting firms\n\nThe strongest options balance straightforward pipeline management, email/calendar integration, automation, reporting, and reasonable per-user pricing. **Ratings below are current Capterra ratings as of late August 2026; prices are entry-level list prices and may require annual billing.**\n\n| CRM | Capterra rating | Starting price* | Notable features | Best for |\n|---|---:|---:|---|---|\n| **Bigin by Zoho CRM** | **4.7/5** \u2014 742 reviews | Free plan; paid from about **$7/user/month** | Multiple pipelines, contact and activity management, email integration, forms, workflows and dashboards | Solos and very small consulting practices |\n| **HubSpot CRM** | **4.5/5** \u2014 4,484 reviews | Free plan; paid from **$20/user/month** | Contact and deal management, email tracking, meeting scheduling, forms, pipelines, reporting, marketing and service tools | Firms wanting CRM plus marketing |\n| **Pipedrive** | **4.5/5** \u2014 3,058 reviews | From **$19/user/month** | Excellent visual pipelines, activity reminders, email sync, workflow automation, forecasting and lead management | Sales-focused consulting teams |\n| **Freshsales** | **4.5/5** \u2014 623 reviews | Free plan available; paid from about **$9/user/month** with annual billing | Built-in email and phone, lead scoring, sales sequences, workflows, multiple pipelines and AI assistance | Firms wanting communications built in |\n| **Salesforce Sales Cloud** | **4.4/5** \u2014 18,807 reviews | From **$25/user/month** | Leads, accounts, opportunities, forecasting, automation, reporting and a very large integration ecosystem | Consultancies expecting complex growth |\n| **Zoho CRM** | **4.3/5** \u2014 6,994 reviews | From **$14/user/month** | Custom modules, workflows, multichannel communication, analytics, approvals, automation and broad Zoho-suite integration | Firms needing customization at low cost |\n\n\\*Taxes, AI features, calling, marketing contacts, implementation, storage and add-ons can raise the total cost.\n\nThe ratings and published entry prices are based on Capterra\u2019s August 2026 listings. HubSpot is rated 4.5 and starts at $20 per user monthly; Zoho CRM is rated 4.3 and starts at $14; Pipedrive is rated 4.5 and starts around $19; and Bigin is rated 4.7 with an entry price around $7. ([capterra.com](https://www.capterra.com/p/152373/HubSpot-CRM/pricing/?utm_source=openai))\n\nFreshsales carries a 4.5 rating from 623 reviews, while Salesforce Sales Cloud is rated 4.4 across more than 18,000 reviews. ([capterra.com](https://www.capterra.com/p/155563/Freshsales/reviews/?utm_source=openai))\n\n## How they compare for consulting work\n\n### 1. Bigin \u2014 best low-cost, uncomplicated choice\n\n**Advantages**\n\n- Highest rating in this group.\n- Simple enough to deploy without a CRM administrator.\n- Pipelines can represent different service lines or engagement types.\n- Fits naturally if the firm already uses Zoho Books, Zoho Projects or Zoho Sign.\n\n**Limitations**\n\n- Less sophisticated reporting, permissions and automation than full Zoho CRM.\n- A firm may outgrow it when sales processes become complex.\n\n**Choose it if:** You have roughly one to ten users and mainly need to track relationships, referrals, proposals and follow-ups.\n\n### 2. HubSpot \u2014 best overall for inbound marketing\n\n**Advantages**\n\n- Strong free CRM for contacts, deals and basic pipeline management.\n- Particularly good forms, meeting links, email tracking and marketing handoffs.\n- Large integration ecosystem and relatively approachable interface.\n- Can combine sales, marketing, customer service and content management.\n\nHubSpot supports the three functions Capterra reviewers identify as especially important: contact, pipeline and lead management. Its principal drawback is that costs can rise substantially as firms add advanced features and marketing contacts. ([capterra.com](https://www.capterra.com/p/152373/HubSpot-CRM/?utm_source=openai))\n\n**Choose it if:** Your firm generates leads through thought leadership, newsletters, webinars, reports or website content.\n\n### 3. Pipedrive \u2014 best pure sales-pipeline experience\n\n**Advantages**\n\n- One of the cleanest visual pipeline interfaces.\n- Strong activity-based selling: calls, meetings, follow-ups and proposal deadlines.\n- Easy for partners and consultants to adopt.\n- Good workflow automation without enterprise-level complexity.\n\n**Limitations**\n\n- Marketing, project delivery and advanced lead generation may require add-ons or separate applications.\n- Not as broad an all-in-one platform as HubSpot or Zoho.\n\nPipedrive\u2019s ease-of-use and value-for-money scores are both strong, although Zoho offers a broader feature set at a lower published entry price. ([capterra.com](https://www.capterra.com/compare/132666-155928/Pipedrive-vs-Zoho-CRM?utm_source=openai))\n\n**Choose it if:** Your biggest problem is inconsistent follow-up rather than marketing automation.\n\n### 4. Freshsales \u2014 best built-in communications value\n\n**Advantages**\n\n- Built-in email, phone and sales-sequence functionality can reduce the number of separate tools required.\n- Good automation and lead-scoring capabilities for the price.\n- Works well alongside Freshdesk if the firm provides ongoing support or managed services.\n\n**Limitations**\n\n- Reporting can be less flexible than enterprise systems.\n- Some sophisticated AI, workflows and governance features require higher tiers.\n\nReviewers rate Freshsales 4.5 overall and 4.4 for ease of use and customer service. ([capterra.com](https://www.capterra.com/p/155563/Freshsales/reviews/?utm_source=openai))\n\n**Choose it if:** Consultants do substantial prospecting by email and phone and want those interactions inside the CRM.\n\n### 5. Salesforce \u2014 best for complex growth\n\n**Advantages**\n\n- Extremely customizable.\n- Strong automation, analytics, security controls and partner ecosystem.\n- Suitable for complex account structures, multiple practices or long enterprise sales cycles.\n- Unlikely to be outgrown.\n\n**Limitations**\n\n- More configuration and administration than most small firms need.\n- Implementation and consulting costs can exceed license costs.\n- Adoption may suffer if consultants only need basic relationship and opportunity tracking.\n\n**Choose it if:** You expect rapid growth, enterprise clients, complicated workflows or extensive system integration.\n\n### 6. Zoho CRM \u2014 best feature-to-price ratio\n\n**Advantages**\n\n- Considerably more configurable than most similarly priced CRMs.\n- Strong workflows, custom fields/modules, approvals, analytics and communication channels.\n- Integrates with Zoho Books, Projects, Sign, Desk and Campaigns.\n- Suitable for connecting business development with engagement delivery and billing.\n\n**Limitations**\n\n- Interface and configuration can feel less polished or intuitive than Pipedrive.\n- Support receives somewhat lower scores than several competitors.\n\nZoho CRM\u2019s value-for-money score is 4.3/5; reviewers generally praise its affordability and extensive feature set, while noting that advanced functionality may require upgrades. ([capterra.com](https://www.capterra.com/p/155928/Zoho-CRM/reviews/?utm_source=openai))\n\n**Choose it if:** You want a customizable business-management ecosystem without paying Salesforce-level prices.\n\n## Practical recommendations\n\n- **Solo consultant or firm under five people:** **Bigin**\n- **Best overall for most small consulting firms:** **Pipedrive**\n- **Best for content-driven lead generation:** **HubSpot**\n- **Best value with email and calling:** **Freshsales**\n- **Best customizable, affordable ecosystem:** **Zoho CRM**\n- **Best for complex enterprise growth:** **Salesforce**\n\nFor a typical five-to-20-person consulting firm, I would shortlist **Pipedrive, HubSpot and Zoho CRM**. Pipedrive usually offers the easiest adoption, HubSpot provides the best marketing integration, and Zoho offers the greatest functional breadth for the price. Before purchasing, test each with an actual workflow: referral received \u2192 discovery meeting \u2192 proposal \u2192 negotiation \u2192 signed engagement \u2192 project handoff."
+     }
+    ],
+    "phase": "final_answer",
+    "role": "assistant"
+   }
+  ],
+  "parallel_tool_calls": true,
+  "presence_penalty": 0.0,
+  "previous_response_id": null,
+  "prompt_cache_key": null,
+  "prompt_cache_retention": "24h",
+  "reasoning": {
+   "context": "all_turns",
+   "effort": "medium",
+   "mode": "standard",
+   "summary": null
+  },
+  "safety_identifier": null,
+  "service_tier": "default",
+  "store": false,
+  "temperature": 1.0,
+  "text": {
+   "format": {
+    "type": "text"
+   },
+   "verbosity": "medium"
+  },
+  "tool_choice": "auto",
+  "tool_usage": {
+   "image_gen": {
+    "input_tokens": 0,
+    "input_tokens_details": {
+     "image_tokens": 0,
+     "text_tokens": 0
+    },
+    "output_tokens": 0,
+    "output_tokens_details": {
+     "image_tokens": 0,
+     "text_tokens": 0
+    },
+    "total_tokens": 0
+   },
+   "web_search": {
+    "num_requests": 1
+   }
+  },
+  "tools": [
+   {
+    "type": "web_search",
+    "return_token_budget": "default",
+    "search_content_types": [
+     "text"
+    ],
+    "search_context_size": "medium",
+    "user_location": {
+     "type": "approximate",
+     "city": null,
+     "country": "US",
+     "region": null,
+     "timezone": null
+    }
+   }
+  ],
+  "top_logprobs": 0,
+  "top_p": 0.98,
+  "truncation": "disabled",
+  "usage": {
+   "input_tokens": 13005,
+   "input_tokens_details": {
+    "cache_write_tokens": 0,
+    "cached_tokens": 4397
+   },
+   "output_tokens": 2954,
+   "output_tokens_details": {
+    "reasoning_tokens": 1351
+   },
+   "total_tokens": 15959
+  },
+  "user": null,
+  "metadata": {}
+ }
+}

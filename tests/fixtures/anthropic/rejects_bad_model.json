@@ -1,0 +1,23 @@
+{
+ "_why": "404 shape. Must classify as error and never retry.",
+ "_collected": "2026-09-05T18:32:38Z",
+ "_request": {
+  "model": "claude-nonexistent",
+  "max_tokens": 1024,
+  "messages": [
+   {
+    "role": "user",
+    "content": "hi"
+   }
+  ]
+ },
+ "_http_status": 404,
+ "response": {
+  "type": "error",
+  "error": {
+   "type": "not_found_error",
+   "message": "model: claude-nonexistent"
+  },
+  "request_id": "req_011CekmhMwss3xHQgnBf4W1R"
+ }
+}

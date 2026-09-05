@@ -1,0 +1,80 @@
+{
+ "_why": "Baseline. Thinking fires unrequested \u2014 a family property, not a config.",
+ "_collected": "2026-09-05T18:38:10Z",
+ "_request": {
+  "model": "gemini-3.7-flash",
+  "store": false,
+  "generation_config": {
+   "max_output_tokens": 16384,
+   "thinking_summaries": "auto"
+  },
+  "input": "Name one CRM tool for consultants."
+ },
+ "_http_status": 200,
+ "response": {
+  "status": "completed",
+  "usage": {
+   "total_tokens": 257,
+   "total_input_tokens": 8,
+   "input_tokens_by_modality": [
+    {
+     "modality": "text",
+     "tokens": 8
+    }
+   ],
+   "total_cached_tokens": 0,
+   "total_output_tokens": 21,
+   "total_tool_use_tokens": 0,
+   "total_thought_tokens": 228,
+   "raw_prompt_token": 39,
+   "model_invocation_token_counts": [
+    {
+     "prompt_tokens_details": [
+      {
+       "modality": "text",
+       "tokens": 39
+      }
+     ],
+     "candidates_tokens_details": [
+      {
+       "modality": "text",
+       "tokens": 25
+      }
+     ],
+     "thoughts_tokens_details": [
+      {
+       "modality": "text",
+       "tokens": 228
+      }
+     ]
+    }
+   ]
+  },
+  "created": "2026-09-05T18:38:10Z",
+  "updated": "2026-09-05T18:38:10Z",
+  "service_tier": "standard",
+  "steps": [
+   {
+    "signature": "Es4HCssHARFNMg87vD3dX+UeM4FpA80no3sPZ+DFtgrZWGxeoJwIkBge48kC37Yit6ikCmz2tSmjh/Jl4k0vEkjSzzr8o0d1q58vQn6NUF4yMSMaGResDB5/MWryUEAF6VtdTL00BSBEb+cziKhIKNSIJIcmm49p2Paebj1bEKp2t7GDqUVhzsJY6sAUoAjBq9tPoy3HuDp1LK6gquhTlyFqoAl/05f2CzQBKqo4xRfI6tzq2Et/Rijq7hKgoyZ1/HhosoWvWtHNhe5PQG6OZ6ElCl5P3oOb5bKqIO2MwVIYfxucSAYRY3d3iKk1UQbi+kkHegU0frvAT9poLykzHPVL/xYG0tasjBcMQWMNZQD+YB4fsZCXFTjku5QsMSWPWkHFnHG3vWZrsA1oWNPBtrpAtusNrmg4h+0c1UI5iJJ8ahAEJIJCWRL5v5s+tg6zP4F0DhibOQoObazYrxRE8AmNK7loi2Gngi1+eqUqxWD2Fc5vwclNVr4cSF4k2Z/m+qVXDlV/dFWMu46riO044tuo/hWlPQDSiyxzJdEMa/9obAYiwtpWumb9r8E73VyEczDAgU4bidhpN792agtzjWpl7cx0yatwwSR9h6gIHcWkJzlw8EXWU3L6h7iunRXZfK8h/u72/JkAGGyXhQv5DVryJ+bFbXk0uiU+keTHHNW8U0tmauvkl0bwGYpQxcZvaiGCQTS24nDrOxgUfY+exEJAiKAYrrgmI64vblnTbzoB5F9PJ6p+sZZPvUeqd0gXcmN4LjCLIIVvHuXH50DOVH8hDPKLjMU2h9bDKCowqbzwsjOjJBIAm0Dgp3KU152EKKDb2ETjNiti6Gs1zXBuOtSFnkvEZOfYWwK8oxFahHdhIzsmKV6vqcadaxoAf5KqoNg5M1MdZopHYTuiqt/g0guucpA+zeVlKjbx5PA5HUUm/yD+RBeBxcmruYKTeJfkhyy6QD2WjJ/9i8H4wbeAyYDTbt4LmBWB7sisTj1+1vL3zXzzAatCNXkNSbKtrzSkgTDtKkA0vK/+4RfEu/6kx89TkGDX8vB3AZZgU2N736Tl518Lx9Qs0GDWtFUdgJmitZFzvzeHKQ2jmvyROgV9f+p730Wp4OIkySnCsYMdM2gV/l7DrTUTdqifysqm2JGYVU1QcyVW+RwtMmWTj9YkCW9d7Fy1iSgql73sGPA2AAEaYwKRqgBFQRz3ngDxmEBZRcePY6nTImRQsOANY6B7mfFzS93bBXHFSeWup/FNNaYFTmV4bA4aeG67Mu6teUMyaqQN3UvjDAbG1qT50D+42yw=",
+    "summary": [
+     {
+      "text": "**My CRM Tool Selection Process**\n\nOkay, here's what I'm thinking. The user, who likely has a good understanding of CRMs already, wants a recommendation for *one* CRM tool specifically geared towards consultants. They're not asking for a comparison, just a single, solid suggestion. My mind immediately jumps to a few options. I'm going to quickly brainstorm what's out there. *HubSpot CRM* comes to mind first. It's incredibly popular, has a strong free tier, and is versatile enough to work for many consultants. Then, *HoneyBook* pops up, because it's *made* for independent consultants and freelancers, a perfect fit! *Bonsai* is another one tailored to consulting and freelancing. Now, for more general sales-focused CRMs, *Pipedrive* could also work well for consultants, as they often have a sales pipeline. Finally, I recall *Accelo* which is specifically built for professional services, and consultants. *Zoho CRM* is also a possibility, although more general and customizable.\n\nNow, I need to pick the best, most direct answer. \"HubSpot CRM\" is probably the safest, most widely recognized option. It's likely the user is already familiar with it. But, if I want to be extra specific, *Accelo* or *HoneyBook* would be ideal. I want to be concise as requested. So, I will pick an option and keep the response direct.\n\n\n",
+      "type": "text"
+     }
+    ],
+    "type": "thought"
+   },
+   {
+    "content": [
+     {
+      "text": "**HubSpot CRM** (or **Accelo**, which is specifically built for professional services and consultants).",
+      "type": "text"
+     }
+    ],
+    "type": "model_output"
+   }
+  ],
+  "object": "interaction",
+  "model": "gemini-3.7-flash"
+ }
+}
