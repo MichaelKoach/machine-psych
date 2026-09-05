@@ -353,6 +353,7 @@ class OpenAI(Provider):
                         **({"page_age": None} if page_age else {}),
                         "retrieved": None,   # unknown, not False
                         "cited": True,
+                        "is_redirect": False,
                         "tool_use_id": None,
                         "caller": "direct",
                     })

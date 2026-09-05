@@ -353,6 +353,11 @@ class Anthropic(Provider):
                     **({"page_age": result.get("page_age")} if page_age else {}),
                     "retrieved": True,
                     "cited": url in cited_urls,
+                    # Declared even though it is always False here. The citations
+                    # rows on this provider already set it; sources did not, so
+                    # the column came back all-NaN and every downstream branch
+                    # keyed on it took the wrong path — NaN is truthy.
+                    "is_redirect": False,
                     "tool_use_id": block.get("tool_use_id"),
                     "caller": (block.get("caller") or {}).get("type"),
                 })

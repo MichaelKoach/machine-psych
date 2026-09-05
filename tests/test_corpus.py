@@ -18,6 +18,7 @@ import pytest
 import machine_psych.runner as R
 from machine_psych.corpus import (capability_note, citations, load_corpus,
                                   queries, sources, thoughts, units)
+from machine_psych.corpus import sources as mp_sources
 
 FIXTURES = pathlib.Path(__file__).parent / "fixtures"
 
@@ -148,6 +149,37 @@ def test_quote_is_populated_regardless_of_mechanism(corpus):
     assert citations(corpus)["quote"].notna().all()
 
 
+def test_domain_is_a_real_domain_where_urls_are_ordinary(corpus):
+    """The bug that survived a full live run and 314 passing tests.
+
+    `is_redirect` was absent from two providers' `sources` rows, so
+    `df.get(col, default)` returned a column of NaN — and **NaN is truthy**, so
+    every row took the redirect branch and `domain` held page titles like
+    "Purpose Built Qualitative Research Platform - Discuss.io" for a URL of
+    https://www.discuss.io/platform/.
+
+    It was caught by reading output, not by a test, and it would have corrupted
+    every source-grouped analysis the scraping layer does.
+    """
+    src = mp_sources(corpus)
+    for prov in ("anthropic", "openai"):
+        rows = src[src.provider == prov]
+        assert len(rows), prov
+        assert not rows.domain.str.contains(" ").any(), (
+            f"{prov} domains contain spaces — they are titles, not domains")
+        assert rows.is_redirect.notna().all(), (
+            f"{prov} sources omit is_redirect; NaN routes to the wrong branch")
+
+
+def test_a_missing_is_redirect_raises_rather_than_defaulting(corpus):
+    """A default that produces the WRONG BRANCH is worse than one that errors."""
+    import pandas as pd_
+    from machine_psych.corpus import _domains
+    df = pd_.DataFrame([{"title": "t", "url": "https://x.com/a"}])
+    with pytest.raises(KeyError, match="is_redirect"):
+        _domains(df)
+
+
 def test_domain_comes_from_title_where_urls_are_redirects(corpus):
     """One provider's URLs are redirects whose netloc is always the same host, so
     parsing them would give one meaningless value for every source."""
@@ -245,3 +277,31 @@ def test_prompt_hash_joins_across_providers(corpus):
     """
     assert corpus.prompt_hash.nunique() == 1
     assert corpus.provider.nunique() == 3
+
+
+def test_truncated_is_not_reported_as_a_failure(tmp_path, capsys):
+    """A truncated record is a SUCCESS with a partial answer.
+
+    On the first live run, four truncated records carrying 582–1,169 characters
+    of usable text were summarised as `ok: 0`, which read as total failure for a
+    study that had worked exactly as designed. The fifth state exists precisely
+    because calling those failures discards a real answer.
+    """
+    R.set_base(tmp_path)
+
+    def truncating(cfg):
+        body = _response("grounded_ok", "anthropic")
+        body = json.loads(json.dumps(body))
+        body["stop_reason"] = "max_tokens"
+        return body
+
+    spec = json.loads(json.dumps(SPEC))
+    spec["studies"][0]["providers"] = {
+        "anthropic/claude-sonnet-5": {"reasoning": "off", "repetitions": 1}}
+    with contextlib.redirect_stdout(io.StringIO()):
+        run = R.load_investigation(spec)
+        R.run_investigation(run, dispatch=truncating, verbose=False, export=False)
+    load_corpus("c")
+    out = capsys.readouterr().out
+    assert "truncated" in out
+    assert "failed" not in out, "a truncated record was counted as a failure"

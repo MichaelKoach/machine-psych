@@ -140,6 +140,38 @@ def load_corpus(investigation: str, run: str | None = None,
     return corpus
 
 
+def _domains(df: pd.DataFrame) -> list:
+    """Real domain per row: the title where the URL is a redirect, else the netloc.
+
+    One provider's search URLs are redirects whose netloc is always the same
+    host, so parsing them would give one meaningless value for every source —
+    its `title` carries the real domain instead.
+
+    **`is_redirect` must be present and boolean.** It was absent from two
+    providers' `sources` rows, so `df.get(col, default)` returned a column of
+    NaN — and NaN is TRUTHY, so every row took the redirect branch and `domain`
+    silently held page titles on providers whose URLs are perfectly ordinary.
+    The bug survived a full live run and was only caught by reading the output.
+
+    So this raises on a missing column rather than defaulting. A default that
+    produces the wrong branch is worse than one that produces an error.
+    """
+    if "is_redirect" not in df.columns:
+        raise KeyError(
+            "`is_redirect` is missing from this side table. Every provider must "
+            "declare it — a default would silently route rows down the redirect "
+            "branch and fill `domain` with page titles.")
+    out = []
+    for title, url, redirect in zip(df["title"], df["url"], df["is_redirect"]):
+        if bool(redirect):
+            out.append(title)
+        elif url:
+            out.append(urlparse(url).netloc.replace("www.", "") or None)
+        else:
+            out.append(title)
+    return out
+
+
 def _frame(rows: list[dict]) -> pd.DataFrame:
     df = pd.DataFrame(rows)
     if len(df):
@@ -180,9 +212,18 @@ def _describe(corpus: pd.DataFrame, investigation: str, run_dir) -> None:
         print("  (no records)")
         return
 
-    bad = corpus[corpus.status != "ok"]
+    # `truncated` is a SUCCESS — the answer is real and cut off, which is the
+    # whole reason the fifth state exists. Counting it as "not ok" made a study
+    # that worked perfectly read as total failure on the first live run: four
+    # truncated records with 582–1,169 characters of usable text, reported as
+    # `ok: 0`. A headline that misrepresents the data is worse than no headline.
+    usable = corpus[corpus.status.isin(["ok", "truncated"])]
+    failed = corpus[~corpus.status.isin(["ok", "truncated"])]
+    n_trunc = int((corpus.status == "truncated").sum())
     print(f"  {len(corpus)} records"
-          + (f", {len(bad)} not ok" if len(bad) else "")
+          + (f", {len(usable)} with answers" if n_trunc else "")
+          + (f" ({n_trunc} truncated)" if n_trunc else "")
+          + (f", {len(failed)} failed" if len(failed) else "")
           + f" · {corpus.probe.nunique()} probes · {corpus.condition.nunique()} conditions")
 
     # Per provider, never one total — three token conventions make a combined
@@ -272,10 +313,7 @@ def citations(corpus: pd.DataFrame, record_id: int | None = None) -> pd.DataFram
         # redirects — its netloc is always Google's, so parsing the URL would
         # give one meaningless value for every source.
         df = df.copy()
-        df["domain"] = [
-            t if r else (urlparse(u).netloc.replace("www.", "") if u else None)
-            for t, u, r in zip(df.get("title"), df.get("url"),
-                               df.get("is_redirect", [False] * len(df)))]
+        df["domain"] = _domains(df)
     return df if record_id is None else df[df.record_id == record_id]
 
 
@@ -294,10 +332,7 @@ def sources(corpus: pd.DataFrame, record_id: int | None = None,
     df = _side(corpus, "sources")
     if len(df) and "domain" not in df.columns:
         df = df.copy()
-        df["domain"] = [
-            t if r else (urlparse(u).netloc.replace("www.", "") if u else None)
-            for t, u, r in zip(df.get("title"), df.get("url"),
-                               df.get("is_redirect", [False] * len(df)))]
+        df["domain"] = _domains(df)
     if retrieved_only and len(df):
         df = df[df.retrieved == True]  # noqa: E712 — None must not match
     return df if record_id is None else df[df.record_id == record_id]
