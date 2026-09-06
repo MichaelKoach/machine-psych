@@ -137,8 +137,9 @@ def run(providers: list[str] | None = None, verbose: bool = False) -> int:
 
     print("TIER 1 — which models exist\n")
     if approved is None:
-        print("  NO APPROVED ROSTER. Everything below reads as new; review it")
-        print("  and run with --approve to establish a baseline.\n")
+        print("  NO APPROVED ROSTER — so there is nothing to diff against, and")
+        print("  the full dispatchable roster is listed below. Read it, then")
+        print("  --approve. Later runs report only what CHANGED.\n")
         incomplete = True
 
     current: dict[str, list[str]] = {}
@@ -155,15 +156,34 @@ def run(providers: list[str] | None = None, verbose: bool = False) -> int:
         was = set((approved or {}).get(provider, []))
         recorded = {m.split("/", 1)[1] for m in known_models(provider)}
 
-        new = sorted(set(relevant) - was) if approved else []
         broken = sorted(recorded - set(live))
         # A model we USE disappearing is one event, not two. Reporting it as both
         # VANISHED and BROKEN doubles the line and buries which one matters — and
         # BROKEN is the one that matters, because a spec naming it will fail.
+        new = sorted(set(relevant) - was) if approved else []
         gone = sorted(was - set(relevant) - set(broken)) if approved else []
 
         print(f"  {provider}   {len(relevant)} dispatchable "
               f"({len(live) - len(relevant)} filtered), {len(recorded)} in use")
+
+        if approved is None:
+            # WITHOUT a baseline there is no diff, and an earlier version printed
+            # "unchanged" here while the header said "everything reads as new" —
+            # two contradictory claims and nothing to read. That defeats the
+            # approval gate: a person told to review before approving was shown
+            # nothing to review, so approving could only be blind.
+            #
+            # So the full list is printed. It is the only run where the whole
+            # roster is the thing being approved, and it should be seen.
+            for model in relevant:
+                marker = " (in use)" if model in recorded else ""
+                print(f"    {model}{marker}")
+            for model in broken:
+                differences = True
+                print(f"    BROKEN     {model}  — IN USE but not offered")
+            print()
+            continue
+
         for model in new:
             differences = True
             print(f"    NEW        {model}")

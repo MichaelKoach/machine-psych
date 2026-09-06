@@ -425,6 +425,29 @@ def test_no_approved_roster_is_incomplete(tmp_path, monkeypatch, capsys):
     assert "NO APPROVED ROSTER" in capsys.readouterr().out
 
 
+def test_the_first_run_shows_what_would_be_approved(tmp_path, monkeypatch, capsys):
+    """Without this the approval gate is defeated on the run that needs it most.
+
+    An earlier version printed "everything below reads as new" in the header and
+    "unchanged" for every provider in the body — two contradictory claims and
+    nothing to read. A person told to review before approving was shown nothing
+    to review, so approving could only be blind.
+
+    With no baseline there is no diff, so the full roster IS the thing being
+    approved and it has to be visible.
+    """
+    monkeypatch.setattr(tier1, "ROSTER", tmp_path / "absent.json")
+    monkeypatch.setattr(tier1, "roster", lambda p: (BASE, None))
+    tier1.run(["anthropic"])
+    out = capsys.readouterr().out
+
+    assert "unchanged" not in out, (
+        "claims nothing changed while also claiming everything is new")
+    for model in BASE:
+        assert model in out, f"{model} would be approved unseen"
+    assert "(in use)" in out, "does not distinguish characterised models"
+
+
 def test_approve_refuses_a_partial_roster(tmp_path, monkeypatch, capsys):
     """Approving what could only be half-seen would record the unreachable
     provider as empty, and the next run would read that as every model vanishing."""
