@@ -37,8 +37,24 @@ and that must not read as a pass.
 
 ## The tiers
 
-**Tier 1 — which models exist.** One GET per provider, diffed against
-`CAPABILITIES`. Free.
+**Tier 1 — which models exist.** One GET per provider. Free.
+
+    python drift/tier1.py --approve      # establish the roster baseline, once
+    python drift/tier1.py                # thereafter
+
+**Two comparisons, and conflating them was the first version's bug.** NEW and
+VANISHED are measured against an approved ROSTER — what the provider offered last
+time anyone looked. Separately, a model that is IN USE and no longer live is
+reported as **BROKEN**, because a spec naming it will fail.
+
+The first version diffed against `CAPABILITIES`, which holds the ten models this
+project uses. That reported `gpt-5.2` as NEW — which it is not; it is simply not
+one we characterised, and it would have reported as NEW on every run forever. The
+first real run printed 186 lines of which about four mattered.
+
+It also filters the catalogue to dispatchable text models. The endpoints return
+everything the key can reach — embeddings, TTS, image, video, Whisper, GPT-3.5 —
+and none of that is drift in a text-battery harness.
 
 It is an alert, not an answer. A new model tells you `caps_for` will raise on it;
 it says nothing about whether the platform moved under the models already

@@ -15,6 +15,8 @@ So a clean tier 1 means the roster is unchanged. It does not mean nothing moved.
 
 from __future__ import annotations
 
+import json
+import pathlib
 import sys
 
 import requests
@@ -25,6 +27,51 @@ from machine_psych import paths  # noqa: E402
 from machine_psych.capabilities import caps_for, known_models  # noqa: E402
 
 __all__ = ["roster", "run"]
+
+# Model ids this harness could never dispatch to. The endpoints return the whole
+# catalogue — embeddings, speech, image, video, moderation — and diffing that
+# against a table of ten text models produced 186 lines of output on the first
+# real run, of which about four mattered.
+#
+# That is the noise failure tier 3 was designed against, walked into by tier 1.
+# A detector that reports 180 non-events buries the ones that matter, and gets
+# skimmed within a fortnight.
+#
+# Matching on SUBSTRINGS rather than an allowlist, because the point is to
+# exclude what is definitely irrelevant, not to guess what is relevant. A new
+# text model with an unfamiliar name must still come through.
+NOT_DISPATCHABLE = (
+    "embedding", "tts", "whisper", "transcribe", "moderation", "audio",
+    "realtime", "image", "sora", "veo", "lyria", "nano-banana", "computer-use",
+    "robotics", "-live", "aqa", "translate",
+)
+
+# Generations this project does not use. Unlike the above these ARE text models,
+# so the filter is a scope decision rather than a fact — recorded separately so
+# it can be relaxed without touching the line above.
+OLD_GENERATIONS = (
+    "gpt-3.5", "gpt-4", "davinci", "babbage", "o1", "o3", "o4-mini",
+    "gemini-2.", "gemma", "claude-sonnet-4-5", "claude-haiku-4-5",
+    "claude-opus-4-5",
+)
+
+
+def dispatchable(model_id: str) -> bool:
+    """Could this harness plausibly send a text battery to it.
+
+    False for anything whose name marks it as a different modality, and for
+    generations this project does not use. Neither list is authoritative — a
+    model that slips through is reported and can be ignored, which is the right
+    direction to fail in.
+    """
+    lowered = model_id.lower()
+    if any(mark in lowered for mark in NOT_DISPATCHABLE):
+        return False
+    if any(lowered.startswith(gen) or f"-{gen}" in lowered
+           for gen in OLD_GENERATIONS):
+        return False
+    return True
+
 
 ENDPOINTS = {
     "anthropic": ("https://api.anthropic.com/v1/models",
@@ -62,50 +109,84 @@ def roster(provider: str) -> tuple[list[str], str | None]:
     return sorted(set(filter(None, ids))), None
 
 
-def run(providers: list[str] | None = None) -> int:
-    """Diff live rosters against CAPABILITIES. Returns an exit code.
+ROSTER = pathlib.Path(__file__).parent / "roster.json"
 
-    Three states, and the third is why this returns a code rather than a bool:
-    a run that could not reach a provider has found no differences for that
-    provider, which must not read as a clean result.
+
+def run(providers: list[str] | None = None, verbose: bool = False) -> int:
+    """Diff live rosters against the approved roster. Returns an exit code.
+
+    **Two comparisons, and conflating them was the first version's bug.**
+
+    `CAPABILITIES` holds the ten models this project USES. Diffing a live roster
+    against it reported `gpt-5.2` as NEW — which it is not; it is simply not one
+    we characterised, and it would have reported as NEW on every run forever. 186
+    lines of output on the first real run, of which four mattered.
+
+    So: NEW and VANISHED are measured against an approved ROSTER — what the
+    provider offered last time anyone looked. And separately, a recorded model
+    that is no longer live is reported as BROKEN, because a spec naming it will
+    fail.
 
         0  clean
         1  differences found
-        2  incomplete — a provider could not be reached
+        2  incomplete — a provider could not be reached, or no roster approved
     """
     providers = providers or sorted(ENDPOINTS)
+    approved = json.loads(ROSTER.read_text()) if ROSTER.exists() else None
     differences = incomplete = False
 
     print("TIER 1 — which models exist\n")
+    if approved is None:
+        print("  NO APPROVED ROSTER. Everything below reads as new; review it")
+        print("  and run with --approve to establish a baseline.\n")
+        incomplete = True
+
+    current: dict[str, list[str]] = {}
 
     for provider in providers:
         live, error = roster(provider)
         if error:
             incomplete = True
-            print(f"  {provider}")
-            print(f"    UNREACHABLE  {error}")
-            print()
+            print(f"  {provider}\n    UNREACHABLE  {error}\n")
             continue
 
+        relevant = sorted(m for m in live if dispatchable(m))
+        current[provider] = relevant
+        was = set((approved or {}).get(provider, []))
         recorded = {m.split("/", 1)[1] for m in known_models(provider)}
-        new = sorted(set(live) - recorded)
-        gone = sorted(recorded - set(live))
 
-        print(f"  {provider}   {len(live)} live, {len(recorded)} recorded")
+        new = sorted(set(relevant) - was) if approved else []
+        broken = sorted(recorded - set(live))
+        # A model we USE disappearing is one event, not two. Reporting it as both
+        # VANISHED and BROKEN doubles the line and buries which one matters — and
+        # BROKEN is the one that matters, because a spec naming it will fail.
+        gone = sorted(was - set(relevant) - set(broken)) if approved else []
+
+        print(f"  {provider}   {len(relevant)} dispatchable "
+              f"({len(live) - len(relevant)} filtered), {len(recorded)} in use")
         for model in new:
             differences = True
             print(f"    NEW        {model}")
         for model in gone:
             differences = True
-            print(f"    VANISHED   {model}  — recorded but no longer offered")
-        if not new and not gone:
+            print(f"    VANISHED   {model}")
+        for model in broken:
+            differences = True
+            print(f"    BROKEN     {model}  — IN USE but no longer offered; any "
+                  f"spec naming it will fail")
+        if verbose:
+            for model in sorted(recorded & set(live)):
+                print(f"    in use     {model}")
+        if not (new or gone or broken):
             print("    unchanged")
         print()
 
-    # Staleness is reported alongside, because a roster that has not changed says
-    # nothing about whether the models in it still behave as recorded, and this
-    # is the only place anyone looks weekly.
-    print("  measured_on:")
+    if current:
+        ROSTER.with_suffix(".current.json").write_text(
+            json.dumps(current, indent=1, sort_keys=True))
+
+    print("  measured_on — when each model in use was last CHECKED, which is not")
+    print("  the same as whether checking again would find something different:")
     for model in known_models():
         if providers and model.split("/")[0] not in providers:
             continue
@@ -113,21 +194,39 @@ def run(providers: list[str] | None = None) -> int:
 
     print()
     if incomplete:
-        print("  INCOMPLETE — a provider could not be reached. Differences may")
-        print("  exist that this run did not look for.")
+        print("  INCOMPLETE — differences may exist that this run did not look for.")
         return 2
     if differences:
-        print("  DIFFERENCES FOUND. A new model needs characterising before it")
-        print("  can be dispatched to; a vanished one breaks any spec naming it.")
-        print("  Neither says whether the EXISTING models still behave as")
-        print("  recorded — that is tier 2.")
+        print("  DIFFERENCES FOUND. A NEW model needs characterising before it can")
+        print("  be dispatched to. A BROKEN one breaks any spec naming it. Neither")
+        print("  says whether the models IN USE still behave as recorded — tier 2.")
+        print("  Approve the new roster with --approve once you have read this.")
         return 1
-    print("  Roster unchanged. This does not mean nothing moved: a parameter")
-    print("  going silently inert or a response shape shifting are invisible")
-    print("  here. Tiers 2 and 3 look for those.")
+    print("  Roster unchanged. This does not mean nothing moved: a parameter going")
+    print("  silently inert or a response shape shifting are invisible here.")
+    return 0
+
+
+def approve(providers: list[str] | None = None) -> int:
+    """Record the current roster as the baseline. Deliberate, never automatic."""
+    current = {}
+    for provider in providers or sorted(ENDPOINTS):
+        live, error = roster(provider)
+        if error:
+            print(f"  {provider}: UNREACHABLE — {error}")
+            print("  Refusing to approve a partial roster; the gap would read as")
+            print("  a vanished model on the next run.")
+            return 2
+        current[provider] = sorted(m for m in live if dispatchable(m))
+    ROSTER.write_text(json.dumps(current, indent=1, sort_keys=True))
+    print(f"  approved {sum(len(v) for v in current.values())} models across "
+          f"{len(current)} providers")
+    print(f"  {ROSTER}")
     return 0
 
 
 if __name__ == "__main__":
     args = [a for a in sys.argv[1:] if not a.startswith("-")]
-    raise SystemExit(run(args or None))
+    if "--approve" in sys.argv:
+        raise SystemExit(approve(args or None))
+    raise SystemExit(run(args or None, verbose="--verbose" in sys.argv))

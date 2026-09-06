@@ -341,3 +341,96 @@ def test_valid_values_are_recovered_from_a_rejection():
                "Input should be 'minimal', 'low', 'medium', 'high' or 'xhigh'"}}
     assert set(tier2._values_in_error(message)) == {
         "minimal", "low", "medium", "high", "xhigh"}
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Tier 1 — from the first real run, which produced 186 lines of noise
+# ═══════════════════════════════════════════════════════════════════════════════
+
+@pytest.fixture
+def roster_at(tmp_path, monkeypatch):
+    """A tier 1 with a controlled roster and a temporary baseline."""
+    def setup(approved, live):
+        monkeypatch.setattr(tier1, "ROSTER", tmp_path / "roster.json")
+        (tmp_path / "roster.json").write_text(json.dumps({"anthropic": approved}))
+        monkeypatch.setattr(tier1, "roster",
+                            lambda p: (live if p == "anthropic" else [], None))
+    return setup
+
+
+BASE = ["claude-fable-5", "claude-opus-4-6", "claude-opus-5", "claude-sonnet-5"]
+
+
+def test_the_catalogue_is_filtered_to_dispatchable_models():
+    """The first real run diffed the whole catalogue — embeddings, TTS, image,
+    video, Whisper, GPT-3.5 — against a table of ten text models, and printed 186
+    lines of which about four mattered.
+
+    That is the noise failure tier 3 was designed against, walked into by tier 1.
+    """
+    for model in ("text-embedding-3-large", "whisper-1", "tts-1-hd", "sora-2",
+                  "gpt-realtime", "gpt-image-2", "omni-moderation-latest",
+                  "veo-3.1-generate-preview", "lyria-3.5", "gemini-embedding-2",
+                  "gemini-2.5-computer-use-preview-10-2025"):
+        assert not tier1.dispatchable(model), model
+
+    for model in ("gpt-5.6-sol", "gpt-6-astra", "claude-opus-4-8",
+                  "claude-fable-5-1", "gemini-3.8-flash", "gemini-3.5-flash"):
+        assert tier1.dispatchable(model), model
+
+
+def test_new_is_measured_against_the_roster_not_the_capability_table(roster_at, capsys):
+    """`CAPABILITIES` holds the models we USE, not every model that exists.
+
+    Diffing a live roster against it reported `gpt-5.2` as NEW — which it is not;
+    it is simply not one we characterised, and it would have reported as NEW on
+    every run forever.
+    """
+    roster_at(BASE, BASE)          # live matches the roster; none are in CAPABILITIES
+    assert tier1.run(["anthropic"]) == 0
+    assert "NEW" not in capsys.readouterr().out
+
+
+def test_a_genuinely_new_model_is_reported(roster_at, capsys):
+    roster_at(BASE, BASE + ["claude-opus-4-9"])
+    assert tier1.run(["anthropic"]) == 1
+    assert "NEW        claude-opus-4-9" in capsys.readouterr().out
+
+
+def test_a_model_in_use_disappearing_is_BROKEN_not_merely_vanished(roster_at, capsys):
+    """One event, reported once, as the thing that matters.
+
+    Printing it as both VANISHED and BROKEN doubled the line and buried which one
+    was serious — and BROKEN is serious, because a spec naming that model fails.
+    """
+    roster_at(BASE, [m for m in BASE if m != "claude-sonnet-5"])
+    assert tier1.run(["anthropic"]) == 1
+    out = capsys.readouterr().out
+    mentions = [l for l in out.split("\n")
+                if "sonnet-5" in l and ("BROKEN" in l or "VANISHED" in l)]
+    assert len(mentions) == 1
+    assert "BROKEN" in mentions[0]
+
+
+def test_a_model_we_do_not_use_vanishing_is_reported_as_vanished(roster_at, capsys):
+    roster_at(BASE, [m for m in BASE if m != "claude-opus-4-6"])
+    assert tier1.run(["anthropic"]) == 1
+    assert "VANISHED   claude-opus-4-6" in capsys.readouterr().out
+
+
+def test_no_approved_roster_is_incomplete(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(tier1, "ROSTER", tmp_path / "absent.json")
+    monkeypatch.setattr(tier1, "roster", lambda p: (BASE, None))
+    assert tier1.run(["anthropic"]) == 2
+    assert "NO APPROVED ROSTER" in capsys.readouterr().out
+
+
+def test_approve_refuses_a_partial_roster(tmp_path, monkeypatch, capsys):
+    """Approving what could only be half-seen would record the unreachable
+    provider as empty, and the next run would read that as every model vanishing."""
+    monkeypatch.setattr(tier1, "ROSTER", tmp_path / "roster.json")
+    monkeypatch.setattr(tier1, "roster",
+                        lambda p: (([], "no key") if p == "gemini" else (BASE, None)))
+    assert tier1.approve(["anthropic", "gemini"]) == 2
+    assert not (tmp_path / "roster.json").exists()
+    assert "Refusing to approve a partial roster" in capsys.readouterr().out
