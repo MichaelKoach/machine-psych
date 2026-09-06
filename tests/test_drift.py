@@ -457,3 +457,70 @@ def test_approve_refuses_a_partial_roster(tmp_path, monkeypatch, capsys):
     assert tier1.approve(["anthropic", "gemini"]) == 2
     assert not (tmp_path / "roster.json").exists()
     assert "Refusing to approve a partial roster" in capsys.readouterr().out
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Tier 2 — from its first real run, which was mostly false positives
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def test_the_probe_value_is_not_reported_as_a_finding():
+    """Providers quote the offending input back.
+
+    "expected 'low' or 'high', got 'X'" — so an extractor taking every quoted
+    token returns its own probe value and reports it as newly accepted. Seven of
+    nine findings on the first real tier 2 run were exactly this.
+    """
+    message = {"error": {"message":
+               f"Input should be 'low', 'medium' or 'high', got '{tier2.BOGUS}'"}}
+    values = tier2._values_in_error(message)
+    assert tier2.BOGUS not in values
+    assert set(values) == {"low", "medium", "high"}
+
+
+def test_a_bare_parameter_goes_inside_gemini_generation_config():
+    """Sending it top-level gets rejected for being an UNKNOWN FIELD, which the
+    differential probe read as "temperature is now rejected" — a finding
+    manufactured entirely by putting the parameter in the wrong place."""
+    body = tier2._body_with("gemini", "m", "temperature", 0.7)
+    assert "temperature" not in body
+    assert body["generation_config"]["temperature"] == 0.7
+
+
+def test_a_dotted_parameter_keeps_its_own_path():
+    """Dotted names already carry their nesting; the gemini fix must not
+    double-wrap them."""
+    body = tier2._body_with("gemini", "m", "generation_config.thinking_level", "X")
+    assert body["generation_config"]["thinking_level"] == "X"
+    assert "generation_config" not in body["generation_config"]
+
+
+def test_enum_findings_say_listed_not_accepted():
+    """A rejection message names what the API says it accepts.
+
+    Asserting from that message that a value IS accepted is one inference too
+    many — the finding reports what was LISTED and leaves the conclusion to a
+    person.
+
+    Asserted on the Finding this produces, not on the source text. An earlier
+    version grepped the file and failed on its own explanatory comments, which is
+    a test measuring the wrong artifact.
+    """
+    report = tier2.Report()
+    calls = iter([(400, {"error": {"message":
+                  "Input should be 'low', 'high' or 'brand_new_value'"}})])
+    import machine_psych.capabilities as caps
+    saved = caps.ENUMS["openai"]
+    try:
+        caps.ENUMS["openai"] = {"reasoning.effort": ("low", "high")}
+        tier2._dispatch_saved = tier2._dispatch
+        tier2._dispatch = lambda *a, **k: next(calls)
+        tier2._probe_enums("openai", "openai/gpt-5.6-sol", report)
+    finally:
+        caps.ENUMS["openai"] = saved
+        tier2._dispatch = tier2._dispatch_saved
+
+    assert report.findings
+    detail = report.findings[0].detail
+    assert "listed as valid" in detail
+    assert "brand_new_value" in detail
+    assert "accepted" not in detail

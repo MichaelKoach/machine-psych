@@ -99,7 +99,11 @@ def _values_in_error(body: dict) -> list[str]:
     message = str((body.get("error") or {}).get("message") or body)
     found = re.findall(r"'([a-z_][a-z0-9_]*)'", message)
     found += re.findall(r'"([a-z_][a-z0-9_]*)"', message)
-    return sorted(set(found))
+    # EXCLUDE the value we sent. Providers quote the offending input back —
+    # "expected 'low' or 'high', got 'X'" — so an extractor that takes every
+    # quoted token returns its own probe value and reports it as newly accepted.
+    # Seven of nine findings on the first real run were this.
+    return sorted(set(found) - {BOGUS})
 
 
 def _probe_enums(provider: str, model: str, report: Report) -> None:
@@ -136,10 +140,16 @@ def _probe_enums(provider: str, model: str, report: Report) -> None:
         new = returned - recorded - {parameter.split(".")[-1]}
         if gone:
             report.findings.append(Finding(
-                "enum", model, parameter, f"no longer accepted: {sorted(gone)}"))
+                "enum", model, parameter,
+                f"recorded but NOT listed as valid: {sorted(gone)}"))
         if new:
+            # "listed as valid" rather than "newly accepted". The message names
+            # what the API says it accepts; whether we ever recorded it is a
+            # separate question, and asserting acceptance from a rejection
+            # message is one inference too many.
             report.findings.append(Finding(
-                "enum", model, parameter, f"newly accepted: {sorted(new)}"))
+                "enum", model, parameter,
+                f"listed as valid but not in ENUMS: {sorted(new)}"))
 
 
 def _body_with(provider: str, model: str, parameter: str, value):
@@ -155,6 +165,14 @@ def _body_with(provider: str, model: str, parameter: str, value):
     else:
         body = {"model": model, "store": False, "input": "hi",
                 "generation_config": {"max_output_tokens": 64}}
+
+    # A bare parameter name on Gemini belongs inside `generation_config`, not at
+    # the top level. Sending it top-level gets rejected for being an UNKNOWN
+    # FIELD, which the differential probe then read as "temperature is now
+    # rejected" — a finding manufactured entirely by putting it in the wrong
+    # place. Dotted names already carry their own path and are left alone.
+    if provider == "gemini" and len(parts) == 1:
+        parts = ["generation_config", parts[0]]
 
     node = body
     for part in parts[:-1]:
