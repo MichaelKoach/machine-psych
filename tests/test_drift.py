@@ -506,8 +506,11 @@ def test_enum_findings_say_listed_not_accepted():
     a test measuring the wrong artifact.
     """
     report = tier2.Report()
+    # Two calls now: the bogus probe for the schema, then the plausible probe for
+    # the per-model set.
     calls = iter([(400, {"error": {"message":
-                  "Input should be 'low', 'high' or 'brand_new_value'"}})])
+                  "Input should be 'low', 'high' or 'brand_new_value'"}}),
+                  (200, {})])
     import machine_psych.capabilities as caps
     saved = caps.ENUMS["openai"]
     try:
@@ -521,6 +524,83 @@ def test_enum_findings_say_listed_not_accepted():
 
     assert report.findings
     detail = report.findings[0].detail
-    assert "listed as valid" in detail
+    assert "in the schema but not in ENUMS" in detail
     assert "brand_new_value" in detail
-    assert "accepted" not in detail
+    assert "accepted" not in detail, (
+        "a rejection message names what the API validates against, not what "
+        "this model takes")
+
+
+def test_the_plausible_probe_reaches_the_per_model_set():
+    """The half the first version lacked, and the half that matters.
+
+    A bogus value returns the API-WIDE schema, identical across every model of a
+    provider. A plausible value — real elsewhere, maybe not here — returns the
+    PER-MODEL set. Measured 2026-09-05: `minimal` is in OpenAI's schema and
+    rejected by gpt-5.6-sol, gpt-5.5 and gpt-6-astra, each naming a different
+    valid set.
+    """
+    assert tier2.PLAUSIBLE["reasoning.effort"] == "minimal"
+    assert tier2.PLAUSIBLE["generation_config.thinking_level"] == "minimal"
+    for parameter in ("reasoning.effort", "output_config.effort",
+                      "generation_config.thinking_level"):
+        assert parameter in tier2.PLAUSIBLE, (
+            f"{parameter} has no plausible value, so only its schema is probed")
+
+
+def test_a_required_companion_field_is_not_a_rejection():
+    """Anthropic's `thinking.type: enabled` returns "thinking.enabled.
+    budget_tokens: Field required" — acceptance with a condition, not refusal.
+
+    Reading that as a rejection would report a valid value as unsupported.
+    """
+    source = pathlib.Path(tier2.__file__).read_text()
+    assert "required" in source and "Field required" in source
+
+
+def test_the_field_name_is_not_read_as_an_enum_value():
+    """One provider quotes the discriminator alongside the values.
+
+    "Input tag '...' found using 'type' does not match any of the expected tags:
+    'adaptive', 'disabled', 'enabled'" — an extractor taking every quoted token
+    returns `type` and reports it as a valid enum member.
+    """
+    message = {"error": {"message":
+        "thinking: Input tag '__drift_probe_invalid__' found using 'type' does "
+        "not match any of the expected tags: 'adaptive', 'disabled', 'enabled'"}}
+    assert tier2._values_in_error(message) == ["adaptive", "disabled", "enabled"]
+
+
+def test_an_unquoted_random_order_list_is_parsed():
+    """One provider names its valid set UNQUOTED and in a different order on each
+    call — "medium, low, high" then "high, low, medium". Quoted extraction alone
+    finds nothing there."""
+    message = {"error": {"message":
+        "'minimal' is not a supported thinking level for this model. "
+        "Allowed values are: medium, low, high."}}
+    assert set(tier2._values_in_error(message)) >= {"low", "medium", "high"}
+
+
+def test_the_conjunction_is_stripped_from_the_tail():
+    """"…, 'xhigh', and 'max'" splits into a chunk reading "and 'xhigh'", and an
+    uncleaned split reports `and 'xhigh` as a valid value."""
+    message = {"error": {"message":
+        "Supported values are: 'none', 'low', 'medium', 'high', and 'xhigh'."}}
+    values = tier2._values_in_error(message)
+    assert values == ["high", "low", "medium", "none", "xhigh"]
+    assert not any(v.startswith("and") for v in values)
+
+
+def test_a_missing_parameter_is_not_an_empty_enum():
+    """A whole parameter vanishing is a bigger finding than a narrowed set, and a
+    different one.
+
+    `reasoning.mode` on gpt-5.5 returns "not supported with this model" and names
+    no values, so an extractor reads an empty set and reports "accepts nothing" —
+    which looks like a narrowing rather than an absence.
+    """
+    message = {"error": {"message":
+        "`reasoning.mode` is not supported with this model."}}
+    assert tier2._values_in_error(message) == []
+    source = pathlib.Path(tier2.__file__).read_text()
+    assert "THE PARAMETER DOES NOT EXIST on this model" in source

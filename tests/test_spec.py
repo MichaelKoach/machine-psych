@@ -142,7 +142,7 @@ def test_bare_provider_key_raises():
 def test_unknown_model_in_a_spec_raises_with_the_add_procedure():
     s = _spec()
     s["studies"][0]["providers"] = {"openai/gpt-99": {}}
-    with pytest.raises(UnknownModelError, match="characterise"):
+    with pytest.raises(UnknownModelError, match="Four probes establish"):
         validate_investigation(s)
 
 
@@ -450,3 +450,24 @@ def test_prompt_hash_is_exported():
     part of the public surface rather than an internal helper."""
     import machine_psych.spec as module
     assert "prompt_hash" in module.__all__
+
+
+def test_escape_hatch_replaces_nested_dicts_rather_than_merging():
+    """The semantics that caused the only failure in the first live run.
+
+    A provider block of `{"generation_config": {...}}` substitutes the WHOLE key
+    rather than merging into what build() would have assembled from the intents.
+    That sent a parameter to a provider in the wrong shape and produced a 400.
+
+    Asserted rather than fixed. Deep-merging would be harder to reason about — a
+    hatch that half-overrides a nested structure leaves no single readable object
+    showing what was sent — so the rule is stated and tested instead of softened.
+    """
+    resolved, _, _ = resolve(
+        "gemini/gemini-3.7-flash",
+        {"reasoning": "medium", "max_tokens": 16384,
+         "gemini": {"generation_config": {"max_output_tokens": 900}}})
+    assert resolved["generation_config"] == {"max_output_tokens": 900}, (
+        "the hatch merged into the intent-built config instead of replacing it")
+    # the intents survive alongside it — build() decides what to do with both
+    assert resolved["reasoning"] == "medium"

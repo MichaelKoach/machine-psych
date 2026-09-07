@@ -262,7 +262,22 @@ class ModelCaps:
         if intent == "reasoning":
             if value in (None, "off") and not self.reasoning_off:
                 return value is None
-            return True
+            if value is None:
+                return True
+            # CHECK THE LEVEL AGAINST THIS MODEL, not just the off case. An
+            # earlier version returned True for every non-off value, so
+            # `reasoning_levels` was read only by `why_unsupported` — a field
+            # that shaped an error message and never a decision.
+            #
+            # The cost was measured: the shakedown sent `reasoning: minimal` to
+            # a model that rejects it, and the spec layer passed it through to
+            # be refused by the API one call and thirty seconds later. The
+            # levels are PER-MODEL and the schema does not know it.
+            usable = {lv for lv in self.reasoning_levels}
+            if "off" in usable or self.reasoning_off:
+                usable.add("off")
+                usable.add("none")
+            return value in usable
         if intent == "verbosity":
             return self.verbosity
         if intent == "search":
@@ -281,6 +296,11 @@ class ModelCaps:
         what to do instead — and 'unsupported' alone has, in practice, led to
         someone assuming the harness was broken.
         """
+        if intent == "reasoning" and value not in (None, "off"):
+            return (f"`reasoning: {value!r}` is not accepted by this model. "
+                    f"It takes {list(self.reasoning_levels)}. Levels are "
+                    f"per-model — the API schema lists values that individual "
+                    f"models reject.")
         if intent == "reasoning" and value in (None, "off"):
             usable = [lv for lv in self.reasoning_levels if lv != "off"]
             return (f"thinking cannot be disabled on this model, so there is no "
@@ -371,6 +391,8 @@ _OPENAI_COMMON = dict(
 
 _GEMINI_COMMON = dict(
     reasoning_off=False,
+    # SCHEMA default. Per-model overrides below — `minimal` is rejected by
+    # 3.7-flash and 3.8-flash and accepted by 3.5-flash, measured 2026-09-05.
     reasoning_levels=("minimal", "low", "medium", "high"),
     readable_reasoning=True,
     verbosity=False,
@@ -400,7 +422,7 @@ CAPABILITIES: dict[str, ModelCaps] = {
     # which claimed currency for seven models that were never re-measured and
     # inverted the exact signal this field exists to give.
     "anthropic/claude-sonnet-5": ModelCaps(
-        reasoning_off=True, **{**_ANTHROPIC_COMMON, "measured_on": "2026-08-28"},
+        reasoning_off=True, **{**_ANTHROPIC_COMMON, "measured_on": "2026-09-05"},
         notes="Adaptive thinking is ON BY DEFAULT — a call sending no thinking key "
               "returned three thinking blocks and 823 thinking tokens. "
               "`thinking: {type: disabled}` still works, so an off arm exists; "
@@ -419,8 +441,15 @@ CAPABILITIES: dict[str, ModelCaps] = {
     # resemble one vendor, they named substantially different sets and only one
     # company appeared in all of them. Pinning is required, not preferred.
     "openai/gpt-5.6-sol": ModelCaps(
-        reasoning_off=True, **{**_OPENAI_COMMON, "measured_on": "2026-08-28"},
-        notes="`gpt-5.6` resolves here — confirmed 2026-08-27. `effort: none` "
+        reasoning_off=True, **{**_OPENAI_COMMON, "measured_on": "2026-09-05"},
+        notes="2026-09-05, FIRST LIVE RUN: this provider DOES truncate with a "
+              "PARTIAL answer — 1,071 and 1,169 characters on a two-turn "
+              "ladder at max_output_tokens 200. That contradicts a five-budget "
+              "fixture sweep which found zero message items on every incomplete "
+              "arm and was written up as 'emits the message item complete or "
+              "not at all'. The difference is probably single-turn versus a "
+              "ladder; either way the earlier claim does not survive as stated. "
+              "`gpt-5.6` resolves here — confirmed 2026-08-27. `effort: none` "
               "gives 0 reasoning tokens, so the off arm is real. Whether the "
               "levels separate is UNMEASURED: on one arithmetic prompt low gave "
               "59 reasoning tokens and high gave 49, which is backwards at n=1 "
@@ -431,14 +460,24 @@ CAPABILITIES: dict[str, ModelCaps] = {
         notes="Spends about a third of sol's reasoning for 55% the output."),
     "openai/gpt-5.6-luna": ModelCaps(reasoning_off=True, **_OPENAI_COMMON),
     "openai/gpt-5.5": ModelCaps(
-        reasoning_off=True, **_OPENAI_COMMON,
+        reasoning_off=True,
+        # MEASURED 2026-09-05: "Supported values are: 'none', 'low', 'medium',
+        # 'high', and 'xhigh'" — no `max`, which the shared block claims.
+        **{**_OPENAI_COMMON, "measured_on": "2026-09-05",
+           "reasoning_levels": ("none", "low", "medium", "high", "xhigh")},
         notes="Itself an alias for gpt-5.5-2026-04-23; kept in alias form because "
               "it stands in for what a user would actually hit. `served_model` "
               "records the resolution."),
 
     # ── Gemini ───────────────────────────────────────────────────────────────
     "gemini/gemini-3.7-flash": ModelCaps(
-        **{**_GEMINI_COMMON, "measured_on": "2026-08-28"},
+        **{**_GEMINI_COMMON, "measured_on": "2026-09-05",
+           # MEASURED, and the schema disagrees. "'minimal' is not a supported
+           # thinking level for this model. Allowed values are: medium, low,
+           # high." The shakedown's study D sent `reasoning: minimal` here and
+           # would have been rejected — it failed on a different bug first, so
+           # this was never discovered by running it.
+           "reasoning_levels": ("low", "medium", "high")},
         notes="Google's current default. Measured a genuine transient failure "
               "rate around 1 in 6 — retry is mandatory, and a 44-record battery "
               "needed 105 calls."),
@@ -460,6 +499,36 @@ CAPABILITIES: dict[str, ModelCaps] = {
 # against the wrong values.
 # ═══════════════════════════════════════════════════════════════════════════════
 
+# TODO (MERGE_SPEC Appendix J): `compare_capabilities(model)` should send a
+# deliberately bogus value for each parameter below, read the rejection, and diff
+# the returned valid set against what is recorded here. That is the technique that
+# recovered these in the first place, and it costs one rejected call per parameter.
+#
+# It would have caught `output_config.effort` replacing `thinking.budget_tokens`
+# before a spec was written against the old one, and `reasoning.context` drifting
+# before its wrong values reached a document. Four provider surfaces moved in
+# roughly a week; none broke loudly.
+# ═══════════════════════════════════════════════════════════════════════════════
+# WHAT THE API SCHEMA VALIDATES — not what any given model accepts.
+#
+# Measured 2026-09-05, and the distinction was expensive to learn. A BOGUS value
+# returns the schema-wide list, identical across every model. A PLAUSIBLE value —
+# one real elsewhere but maybe not here — returns the per-model set, and those
+# differ:
+#
+#     bogus on any OpenAI model:  none, minimal, low, medium, high, xhigh, max
+#     `minimal` on gpt-5.6-sol:   none, low, medium, high, xhigh, max
+#     `minimal` on gpt-5.5:       none, low, medium, high, xhigh
+#     `minimal` on gpt-6-astra:   low, medium, high, xhigh, max   ← no off arm
+#
+# Every enum in this table was recovered by the bogus-value technique, so every
+# one describes the SCHEMA. Three of seven parameters probed turned out to have
+# per-model restrictions the technique could not see.
+#
+# Per-model truth lives in `ModelCaps.reasoning_levels`. This block is kept
+# because it is still what the API validates against, and a value absent HERE is
+# rejected everywhere — but a value present here may be rejected by any
+# particular model.
 ENUMS: dict[str, dict[str, tuple[str, ...]]] = {
     "openai": {
         # NOT ALL 429s ARE TRANSIENT. Measured 2026-08-27: an exhausted credit
@@ -470,7 +539,12 @@ ENUMS: dict[str, dict[str, tuple[str, ...]]] = {
         # code, and this was learned by writing exactly that retry loop by hand.
         "error.type": ("insufficient_quota", "rate_limit_exceeded",
                        "invalid_request_error", "server_error"),
-        "reasoning.effort": ("none", "low", "medium", "high", "xhigh", "max"),
+        # SCHEMA-WIDE, NOT PER-MODEL. Measured 2026-09-05: `minimal` appears in
+        # this list and is rejected by every model tested — "not supported with
+        # the 'gpt-5.6-sol' model", and likewise for gpt-5.5 and gpt-6-astra.
+        # The per-model sets are in `ModelCaps.reasoning_levels` and they differ.
+        "reasoning.effort": ("none", "minimal", "low", "medium", "high",
+                             "xhigh", "max"),
         "reasoning.mode": ("standard", "pro"),
         "reasoning.context": ("auto", "current_turn", "all_turns"),
         "reasoning.summary": ("concise", "detailed", "auto"),
@@ -478,6 +552,10 @@ ENUMS: dict[str, dict[str, tuple[str, ...]]] = {
     },
     "gemini": {
         # Interactions only; `generateContent` rejects thinking_level entirely.
+        # SCHEMA-WIDE. `minimal` is accepted by gemini-3.5-flash and rejected by
+        # 3.7-flash and 3.8-flash — "not a supported thinking level for this
+        # model. Allowed values are: medium, low, high". Note that message lists
+        # values in a DIFFERENT ORDER on each call, so any extraction must sort.
         "generation_config.thinking_level": ("minimal", "low", "medium", "high"),
         "generation_config.thinking_summaries": ("auto", "none"),
         "role": ("user", "model"),
@@ -487,7 +565,20 @@ ENUMS: dict[str, dict[str, tuple[str, ...]]] = {
         # 'high', 'xhigh' or 'max'". This parameter did not exist in any earlier
         # note — the previous control was thinking.budget_tokens, now rejected.
         "output_config.effort": ("low", "medium", "high", "xhigh", "max"),
-        "thinking.type": ("adaptive", "disabled"),
+
+        # `enabled` is valid and REQUIRES budget_tokens — measured 2026-09-05 on
+        # sonnet-5, opus-5 and opus-4-8, all returning
+        # "thinking.enabled.budget_tokens: Field required".
+        #
+        # So the OLD control still exists. Appendix F recorded `thinking.type.
+        # enabled` as rejected on 2026-08-27, and that finding drove the whole
+        # migration to `output_config.effort` — but the rejection was for sending
+        # `enabled` WITHOUT its required companion field, not for the tag being
+        # withdrawn. Both controls are live.
+        #
+        # `output_config.effort` remains the one in use: it needs no companion
+        # field and its enum matches OpenAI's minus `none`.
+        "thinking.type": ("adaptive", "disabled", "enabled"),
     },
 }
 
@@ -559,10 +650,11 @@ def caps_for(model: str) -> ModelCaps:
         raise UnknownModelError(
             f"{model!r} is not in CAPABILITIES.\n"
             f"  Known for {prov or 'all providers'}: {siblings or sorted(known_models())}\n"
-            f"  Adding one is deliberate, not automatic: run "
-            f"`tests/characterise.py {model}` to establish reasoning_off, "
-            f"sampling_meaningful, citation_offsets and combined_token_budget, "
-            f"then add a ModelCaps entry with today's `measured_on`.\n"
+            f"  Adding one is deliberate, not automatic. Four probes establish "
+            f"an entry: reasoning off, a sampling parameter, a grounded call, "
+            f"and a small max_tokens on a long prompt — plus a bogus value per "
+            f"enumerated parameter to record the enums. See MERGE_SPEC Appendix "
+            f"J; the script that automates this is planned, not built.\n"
             f"  A defaulted capability would produce an arm whose condition is a "
             f"guess, which is worse than this error because it looks like data."
         ) from None
@@ -612,6 +704,11 @@ CONSUMED_BY: dict[str, str] = {
     "thinking_in_output_tokens": "analysis.normalize — why out_tok is not comparable",
     "tokens_per_query":          "spec._estimate — cost is n_queries x this",
     "measured_on":               "compare_capabilities — the staleness warning",
+    # NOTE: compare_capabilities is NOT BUILT. See MERGE_SPEC Appendix J. It is
+    # deferred until after the first live battery, and this comment exists so the
+    # assignment above is not mistaken for a working consumer — an unread field
+    # with a plausible owner is worse than one with none, because the map says it
+    # is covered.
 
     # Documentation by design, with no consumer and no plans for one.
     "cross_turn":                "DOCUMENTATION — recorded, never acted on. This once "

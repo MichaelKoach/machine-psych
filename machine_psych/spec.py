@@ -349,6 +349,12 @@ def resolve(model: str, passed: dict, on_unmet: str = "error"
     number is a place where getting the sequence wrong produces a silent defect
     rather than an error.
 
+    **The escape hatch replaces, it does not deep-merge.** A provider block
+    containing a nested dict — `{"generation_config": {...}}` — substitutes that
+    whole key rather than merging into whatever `build()` would have assembled.
+    To override one nested field you must supply the complete structure. This
+    caused the only failure in the first live run.
+
     `config_passed` is returned unchanged so the record can carry BOTH what the
     spec asked for and what was actually sent — Inspect's `task_args` /
     `task_args_passed` distinction. Analysis then groups on the resolved config
@@ -398,6 +404,17 @@ def resolve(model: str, passed: dict, on_unmet: str = "error"
 
     # (6) escape hatch merges LAST and WINS. It is the deliberate override;
     #     nothing should silently undo it.
+    #
+    #     SHALLOW BY DESIGN, and that bit once. A hatch of
+    #     `{"generation_config": {...}}` REPLACES the whole dict that build()
+    #     would have assembled from the intents, rather than merging into it —
+    #     which on the first live run sent `max_output_tokens` to a provider
+    #     that wanted it nested differently, and produced a 400.
+    #
+    #     Deep-merging instead would be worse: a hatch that half-overrides a
+    #     nested structure is harder to reason about than one that replaces it,
+    #     and the record would no longer show what was actually sent as a single
+    #     readable object. The fix is to state the rule, not to soften it.
     resolved.update(passed.get(provider, {}))
 
     # (7) guards run AFTER the escape hatch, because that is where a bad value is

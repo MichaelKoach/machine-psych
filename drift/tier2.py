@@ -45,6 +45,28 @@ __all__ = ["run", "Finding"]
 
 BOGUS = "__drift_probe_invalid__"
 
+# A value that is REAL SOMEWHERE but may not be valid here. This is the half the
+# first version lacked, and it is the half that matters.
+#
+# Measured 2026-09-05: a bogus value returns the API-WIDE SCHEMA, identical
+# across every model of a provider. A plausible value returns the PER-MODEL set,
+# and those differ — `minimal` is listed in OpenAI's schema and rejected by
+# gpt-5.6-sol, gpt-5.5 and gpt-6-astra alike, each naming a different valid set.
+#
+# Every enum in the table was recovered by the bogus technique, so every one
+# described the schema rather than any model. Three of seven parameters probed
+# turned out to carry per-model restrictions it could not see.
+PLAUSIBLE = {
+    "reasoning.effort": "minimal",          # real on Gemini, not on OpenAI models
+    "reasoning.mode": "pro",                # accepted on sol, refused on 5.5
+    "reasoning.summary": "concise",
+    "text.verbosity": "low",
+    "output_config.effort": "low",
+    "thinking.type": "enabled",             # valid, and requires budget_tokens
+    "generation_config.thinking_level": "minimal",   # rejected on 3.7 and 3.8
+    "generation_config.thinking_summaries": "none",
+}
+
 # A prompt short enough to be cheap and structured enough that thinking has
 # something to do. Arithmetic rather than prose because the reasoning arms must
 # differ in effort, not in verbosity.
@@ -99,11 +121,29 @@ def _values_in_error(body: dict) -> list[str]:
     message = str((body.get("error") or {}).get("message") or body)
     found = re.findall(r"'([a-z_][a-z0-9_]*)'", message)
     found += re.findall(r'"([a-z_][a-z0-9_]*)"', message)
-    # EXCLUDE the value we sent. Providers quote the offending input back —
-    # "expected 'low' or 'high', got 'X'" — so an extractor that takes every
-    # quoted token returns its own probe value and reports it as newly accepted.
-    # Seven of nine findings on the first real run were this.
-    return sorted(set(found) - {BOGUS})
+
+    # Gemini names its valid set UNQUOTED and in a DIFFERENT ORDER on each call —
+    # "Allowed values are: medium, low, high" then "high, low, medium". Quoted
+    # extraction alone finds nothing there.
+    tail = re.search(r"(?:Allowed|Supported) values?(?: are)?:?\s*([^.]*)", message)
+    if tail:
+        for token in tail.group(1).split(","):
+            # Strip the conjunction and the quotes. "…, 'xhigh', and 'max'"
+            # yields "and 'xhigh'" as a chunk, and an uncleaned split reports
+            # `and 'xhigh` as a valid enum value.
+            token = re.sub(r"^\s*(?:and|or)\s+", "", token.strip())
+            token = token.strip().strip("'\"").strip()
+            if token and re.fullmatch(r"[a-z_][a-z0-9_]*", token):
+                found.append(token)
+
+    # EXCLUDE the value we sent, and the FIELD NAME. Providers quote the
+    # offending input back — "expected 'low' or 'high', got 'X'" — and one quotes
+    # the discriminator too: "Input tag '...' found using 'type' does not match".
+    # An extractor taking every quoted token returns its own probe value and the
+    # field name, and reports both as valid enum members.
+    noise = {BOGUS, "type", "effort", "mode", "summary", "verbosity",
+             "thinking_level", "thinking_summaries", "reasoning", "model"}
+    return sorted({f for f in found if f and f not in noise})
 
 
 def _probe_enums(provider: str, model: str, report: Report) -> None:
@@ -141,15 +181,63 @@ def _probe_enums(provider: str, model: str, report: Report) -> None:
         if gone:
             report.findings.append(Finding(
                 "enum", model, parameter,
-                f"recorded but NOT listed as valid: {sorted(gone)}"))
+                f"in ENUMS but NOT in the schema: {sorted(gone)}"))
         if new:
-            # "listed as valid" rather than "newly accepted". The message names
-            # what the API says it accepts; whether we ever recorded it is a
-            # separate question, and asserting acceptance from a rejection
-            # message is one inference too many.
+            # "in the schema" rather than "accepted". The bogus message names
+            # what the API validates against, which is not what this model takes.
             report.findings.append(Finding(
                 "enum", model, parameter,
-                f"listed as valid but not in ENUMS: {sorted(new)}"))
+                f"in the schema but not in ENUMS: {sorted(new)}"))
+
+        # ── the per-model set, which the bogus probe cannot reach ────────────
+        plausible = PLAUSIBLE.get(parameter)
+        if not plausible:
+            continue
+        report.checked += 1
+        status, response = _dispatch(provider, _body_with(
+            provider, short, parameter, plausible))
+        time.sleep(0.5)
+        if status == 200:
+            continue
+        message = str((response.get("error") or {}).get("message") or "")
+
+        # A companion-field error means the value IS valid here — Anthropic's
+        # `thinking.type: enabled` returns "thinking.enabled.budget_tokens:
+        # Field required", which is acceptance with a condition, not rejection.
+        if "required" in message.lower():
+            continue
+
+        # THE WHOLE PARAMETER MISSING is a different finding from a narrowed
+        # value set, and a bigger one. `reasoning.mode` on gpt-5.5 returns
+        # "`reasoning.mode` is not supported with this model" — no values are
+        # named, so an extractor reads an empty set and reports "accepts
+        # nothing", which reads as a narrowing rather than an absence.
+        bare = parameter.split(".")[-1]
+        if ("not supported with this model" in message
+                or f"`{parameter}` is not supported" in message
+                or (bare in message and "not supported" in message
+                    and not _values_in_error(response))):
+            report.findings.append(Finding(
+                "unexpected", model, parameter,
+                f"THE PARAMETER DOES NOT EXIST on this model — not a narrowed "
+                f"enum. A spec setting it here is rejected outright: "
+                f"{message[:110]}"))
+            continue
+
+        per_model = set(_values_in_error(response)) - {plausible}
+        if not per_model:
+            continue
+        # Sorted, because at least one provider lists these in a DIFFERENT ORDER
+        # on each call — "medium, low, high" then "high, low, medium".
+        declared = set(ENUMS[provider][parameter])
+        missing = declared - per_model - {plausible}
+        if missing or plausible in declared:
+            report.findings.append(Finding(
+                "inert", model, parameter,
+                f"PER-MODEL set is {sorted(per_model)}, narrower than the schema "
+                f"{sorted(declared)} — a spec using "
+                f"{sorted(declared - per_model) or [plausible]} here would be "
+                f"rejected at the API"))
 
 
 def _body_with(provider: str, model: str, parameter: str, value):

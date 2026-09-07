@@ -101,7 +101,7 @@ def test_unknown_model_message_survives_formatting():
     except UnknownModelError as e:
         text = str(e)
     assert "\n" in text, "message was flattened — check the base exception class"
-    assert "characterise" in text, "message does not say how to add a model"
+    assert "probes establish" in text, "message does not say how to add a model"
     # KeyError's repr escapes newlines into literal backslash-n; a real newline
     # is the discriminator. An earlier version of this test asserted the message
     # did not START with a quote, which fails on the correct message too — the
@@ -502,12 +502,85 @@ def test_measured_on_reflects_actual_measurement():
     entry is, and a blanket update inverts it — the field then reports when
     someone last touched the file rather than when anyone last checked the API.
     """
-    remeasured = {"anthropic/claude-sonnet-5", "openai/gpt-5.6-sol",
-                  "gemini/gemini-3.7-flash"}
+    # The three models this project actually dispatches to, each carrying the
+    # date it was last CHECKED. They diverge because they are checked when
+    # something prompts it, not on a schedule — which is the honest state and
+    # the reason this field exists.
+    remeasured = {
+        # `thinking.type: enabled` is valid and requires budget_tokens
+        "anthropic/claude-sonnet-5": "2026-09-05",
+        "openai/gpt-5.6-sol": "2026-09-05",
+        # per-model probe: `max` is NOT supported here, though the shared block
+        # claimed it
+        "openai/gpt-5.5": "2026-09-05",
+        # per-model probe: `minimal` is NOT supported here, though the schema
+        # lists it — and the shakedown sent it
+        "gemini/gemini-3.7-flash": "2026-09-05",
+    }
     for model in known_models():
         date = caps_for(model).measured_on
         if model in remeasured:
-            assert date == "2026-08-28", f"{model} was re-measured"
+            assert date == remeasured[model], f"{model} date is stale"
         else:
             assert date < "2026-08-28", (
                 f"{model} claims a measurement date it never had")
+
+
+def test_error_does_not_name_an_unbuilt_script():
+    """The message told you to run `tests/characterise.py`, which does not exist.
+
+    That is the unread-constant pattern applied to a procedure: a table
+    documenting how to add a model by naming an imaginary file. It now describes
+    the four probes and points at the spec, and this test fails if the script is
+    named again before it is written.
+    """
+    try:
+        caps_for("openai/gpt-99")
+    except UnknownModelError as e:
+        text = str(e)
+    script = PKG.parent / "tests" / "characterise.py"
+    if not script.exists():
+        assert "characterise.py" not in text, (
+            "the error names a script that has not been built")
+
+
+def test_reasoning_levels_are_per_model_not_inherited_blindly():
+    """The schema and the model disagree, and the model wins.
+
+    Measured 2026-09-05: a BOGUS value returns the API-wide list, identical on
+    every model; a PLAUSIBLE value returns the per-model set, and those differ.
+    Every enum in this table was recovered by the bogus technique, so every one
+    describes the schema — and three of seven parameters probed turned out to
+    have per-model restrictions it could not see.
+
+    The concrete cost: the shakedown sent `reasoning: minimal` to
+    gemini-3.7-flash, which rejects it. That study failed on an unrelated bug
+    first, so running it never revealed this.
+    """
+    assert "minimal" not in caps_for("gemini/gemini-3.7-flash").reasoning_levels
+    assert "minimal" in ENUMS["gemini"]["generation_config.thinking_level"], (
+        "the SCHEMA does list it — that is the whole point of the distinction")
+
+    assert "max" not in caps_for("openai/gpt-5.5").reasoning_levels
+    assert "max" in caps_for("openai/gpt-5.6-sol").reasoning_levels
+    assert "max" in ENUMS["openai"]["reasoning.effort"]
+
+
+def test_a_spec_cannot_request_a_level_the_model_rejects():
+    """`resolve` must refuse a level absent from THIS model's set.
+
+    Otherwise the request is built, sent, and rejected by the API — a spec error
+    surfacing as a run failure, thirty seconds and one call later than it needed
+    to.
+    """
+    from machine_psych.spec import UnmetIntentError, resolve
+    try:
+        resolve("gemini/gemini-3.7-flash",
+                {"reasoning": "minimal", "max_tokens": 16384})
+    except (UnmetIntentError, Exception) as exc:
+        assert "minimal" in str(exc), (
+            "rejected, but the message does not name the offending level")
+    else:
+        raise AssertionError(
+            "accepted `minimal` on a model that rejects it — the spec layer is "
+            "not reading reasoning_levels")
