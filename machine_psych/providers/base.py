@@ -153,10 +153,31 @@ class Provider(ABC):
                 f"set_api_key({self.name!r}, ...) before dispatching.")
         return self.api_key
 
-    def caps(self, model: str) -> ModelCaps:
-        """Capabilities for a bare or prefixed model name."""
+    def caps(self, model: str, fallback: str | None = None) -> ModelCaps:
+        """Capabilities for a bare or prefixed model name.
+
+        `fallback` is used when `model` is unknown, and exists because parsers
+        read the model from the RESPONSE — which is what the provider actually
+        served, and may be a build absent from the table.
+
+        A hard failure there is wrong. `caps_for` raises on an unknown model
+        because DISPATCHING to a guess produces an arm whose condition is a
+        fiction, and that reasoning does not carry over to parsing: the call has
+        already happened, the response exists, and refusing to read it discards
+        real data over a name.
+
+        The mismatch is not swallowed — `integrity.check_record` reports
+        `served_model_mismatch` as critical on exactly this case, so the record
+        is parsed AND the swap is visible.
+        """
         key = model if "/" in model else f"{self.name}/{model}"
-        return caps_for(key)
+        try:
+            return caps_for(key)
+        except UnknownModelError:
+            if fallback is None:
+                raise
+            fb = fallback if "/" in fallback else f"{self.name}/{fallback}"
+            return caps_for(fb)
 
     # ── the contract ─────────────────────────────────────────────────────────
 

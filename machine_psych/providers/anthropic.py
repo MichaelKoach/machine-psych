@@ -184,7 +184,10 @@ class Anthropic(Provider):
     def parse(self, body: dict) -> ParsedResponse:
         content = body.get("content") or []
         usage = body.get("usage") or {}
-        caps = self.caps(body.get("model") or "claude-sonnet-5")
+        # Fallback because the model here is what was SERVED, which may be a
+        # build not in the table. Parsing must not die over a name; the
+        # mismatch is reported by integrity.check_record instead.
+        caps = self.caps(body.get("model") or "claude-sonnet-5", "claude-sonnet-5")
 
         answer_text, n_answer, n_process = self._split_answer(content)
 

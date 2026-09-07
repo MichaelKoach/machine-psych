@@ -209,7 +209,10 @@ class Gemini(Provider):
     def parse(self, body: dict) -> ParsedResponse:
         steps = body.get("steps") or []
         usage = body.get("usage") or {}
-        caps = self.caps(body.get("model") or "gemini-3.7-flash")
+        # Fallback because the model here is what was SERVED, which may be a
+        # build not in the table. Parsing must not die over a name; the
+        # mismatch is reported by integrity.check_record instead.
+        caps = self.caps(body.get("model") or "gemini-3.7-flash", "gemini-3.7-flash")
 
         answer = self._answer(steps)
         n_search_calls = sum(1 for s in steps

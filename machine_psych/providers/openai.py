@@ -181,7 +181,10 @@ class OpenAI(Provider):
     def parse(self, body: dict) -> ParsedResponse:
         output = body.get("output") or []
         usage = body.get("usage") or {}
-        caps = self.caps(body.get("model") or "gpt-5.6-sol")
+        # Fallback because the model here is what was SERVED, which may be a
+        # build not in the table. Parsing must not die over a name; the
+        # mismatch is reported by integrity.check_record instead.
+        caps = self.caps(body.get("model") or "gpt-5.6-sol", "gpt-5.6-sol")
 
         answer_text = self._answer(output)
         n_answer = sum(1 for i in output if i.get("type") == "message")

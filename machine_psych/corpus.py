@@ -251,6 +251,13 @@ def _describe(corpus: pd.DataFrame, investigation: str, run_dir) -> None:
     statuses = corpus.status.value_counts().to_dict()
     if set(statuses) - {"ok"}:
         print(f"  statuses: {statuses}")
+    # Loud by design. Recording an issue and never surfacing it is the silent
+    # failure the integrity checks exist to prevent — a count that nobody sees
+    # is the same as no count.
+    from .integrity import describe_integrity
+    report = describe_integrity(corpus)
+    if report:
+        print(report)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

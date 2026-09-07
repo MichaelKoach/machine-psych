@@ -33,7 +33,8 @@ __all__ = ["roster", "run"]
 # against a table of ten text models produced 186 lines of output on the first
 # real run, of which about four mattered.
 #
-# That is the noise failure tier 3 was designed against, walked into by tier 1.
+# That is the noise failure this whole system is designed against, walked
+# into by its cheapest tier.
 # A detector that reports 180 non-events buries the ones that matter, and gets
 # skimmed within a fortnight.
 #

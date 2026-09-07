@@ -33,6 +33,7 @@ import pandas as pd
 
 from . import paths
 from .capabilities import caps_for, provider_of
+from .integrity import check_record
 from .providers import get_provider
 from .spec import (InvestigationError, expand_conditions, join_text, probe_hash,
                    prompt_hash, resolve, validate_investigation)
@@ -373,7 +374,15 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
 
                 parsed = provider.parse(body or {})
                 prompt = turn_text
+                # Structural checks AT PARSE TIME, warn-only. A weekly check
+                # samples once; this sees every call. Never raises — failing
+                # would lose the count, and how OFTEN an issue occurs is the
+                # finding.
+                issues = check_record(parsed, status, r.params, caps_for(r.model))
                 record = {
+                    "integrity": [
+                        {"severity": i.severity, "code": i.code, "detail": i.detail}
+                        for i in issues] or None,
                     "investigation": inv,
                     "provider": r.provider, "model": r.model,
                     "served_model": parsed.served_model,
@@ -467,6 +476,19 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
                 if persist and rec.get("path_on_disk"):
                     _write_record(pathlib.Path(rec["path_on_disk"]), rec)
         rows.extend(rec for rec in conv_rows if rec not in rows)
+
+        # (13b) SAVE, THEN RE-RAISE ANYTHING THAT IS NOT AN INTERRUPT.
+        #
+        # Catching BaseException is right for the partial-save, and wrong as a
+        # place to stop. A TypeError in the record loop was indistinguishable
+        # from a notebook stop: the run returned an empty DataFrame, printed no
+        # error, and reported itself as interrupted. That cost a debugging round
+        # when a genuine bug was introduced above.
+        #
+        # The records are already on disk by this point, so re-raising loses
+        # nothing and surfaces the traceback that names the actual fault.
+        if not isinstance(e, (KeyboardInterrupt, SystemExit)):
+            raise
 
     # (14) STRIP SCRATCH KEYS before the DataFrame, or they leak into it and
     #      then into the export.

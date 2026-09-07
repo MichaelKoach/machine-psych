@@ -406,8 +406,9 @@ def run(models: list[str] | None = None) -> int:
         print("  table disagreeing with the API — update the table and bump")
         print("  `measured_on`, or fix the code, but do not leave both standing.")
         return 1
-    print("  Parameters behave as recorded. Response SHAPE is not checked here;")
-    print("  that is tier 3.")
+    print("  Parameters behave as recorded. Response SHAPE is not checked on a")
+    print("  schedule — per-record checks run at parse time (integrity.py), and")
+    print("  a full shape diff happens at a fixture refresh (see REFRESH.md).")
     return 0
 
 

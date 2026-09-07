@@ -8,6 +8,13 @@ The tests are organised around the failure modes from the hypothetical sweep
 rather than around the functions, because the failures are what the design is
 for. Several assert that something is NOT reported, which matters as much as the
 positives: a detector that reports everything is a detector nobody reads.
+
+**The Printer tests below outlived the tier that used them.** `drift/tier3.py`
+compared fixture shapes on a schedule and was cut — it sampled a stochastic
+process once and could not tell a changed model from a different output, which
+produced a false positive on its first real run. The Printer itself is sound and
+is now the diagnostic used when a fixture refresh makes a test fail: `compare(
+shape_of(old), shape_of(new))` answers "what changed in the shape".
 """
 
 from __future__ import annotations
@@ -18,7 +25,7 @@ import pathlib
 import pytest
 
 from drift import characterise as ch
-from drift import tier1, tier2, tier3
+from drift import tier1, tier2
 from drift.printer import compare, print_response, shape_of
 
 FIXTURES = pathlib.Path(__file__).parent / "fixtures"
@@ -196,67 +203,10 @@ def test_tier2_reports_incomplete_without_a_key(capsys):
     assert "none were looked for" in out
 
 
-def test_tier3_without_a_baseline_is_incomplete(tmp_path, monkeypatch, capsys):
-    monkeypatch.setattr(tier3, "BASELINE", tmp_path / "absent.json")
-    assert tier3.check() == 2
-    assert "NO BASELINE" in capsys.readouterr().out
 
 
-# ═══════════════════════════════════════════════════════════════════════════════
-# The approval gate and the canary
-# ═══════════════════════════════════════════════════════════════════════════════
-
-def test_checking_never_writes_the_baseline(tmp_path, monkeypatch):
-    """A script that overwrites what it compares against destroys the baseline by
-    running, and the next run then compares against the drift."""
-    baseline = tmp_path / "baseline.json"
-    monkeypatch.setattr(tier3, "BASELINE", baseline)
-    tier3.approve()
-    original = baseline.read_text()
-
-    tier3.check()
-    assert baseline.read_text() == original, "check() modified the baseline"
 
 
-def test_approving_is_a_separate_step(tmp_path, monkeypatch, capsys):
-    baseline = tmp_path / "baseline.json"
-    monkeypatch.setattr(tier3, "BASELINE", baseline)
-    assert not baseline.exists()
-    assert tier3.check() == 2
-    tier3.approve()
-    assert baseline.exists()
-    assert tier3.check() == 0
-
-
-def test_the_canary_catches_a_broken_detector(tmp_path, monkeypatch, capsys):
-    """A detector that reports nothing looks exactly like a detector reporting no
-    changes.
-
-    Without the canary those two are indistinguishable, and the failure mode is
-    silent trust in a check that stopped working.
-    """
-    monkeypatch.setattr(tier3, "BASELINE", tmp_path / "baseline.json")
-    tier3.approve()
-    assert tier3.check() == 0
-
-    monkeypatch.setattr(tier3, "compare", lambda a, b: [])
-    assert tier3.check() == 2
-    assert "CANARY DID NOT FIRE" in capsys.readouterr().out
-
-
-def test_tier3_reports_a_real_difference(tmp_path, monkeypatch):
-    import shutil
-    monkeypatch.setattr(tier3, "BASELINE", tmp_path / "baseline.json")
-    tier3.approve()
-
-    changed = tmp_path / "fx"
-    shutil.copytree(FIXTURES, changed)
-    for path in (changed / "openai").glob("grounded*.json"):
-        record = json.loads(path.read_text())
-        record["response"].setdefault("usage", {})["tool_usage"] = {"x": 1}
-        path.write_text(json.dumps(record))
-
-    assert tier3.check(source=changed) == 1
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

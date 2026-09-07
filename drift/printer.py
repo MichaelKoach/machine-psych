@@ -1,8 +1,17 @@
-"""The Printer.
+"""The Printer — a diagnostic, not a scheduled job.
 
 Approval testing separates capturing output from **printing** it. The Printer
 turns a response into something comparable, and its job is to scrub what is
 non-deterministic so that what remains can be compared exactly.
+
+**It outlived the tier that called it.** `drift/tier3.py` ran this on a schedule
+and was cut: it sampled a stochastic process once and could not distinguish a
+changed model from a different output, reporting Gemini's truncation shape as
+drift when a confirming call showed it unchanged. The Printer itself was never
+the problem — the sampling was.
+
+It is now reached for during a fixture refresh, where the question is "what
+changed in the shape" and both sides are already in hand. See REFRESH.md.
 
 That inversion is the whole design. An earlier draft specified which fields to
 COMPARE; this compares everything and names only what to DROP. The asymmetry
@@ -60,7 +69,7 @@ SCRUB_KEYS = {
 }
 
 # Offsets are scrubbed as VALUES but their presence is not — a citation gaining
-# or losing `start_index` is exactly the change tier 3 exists to catch, while the
+# or losing `start_index` is exactly the change a refresh diff should catch, while
 # number itself changes with every answer.
 SCRUB_KEYS |= {"start_index", "end_index", "start", "end"}
 
