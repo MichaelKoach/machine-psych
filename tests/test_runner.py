@@ -435,3 +435,56 @@ def test_estimate_range_is_wide_for_searched_calls():
              "params": {"search": True}}]
     e = R.estimate(rows)["anthropic"]
     assert e["est_in_high"] >= e["est_in_low"] * 5
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Public functions the audit found untested
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def test_list_investigations_and_list_runs(tmp_path):
+    """Small conveniences, exported, and previously exercised by nothing.
+
+    `list_runs` matters more than it looks: `load_corpus` defaults to the most
+    recent run, and a silently different run produces a real-looking wrong
+    answer. This is how you check which one you are about to get.
+    """
+    R.set_base(tmp_path)
+    assert R.list_investigations() == []
+
+    with contextlib.redirect_stdout(io.StringIO()):
+        R.save_investigation(SPEC, "one", overwrite=True)
+        R.save_investigation(SPEC, "two", overwrite=True)
+    assert R.list_investigations() == ["one", "two"]
+
+    assert R.list_runs() == []
+    with contextlib.redirect_stdout(io.StringIO()):
+        run = R.load_investigation("one")
+        R.run_investigation(run, dispatch=lambda cfg: _ok_body(cfg, 0),
+                            backoff=0, verbose=False, export=False)
+
+    # NOTE the run directory is named for the spec's `investigation_id`, NOT the
+    # filename it was saved under. `save_investigation(spec, "one")` names the
+    # FILE; the run uses what the spec calls itself. They can diverge, and this
+    # test is where that surfaced.
+    inv = SPEC["investigation_id"]
+    assert len(R.list_runs(inv)) == 1
+    assert R.list_runs("nonexistent") == []
+
+
+def test_load_record_returns_the_raw_body(tmp_path):
+    """The escape hatch for a question the side tables cannot answer.
+
+    Everything else in `corpus` reads through a provider parser; this does not,
+    which is the point — it returns the response exactly as it arrived.
+    """
+    from machine_psych.corpus import load_record
+
+    R.set_base(tmp_path)
+    with contextlib.redirect_stdout(io.StringIO()):
+        run = R.load_investigation(SPEC)
+        results, _ = R.run_investigation(run, dispatch=lambda cfg: _ok_body(cfg, 0),
+                                         backoff=0, verbose=False, export=False)
+    path = results.iloc[0].path_on_disk
+    record = load_record(path)
+    assert "response" in record
+    assert record["response"], "the raw body, unparsed"

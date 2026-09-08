@@ -336,3 +336,37 @@ def test_headers_require_a_key():
 
 def test_url_is_constant(provider):
     assert provider.url_for({}) == "https://api.anthropic.com/v1/messages"
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Fixture audit, 2026-09-05
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def test_the_discriminating_fixtures_still_discriminate():
+    """Several fixtures exist to make a WRONG parser fail. If the API changes so
+    that right and wrong produce the same answer, the fixture stops testing
+    anything — and nothing announces that.
+
+    `usage_contradicts_blocks` already went that way: it was collected at 16
+    requests against 3 blocks and is now 6 against 6, so the test using it skips.
+    This checks the two that still work, so a future refresh cannot quietly kill
+    them too.
+    """
+    partial = load("truncated_partial")
+    text = "".join(b.get("text", "") for b in partial["content"]
+                   if b.get("type") == "text")
+    assert partial["stop_reason"] == "max_tokens"
+    assert text, (
+        "truncated_partial has no text — `truncated` and `incomplete` become "
+        "indistinguishable and the fixture tests nothing")
+
+    body = load("grounded_ok")
+    results = [r for b in body["content"]
+               if b.get("type") == "web_search_tool_result"
+               for r in (b.get("content") or [])]
+    cited = {c.get("url") for b in body["content"] if b.get("type") == "text"
+             for c in (b.get("citations") or [])}
+    assert len(results) > len(cited), (
+        "every retrieved source was cited — the RETRIEVAL SET is what makes this "
+        "provider unique, and a fixture where it equals the citation set cannot "
+        "show the difference")

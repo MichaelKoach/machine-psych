@@ -219,39 +219,67 @@ def test_parsing_survives_an_unknown_served_model():
     assert parsed.served_model == "claude-completely-unknown-9"
 
 
-def test_a_bug_in_the_run_loop_is_not_reported_as_an_interrupt(tmp_path):
+def test_a_bug_in_the_run_loop_is_not_reported_as_an_interrupt(tmp_path, monkeypatch):
     """The interrupt handler caught BaseException and stopped there.
 
     A TypeError in the record loop was indistinguishable from a notebook stop:
     empty DataFrame, no error printed, `interrupted` set. That cost a debugging
     round when a genuine bug was introduced above it.
 
-    Records are on disk before the re-raise, so nothing is lost by surfacing the
-    traceback that names the actual fault.
+    Driven by making the record loop actually fail, rather than by grepping the
+    source for the isinstance check. A source-grep test fails on a rename and
+    passes on a broken reimplementation.
     """
+    import machine_psych.runner as R
+
     mp.set_base(tmp_path)
 
-    def explodes(cfg):
-        raise TypeError("a bug, not a keyboard interrupt")
+    def explode(*a, **kw):
+        raise TypeError("a bug in the record loop, not a keyboard interrupt")
+
+    monkeypatch.setattr(R, "check_record", explode)
 
     spec = {"investigation_id": "boom", "studies": [{
         "study_id": "s", "probes": [{"probe_id": "p", "prompt_paths": [["q"]]}],
         "providers": {ANTH: {"reasoning": "off", "repetitions": 1}}}]}
     with contextlib.redirect_stdout(io.StringIO()):
         run = mp.load_investigation(spec)
-        # A dispatch exception is CLASSIFIED, not raised — that is ordering 6 and
-        # is correct. The re-raise guards bugs in the record-building loop, which
-        # sits outside the dispatch try/except.
-        results, _ = mp.run_investigation(run, dispatch=explodes, verbose=False,
-                                          export=False)
-    assert results.iloc[0].status == "error"
+        with pytest.raises(TypeError, match="a bug in the record loop"):
+            mp.run_investigation(run, dispatch=lambda c: response("anthropic"),
+                                 verbose=False, export=False)
 
-    from machine_psych import runner
-    source = pathlib.Path(runner.__file__).read_text()
-    assert "if not isinstance(e, (KeyboardInterrupt, SystemExit)):" in source
-    assert "raise" in source.split(
-        "if not isinstance(e, (KeyboardInterrupt, SystemExit)):")[1][:40]
 
+def test_an_interrupt_is_still_caught_and_saves_partial_records(tmp_path, monkeypatch):
+    """The other half. Re-raising must not break the thing the handler is FOR.
+
+    A real notebook stop still returns the records collected so far, each with
+    `conversation_status` written to disk — verified live on 2026-09-05, four
+    records with zero nulls.
+    """
+    import machine_psych.runner as R
+
+    mp.set_base(tmp_path)
+    calls = {"n": 0}
+
+    def stop_after_one(cfg):
+        calls["n"] += 1
+        if calls["n"] > 1:
+            raise KeyboardInterrupt
+        return response("anthropic")
+
+    monkeypatch.setattr(R, "check_record", lambda *a, **k: [])
+    spec = {"investigation_id": "stop", "studies": [{
+        "study_id": "s", "probes": [{"probe_id": "p", "prompt_paths": [["q"]]}],
+        "providers": {ANTH: {"reasoning": "off", "repetitions": 3}}}]}
+    with contextlib.redirect_stdout(io.StringIO()):
+        run = mp.load_investigation(spec)
+        results, _ = mp.run_investigation(run, dispatch=stop_after_one,
+                                          verbose=False, export=False)
+
+    assert len(results) == 1, "the completed record was lost by the interrupt"
+    assert results.attrs["interrupted"], "the interrupt was not recorded"
+    assert results.iloc[0].conversation_status is not None, (
+        "the second write never happened — the bug that is invisible until reload")
 
 def test_describe_integrity_orders_by_severity():
     import pandas as pd

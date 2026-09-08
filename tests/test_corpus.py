@@ -305,3 +305,45 @@ def test_truncated_is_not_reported_as_a_failure(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "truncated" in out
     assert "failed" not in out, "a truncated record was counted as a failure"
+
+
+def test_side_tables_ride_in_attrs_not_a_module_cache(corpus):
+    """They lived in a module-level LRU cache, with only a KEY in `attrs`, on the
+    stated grounds that "the tables themselves would be lost by the first
+    filter".
+
+    That is false, and the comment contradicted itself — the key and the tables
+    live in the same dict, so either both survive or neither does. Measured:
+    `attrs` carries DataFrames through every operation tried.
+
+    Removing the cache removed an LRU eviction, a key indirection, and a
+    "reload with load_corpus()" error path, all guarding a non-problem.
+    """
+    assert "side_tables" in corpus.attrs
+    assert "key" not in corpus.attrs, "the key indirection is gone"
+
+    for view in (corpus[corpus.provider == "anthropic"],
+                 corpus.head(2), corpus.copy(), corpus.sort_values("record_id")):
+        assert "side_tables" in view.attrs
+        citations(view)      # does not raise
+
+
+def test_a_hand_built_frame_says_so_rather_than_returning_wrong_rows(corpus):
+    import pandas as pd_
+    rebuilt = pd_.DataFrame(corpus.to_dict("records"))
+    with pytest.raises(KeyError, match="built rather than loaded"):
+        citations(rebuilt)
+
+
+def test_load_errors_list_the_alternatives(corpus, tmp_path):
+    """The standard the rest of the package holds itself to.
+
+    `caps_for` names the known models; the analysis filters name the available
+    columns. These three said only what was absent, and a typo'd investigation
+    name is the commonest way to arrive here.
+    """
+    with pytest.raises(FileNotFoundError, match="Available"):
+        load_corpus("no-such-investigation")
+
+    with pytest.raises(FileNotFoundError, match="Available"):
+        load_corpus(corpus.attrs["investigation"], run="1999-01-01_00-00-00")

@@ -80,13 +80,22 @@ def provenance() -> dict:
     out = {"version": VERSION, "commit": None, "source": None}
     try:
         direct = metadata.distribution(DIST).read_text("direct_url.json")
-        if direct:
-            import json
-            info = json.loads(direct)
-            out["source"] = info.get("url")
-            out["commit"] = (info.get("vcs_info") or {}).get("commit_id")
-    except Exception:
-        pass
+    except metadata.PackageNotFoundError:
+        # Running from a checkout rather than an install. Not an error, and the
+        # report says `commit unknown`, which is the honest answer.
+        return out
+    if not direct:
+        return out
+    try:
+        import json
+        info = json.loads(direct)
+    except json.JSONDecodeError:
+        # Malformed metadata is worth not crashing over, but it is also not
+        # something to hide — a bare `except Exception` here swallowed every
+        # possible failure including bugs in this function.
+        return out
+    out["source"] = info.get("url")
+    out["commit"] = (info.get("vcs_info") or {}).get("commit_id")
     return out
 
 

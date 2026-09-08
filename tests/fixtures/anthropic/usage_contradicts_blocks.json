@@ -1,5 +1,5 @@
 {
- "_why": "REGRESSION 19: n_queries must come from usage.server_tool_use, never from counting blocks \u2014 measured 16 requests against 3 blocks. A fixture where they agree cannot detect a parser counting blocks.",
+ "_why": "NAME IS NOW A LIE, kept deliberately. Collected when usage.server_tool_use reported 16 web_search_requests against 3 server_tool_use blocks, which is what made it possible to detect a parser counting blocks instead of reading usage. Re-collected 2026-09-05: the two AGREE (6 and 6) — Anthropic now emits one block per request. By its own original wording, 'a fixture where they agree cannot detect a parser counting blocks', so the test that used it now SKIPS with that reason rather than passing vacuously. Kept because the rule still holds on OpenAI, where the item count and the request count differ, and because Anthropic could revert. If a future collection shows them disagreeing again, the test becomes live with no change. Audited 2026-09-05.",
  "_collected": "2026-09-05T18:31:32Z",
  "_request": {
   "model": "claude-sonnet-5",
@@ -144,7 +144,7 @@
      },
      {
       "type": "web_search_result",
-      "title": "HubSpot Marketing Hub on G2 and Capterra: Ratings, Reviews, and Trends \u2022 AeroLeads",
+      "title": "HubSpot Marketing Hub on G2 and Capterra: Ratings, Reviews, and Trends • AeroLeads",
       "url": "https://aeroleads.com/blog/hubspot-marketing-hub-g2-capterra-ratings-reviews-trends/",
       "encrypted_content": "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",
       "page_age": "March 23, 2026"
@@ -346,7 +346,7 @@
      },
      {
       "type": "web_search_result",
-      "title": "Copper CRM in 2026: Updated Review, Ratings, and Final Verdict \u2022 AeroLeads",
+      "title": "Copper CRM in 2026: Updated Review, Ratings, and Final Verdict • AeroLeads",
       "url": "https://aeroleads.com/blog/copper-crm-2026-updated-review-ratings-final-verdict/",
       "encrypted_content": "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",
       "page_age": "March 31, 2026"
@@ -509,7 +509,7 @@
    },
    {
     "type": "text",
-    "text": "Based on my research, here's a comparison of G2 and Capterra ratings for these six CRM platforms:\n\n## G2 vs. Capterra Ratings Comparison\n\n| CRM | G2 Rating | Capterra Rating |\n|---|---|---|\n| **HubSpot** | ~4.4/5 | ~4.5/5 |\n| **Pipedrive** | ~4.3/5 | ~4.5/5 |\n| **Zoho CRM** | ~4.4/5 | ~4/5 (support specifically) |\n| **Copper** | ~4.5\u20134.6/5 | ~4.4/5 |\n| **Insightly** | ~4.0\u20134.2/5 | ~4.0/5 |\n| **Capsule** | ~4.7/5 | ~4.5/5 |\n\n### Details by product:\n\n**HubSpot** \u2014 "
+    "text": "Based on my research, here's a comparison of G2 and Capterra ratings for these six CRM platforms:\n\n## G2 vs. Capterra Ratings Comparison\n\n| CRM | G2 Rating | Capterra Rating |\n|---|---|---|\n| **HubSpot** | ~4.4/5 | ~4.5/5 |\n| **Pipedrive** | ~4.3/5 | ~4.5/5 |\n| **Zoho CRM** | ~4.4/5 | ~4/5 (support specifically) |\n| **Copper** | ~4.5–4.6/5 | ~4.4/5 |\n| **Insightly** | ~4.0–4.2/5 | ~4.0/5 |\n| **Capsule** | ~4.7/5 | ~4.5/5 |\n\n### Details by product:\n\n**HubSpot** — "
    },
    {
     "citations": [
@@ -543,7 +543,7 @@
    },
    {
     "type": "text",
-    "text": ".\n\n**Pipedrive** \u2014 "
+    "text": ".\n\n**Pipedrive** — "
    },
    {
     "citations": [
@@ -577,7 +577,7 @@
    },
    {
     "type": "text",
-    "text": ", showing consistent scores across sources.\n\n**Zoho CRM** \u2014 "
+    "text": ", showing consistent scores across sources.\n\n**Zoho CRM** — "
    },
    {
     "citations": [
@@ -611,13 +611,13 @@
    },
    {
     "type": "text",
-    "text": ".\n\n**Copper** \u2014 According to one review site, Copper has received "
+    "text": ".\n\n**Copper** — According to one review site, Copper has received "
    },
    {
     "citations": [
      {
       "type": "web_search_result_location",
-      "cited_text": "Try Copper CRM for free \u00b7 Overall, the tool has received excellent feedback from its users, with : 4.4 / 5 on Capterra (423 reviews) 4.6 / 5 on G2 (59...",
+      "cited_text": "Try Copper CRM for free · Overall, the tool has received excellent feedback from its users, with : 4.4 / 5 on Capterra (423 reviews) 4.6 / 5 on G2 (59...",
       "url": "https://salesdorado.com/en/crm/crm-software/copper-crm-review/",
       "title": "Copper CRM | Complete test 2026 | Customer reviews, Features, Pricing ...",
       "encrypted_index": "EpABCioIExgCIiQ2YTczMDczMi1jZTNmLTRmOGYtODRiNC03OTJlNTUwNzExYTkSDMVrHMNlcsUuXlTcyhoMDkI+5D/6ONPyrlshIjBffLjnO7sy+6vk4utgfZvLNnHQTlGYXl/OOK7p8sFAKadIm+rDUZtqSvL2nCYbXGYqFPqjpQAhvAbOoMzrRK7sccsX9Ij2GAQ="
@@ -662,20 +662,20 @@
    },
    {
     "type": "text",
-    "text": ".\n\n**Insightly** \u2014 One review aggregator found: "
+    "text": ".\n\n**Insightly** — One review aggregator found: "
    },
    {
     "citations": [
      {
       "type": "web_search_result_location",
-      "cited_text": "Capterra: 4 out of 5 based on 621 reviews \u00b7 G2: 4 out of 5 based on 862 reviews \u00b7 TrustRadius: 8.1 out of 10 based on 784 reviews \u00b7 To write this Insi...",
+      "cited_text": "Capterra: 4 out of 5 based on 621 reviews · G2: 4 out of 5 based on 862 reviews · TrustRadius: 8.1 out of 10 based on 784 reviews · To write this Insi...",
       "url": "https://fitsmallbusiness.com/insightly-review/",
       "title": "Insightly Review: Pricing, Features, Pros & Cons",
       "encrypted_index": "EpABCioIExgCIiQ2YTczMDczMi1jZTNmLTRmOGYtODRiNC03OTJlNTUwNzExYTkSDNwEfg2NpnPd467BJxoMR4oWRKKay/Svm4f+IjA+6XeX5OufgKMVLSipjRBEs6OnuKzhcsLFrDwOtQb40uYPlwUYwSbiHJRhAQxS1nwqFHrb9Om3VzQCgsT/Rz2yY/IxPcAqGAQ="
      }
     ],
     "type": "text",
-    "text": "Capterra: 4 out of 5 based on 621 reviews \u00b7 G2: 4 out of 5 based on 862 reviews"
+    "text": "Capterra: 4 out of 5 based on 621 reviews · G2: 4 out of 5 based on 862 reviews"
    },
    {
     "type": "text",
@@ -702,7 +702,7 @@
     "citations": [
      {
       "type": "web_search_result_location",
-      "cited_text": "Gartner Peer Insights shows a 4.2 rating from 721 ratings, and Capterra lists ease of use at 4.0 across 602 reviews, while Trustpilot\u2019s separate compa...",
+      "cited_text": "Gartner Peer Insights shows a 4.2 rating from 721 ratings, and Capterra lists ease of use at 4.0 across 602 reviews, while Trustpilot’s separate compa...",
       "url": "https://saascrmreview.com/insightly-crm-review/",
       "title": "Insightly CRM Review 2026: Pricing, Features & Verdict",
       "encrypted_index": "EpABCioIExgCIiQ2YTczMDczMi1jZTNmLTRmOGYtODRiNC03OTJlNTUwNzExYTkSDItpzGm8Nqw8SdOQTRoM3uR9xyP5TVuZqGvGIjDTcEbCOqgHcHVdbrAdqfyNS/rLdPhK0wq7D0JNI/9FpmVubYxkoGXsW43EMMNLtwMqFBYS5OHUwXTNomaraHR8HfQEhcN/GAQ="
@@ -713,7 +713,7 @@
    },
    {
     "type": "text",
-    "text": ".\n\n**Capsule** \u2014 "
+    "text": ".\n\n**Capsule** — "
    },
    {
     "citations": [
@@ -754,7 +754,7 @@
    },
    {
     "type": "text",
-    "text": ".\n\n### Key Takeaway\nAll six CRMs cluster tightly in the **4.0\u20134.7 star range** on both platforms, with **Capsule and Copper scoring highest on G2** (4.5\u20134.7), while **HubSpot and Pipedrive edge slightly higher on Capterra** (4.5). **Insightly consistently ranks lowest** of the group (around 4.0\u20134.2 on both platforms). One analysis notes that "
+    "text": ".\n\n### Key Takeaway\nAll six CRMs cluster tightly in the **4.0–4.7 star range** on both platforms, with **Capsule and Copper scoring highest on G2** (4.5–4.7), while **HubSpot and Pipedrive edge slightly higher on Capterra** (4.5). **Insightly consistently ranks lowest** of the group (around 4.0–4.2 on both platforms). One analysis notes that "
    },
    {
     "citations": [
@@ -762,7 +762,7 @@
       "type": "web_search_result_location",
       "cited_text": "For HubSpot specifically, G2 reviews are typically more technical and feature-focused, while Capterra reviews emphasize ease of use and value for mone...",
       "url": "https://aeroleads.com/blog/hubspot-marketing-hub-g2-capterra-ratings-reviews-trends/",
-      "title": "HubSpot Marketing Hub on G2 and Capterra: Ratings, Reviews, and Trends \u2022 AeroLeads",
+      "title": "HubSpot Marketing Hub on G2 and Capterra: Ratings, Reviews, and Trends • AeroLeads",
       "encrypted_index": "Eo8BCioIExgCIiQ2YTczMDczMi1jZTNmLTRmOGYtODRiNC03OTJlNTUwNzExYTkSDCOwrdTJMGVAuIi0GhoMltBRRJq24hKUVGxZIjC2FkDB/ds0kvecPl4JQKvZBQHZ9ZpEgKIZFWE50NNPqTuMOcdfgMPTR0LAS/LYOeMqE38+ulEVc/jo7tkdD3bqlU0z3tEYBA=="
      }
     ],

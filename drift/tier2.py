@@ -94,19 +94,18 @@ class Report:
 # ═══════════════════════════════════════════════════════════════════════════════
 
 def _dispatch(provider: str, body: dict) -> tuple[int, dict]:
-    urls = {"anthropic": "https://api.anthropic.com/v1/messages",
-            "openai": "https://api.openai.com/v1/responses",
-            "gemini": "https://generativelanguage.googleapis.com/v1beta/interactions"}
-    key = paths.api_key(provider)
-    headers = {"anthropic": {"x-api-key": key or "", "anthropic-version": "2023-06-01",
-                             "content-type": "application/json"},
-               "openai": {"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
-               "gemini": {"x-goog-api-key": key or "", "content-type": "application/json"}}[provider]
-    r = requests.post(urls[provider], headers=headers, json=body, timeout=600)
-    try:
-        return r.status_code, r.json()
-    except ValueError:
-        return r.status_code, {"error": {"message": r.text[:300]}}
+    """POST through the PROVIDER, not through a second copy of its auth.
+
+    This used to rebuild the URL map and the three header shapes locally — two
+    more copies of things `Provider.url_for` and `Provider.headers` already own.
+    `base.py` carries the lesson explicitly: copies are what drifted last time,
+    in seven of ten shared functions.
+
+    The reason the copy existed is that `dispatch` discards the HTTP status, and
+    a rejection probe needs it. That is now `dispatch_with_status`.
+    """
+    impl = get_provider(provider, api_key=paths.api_key(provider))
+    return impl.dispatch_with_status(body, timeout=600)
 
 
 def _values_in_error(body: dict) -> list[str]:

@@ -31,17 +31,13 @@ import pathlib
 import sys
 import time
 
-import requests
-
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
 from machine_psych import paths  # noqa: E402
+from machine_psych.providers import get_provider  # noqa: E402
 
 __all__ = ["collect_all"]
 
-URLS = {"anthropic": "https://api.anthropic.com/v1/messages",
-        "openai": "https://api.openai.com/v1/responses",
-        "gemini": "https://generativelanguage.googleapis.com/v1beta/interactions"}
 MODELS = {"anthropic": "claude-sonnet-5", "openai": "gpt-5.6-sol",
           "gemini": "gemini-3.7-flash"}
 
@@ -53,18 +49,6 @@ MATH = ("A consulting firm bills three clients. Client A pays 40% of $50,000 "
 # parser using the wrong convention passes vacuously without this.
 PRICE = ("Compare CRM pricing for consultants. Use en-dashes in ranges, like "
          "$14–$15 per user/month, and cite a source for each price.")
-
-
-def _headers(provider: str) -> dict:
-    key = paths.api_key(provider)
-    if not key:
-        raise SystemExit(f"no API key set for {provider}")
-    if provider == "anthropic":
-        return {"x-api-key": key, "anthropic-version": "2023-06-01",
-                "content-type": "application/json"}
-    if provider == "openai":
-        return {"Authorization": f"Bearer {key}", "Content-Type": "application/json"}
-    return {"x-goog-api-key": key, "content-type": "application/json"}
 
 
 def _transient(status: int, body: dict) -> bool:
@@ -87,28 +71,28 @@ def collect(root: pathlib.Path, provider: str, name: str, body: dict,
             why: str, retries: int = 4) -> dict:
     out = root / provider
     out.mkdir(parents=True, exist_ok=True)
+    # Through the PROVIDER, not a local copy of its URL and auth. Those were
+    # duplicated here and in tier2 — two more copies of things `Provider.url_for`
+    # and `Provider.headers` already own, in a codebase whose base class records
+    # that copies are what drifted last time.
+    impl = get_provider(provider, api_key=paths.api_key(provider))
     for attempt in range(1, retries + 1):
-        r = requests.post(URLS[provider], headers=_headers(provider),
-                          json=body, timeout=900)
-        try:
-            response = r.json()
-        except ValueError:
-            response = {"error": {"message": r.text[:400]}}
-        if not _transient(r.status_code, response):
+        status, response = impl.dispatch_with_status(body, timeout=900)
+        if not _transient(status, response):
             break
         wait = 8 * attempt
-        print(f"    {name}: {r.status_code}, retry in {wait}s")
+        print(f"    {name}: {status}, retry in {wait}s")
         time.sleep(wait)
 
     (out / f"{name}.json").write_text(json.dumps({
         "_why": why,
         "_collected": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "_request": body, "_http_status": r.status_code,
+        "_request": body, "_http_status": status,
         "response": response}, indent=1))
 
     units = response.get("content") or response.get("output") or response.get("steps") or []
     kinds = [u.get("type") for u in units if isinstance(u, dict)]
-    print(f"  {name:<26} {r.status_code} "
+    print(f"  {name:<26} {status} "
           f"{str(response.get('stop_reason') or response.get('status')):<11}"
           f" {len(units):>3} {kinds[:4]}")
     time.sleep(0.4)

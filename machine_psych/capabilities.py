@@ -663,6 +663,41 @@ def caps_for(model: str) -> ModelCaps:
 REQUIRED_FIELDS = tuple(f.name for f in fields(ModelCaps) if f.name != "notes")
 
 
+def _validate_capabilities() -> None:
+    """Every entry complete, checked ONCE at import, where the data lives.
+
+    This was a `__init_subclass__` hook on the Provider base class. It ran per
+    subclass, over a filtered VIEW of this same dict — the objects are literally
+    identical — so it validated data it did not own, three times, in a file that
+    does not define it.
+
+    `ModelCaps` is a dataclass with twenty required fields, so presence is
+    guaranteed by the type. What actually needs checking is that nothing was left
+    at a placeholder, and that keys carry their provider prefix.
+
+    `None` is LEGITIMATE for `domain_filter` and `citation_offsets` — Anthropic
+    has no citation offsets at all, and "this provider cannot" is exactly what
+    None means. An earlier version treated None as missing and rejected every
+    valid Anthropic entry.
+    """
+    nullable = {"domain_filter", "citation_offsets"}
+    for key, caps in CAPABILITIES.items():
+        if "/" not in key:
+            raise TypeError(
+                f"CAPABILITIES key {key!r} is not 'provider/model' — the "
+                f"provider is explicit rather than inferred.")
+        unset = [f for f in REQUIRED_FIELDS
+                 if f not in nullable and getattr(caps, f, None) is None]
+        if unset:
+            raise TypeError(
+                f"CAPABILITIES[{key!r}] leaves {unset} unset. Every field is "
+                f"required; there are no defaults, because an unanswered "
+                f"capability question becomes a silent assumption.")
+
+
+_validate_capabilities()
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Who consumes each capability.
 #

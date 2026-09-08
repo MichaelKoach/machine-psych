@@ -500,12 +500,37 @@ def test_the_plausible_probe_reaches_the_per_model_set():
 
 def test_a_required_companion_field_is_not_a_rejection():
     """Anthropic's `thinking.type: enabled` returns "thinking.enabled.
-    budget_tokens: Field required" — acceptance with a condition, not refusal.
+    budget_tokens: Field required" — acceptance with a CONDITION, not refusal.
 
     Reading that as a rejection would report a valid value as unsupported.
+
+    Driven through `_probe_enums` with a stubbed dispatch rather than grepping
+    the source for the word "required". A source-grep test fails on a rename and
+    passes on a broken reimplementation — it tests the text, not the thing.
     """
-    source = pathlib.Path(tier2.__file__).read_text()
-    assert "required" in source and "Field required" in source
+    import machine_psych.capabilities as caps_mod
+
+    report = tier2.Report()
+    calls = iter([
+        (400, {"error": {"message": f"Input tag '{tier2.BOGUS}' does not match "
+                                    f"any of the expected tags: 'adaptive', "
+                                    f"'disabled', 'enabled'"}}),
+        (400, {"error": {"message": "thinking.enabled.budget_tokens: Field required"}}),
+    ])
+    saved_enums = caps_mod.ENUMS["anthropic"]
+    saved_dispatch = tier2._dispatch
+    try:
+        caps_mod.ENUMS["anthropic"] = {
+            "thinking.type": ("adaptive", "disabled", "enabled")}
+        tier2._dispatch = lambda *a, **k: next(calls)
+        tier2._probe_enums("anthropic", "anthropic/claude-sonnet-5", report)
+    finally:
+        caps_mod.ENUMS["anthropic"] = saved_enums
+        tier2._dispatch = saved_dispatch
+
+    assert not report.findings, (
+        f"a companion-field error was reported as a problem: "
+        f"{[f.detail for f in report.findings]}")
 
 
 def test_the_field_name_is_not_read_as_an_enum_value():
@@ -542,15 +567,67 @@ def test_the_conjunction_is_stripped_from_the_tail():
 
 
 def test_a_missing_parameter_is_not_an_empty_enum():
-    """A whole parameter vanishing is a bigger finding than a narrowed set, and a
-    different one.
+    """`reasoning.mode` does not exist on gpt-5.5 — "not supported with this
+    model", naming no values.
 
-    `reasoning.mode` on gpt-5.5 returns "not supported with this model" and names
-    no values, so an extractor reads an empty set and reports "accepts nothing" —
-    which looks like a narrowing rather than an absence.
+    An extractor reads an empty set from that and reports "accepts nothing",
+    which looks like a NARROWING when it is an ABSENCE. The absence is the bigger
+    fact: a whole parameter exists on one model of a family and not another.
     """
-    message = {"error": {"message":
-        "`reasoning.mode` is not supported with this model."}}
-    assert tier2._values_in_error(message) == []
-    source = pathlib.Path(tier2.__file__).read_text()
-    assert "THE PARAMETER DOES NOT EXIST on this model" in source
+    import machine_psych.capabilities as caps_mod
+
+    report = tier2.Report()
+    calls = iter([
+        (400, {"error": {"message": f"Invalid value: '{tier2.BOGUS}'. Supported "
+                                    f"values are: 'standard' and 'pro'."}}),
+        (400, {"error": {"message": "`reasoning.mode` is not supported with this model."}}),
+    ])
+    saved_enums = caps_mod.ENUMS["openai"]
+    saved_dispatch = tier2._dispatch
+    try:
+        caps_mod.ENUMS["openai"] = {"reasoning.mode": ("standard", "pro")}
+        tier2._dispatch = lambda *a, **k: next(calls)
+        tier2._probe_enums("openai", "openai/gpt-5.5", report)
+    finally:
+        caps_mod.ENUMS["openai"] = saved_enums
+        tier2._dispatch = saved_dispatch
+
+    assert report.findings, "the missing parameter was not reported at all"
+    detail = report.findings[-1].detail
+    assert "DOES NOT EXIST" in detail
+    assert "narrowed" in detail or "not a narrowed" in detail
+
+
+def test_drift_does_not_rebuild_provider_auth():
+    """`base.py` records the lesson: copies are what drifted last time, in seven
+    of ten shared functions. Then `drift/` made two more.
+
+    Both scripts rebuilt the URL map and the three header shapes locally, because
+    `dispatch` discards the HTTP status and a rejection probe needs it. The fix
+    was to expose the status (`dispatch_with_status`), not to keep the copies.
+    """
+    for name in ("tier2.py", "collect_fixtures.py"):
+        src = (pathlib.Path(tier2.__file__).parent / name).read_text()
+        assert "requests.post" not in src, f"{name} dispatches around the provider"
+        assert "https://api." not in src, f"{name} rebuilds the URL map"
+
+
+def test_dispatch_and_dispatch_with_status_share_one_implementation():
+    """Two POSTs would be two things to keep in sync — which is the whole point.
+
+    Asserted on the parsed BODY, not the source text. A first version grepped the
+    source and failed on the docstring, which mentions `requests.post` while
+    explaining why there is only one — a test measuring the comment rather than
+    the code, which is the second time that mistake has appeared here.
+    """
+    import ast
+    import inspect
+
+    from machine_psych.providers.base import Provider
+
+    fn = ast.parse(inspect.getsource(Provider.dispatch).strip()).body[0]
+    statements = [n for n in fn.body
+                  if not (isinstance(n, ast.Expr) and isinstance(n.value, ast.Constant))]
+    code = " ".join(ast.unparse(n) for n in statements)
+    assert "requests.post" not in code, "dispatch has its own POST again"
+    assert "dispatch_with_status" in code

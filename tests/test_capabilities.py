@@ -584,3 +584,75 @@ def test_a_spec_cannot_request_a_level_the_model_rejects():
         raise AssertionError(
             "accepted `minimal` on a model that rejects it — the spec layer is "
             "not reading reasoning_levels")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# From the 2026-09-05 simplification audit
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def test_incomplete_capability_entries_are_rejected():
+    """This was a `__init_subclass__` hook on the Provider base class, with ZERO
+    test coverage — which is itself a signal it was not earning its place.
+
+    It ran per subclass over a filtered VIEW of this same dict (the objects are
+    literally identical), so it validated data it did not own, three times, in a
+    file that does not define it. One loop where the data lives does the job.
+    """
+    import dataclasses
+
+    from machine_psych.capabilities import _validate_capabilities
+
+    good = CAPABILITIES["anthropic/claude-sonnet-5"]
+    CAPABILITIES["anthropic/__broken__"] = dataclasses.replace(
+        good, reasoning_off=None)
+    try:
+        with pytest.raises(TypeError, match="reasoning_off"):
+            _validate_capabilities()
+    finally:
+        del CAPABILITIES["anthropic/__broken__"]
+
+
+def test_a_key_without_its_provider_prefix_is_rejected():
+    import dataclasses
+
+    from machine_psych.capabilities import _validate_capabilities
+
+    CAPABILITIES["bare-model-name"] = dataclasses.replace(
+        CAPABILITIES["anthropic/claude-sonnet-5"])
+    try:
+        with pytest.raises(TypeError, match="provider/model"):
+            _validate_capabilities()
+    finally:
+        del CAPABILITIES["bare-model-name"]
+
+
+def test_nullable_capability_fields_are_allowed_to_be_none():
+    """`None` is LEGITIMATE for `citation_offsets` — Anthropic has no offsets at
+    all, and "this provider cannot" is exactly what None means.
+
+    An earlier version of this check treated None as missing and rejected every
+    valid Anthropic entry.
+    """
+    from machine_psych.capabilities import _validate_capabilities
+    assert caps_for("anthropic/claude-sonnet-5").citation_offsets == "quoted"
+    _validate_capabilities()   # the real table, which contains Nones, passes
+
+
+def test_the_readme_describes_the_directories_that_exist():
+    """Docs drift silently and nobody notices until someone follows them.
+
+    Two gaps found in the 2026-09-05 audit: `drift/` appeared in neither root
+    doc, and nothing said that `pip install` excludes it — which produced a real
+    `ModuleNotFoundError` in a live session.
+    """
+    root = PKG.parent
+    readme = (root / "README.md").read_text()
+    setup = (root / "SETUP.md").read_text()
+
+    assert "drift/" in readme, "the README does not mention the drift directory"
+    assert "not installed" in readme.lower() or "NOT installed" in readme
+    assert "pip install" in setup and "drift" in setup, (
+        "SETUP does not warn that pip install excludes drift/")
+
+    for named in ("machine_psych/", "tests/"):
+        assert named in readme, f"{named} is not described"

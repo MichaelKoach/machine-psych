@@ -19,7 +19,7 @@ from dataclasses import dataclass, field, fields
 
 import requests
 
-from ..capabilities import (ENUMS, ModelCaps, REQUIRED_FIELDS,
+from ..capabilities import (ENUMS, ModelCaps,
                             UnknownModelError, caps_for)
 
 __all__ = ["ParsedResponse", "Provider", "PROVIDERS", "get_provider"]
@@ -94,52 +94,21 @@ class ParsedResponse:
 class Provider(ABC):
     """One provider's request-building, dispatch, status and parsing.
 
-    Subclasses declare `name` and `CAPABILITIES`; `__init_subclass__` refuses any
-    subclass whose capability entries are incomplete. That is any-llm's
-    contribution: a new provider cannot be added without answering every
-    capability question, because silence is not something the class definition
-    permits.
+    Subclasses declare `name` and `CAPABILITIES`. Completeness is enforced ONCE
+    over `CAPABILITIES` in `capabilities.py`, where the data lives — not by a
+    class-creation hook.
+
+    An earlier version used `__init_subclass__` for this, and for registration.
+    Both were redundant. Every provider's `CAPABILITIES` is a filtered view of
+    the same module dict — the objects are literally identical — so a per-class
+    check validated a subset of data it did not own. And `ModelCaps` is a
+    dataclass with twenty required fields, so presence was already guaranteed by
+    the type; the hook's own comment admitted it. Thirty-five lines of
+    class-creation machinery replaced by one loop where the data is defined.
     """
 
     name: str
     CAPABILITIES: dict[str, ModelCaps]
-
-    def __init_subclass__(cls, **kw):
-        super().__init_subclass__(**kw)
-        if getattr(cls, "_abstract_base", False):
-            return
-        if not getattr(cls, "name", None):
-            raise TypeError(f"{cls.__name__} must declare `name`")
-        caps = getattr(cls, "CAPABILITIES", None)
-        if not caps:
-            raise TypeError(
-                f"{cls.__name__} declares no CAPABILITIES. Every model must have "
-                f"measured capabilities before it can be dispatched to — a "
-                f"defaulted capability produces an arm whose condition is a guess.")
-        for key, mc in caps.items():
-            if not isinstance(mc, ModelCaps):
-                raise TypeError(f"{cls.__name__}.CAPABILITIES[{key!r}] is not a ModelCaps")
-            if not key.startswith(f"{cls.name}/"):
-                raise TypeError(
-                    f"{cls.__name__}.CAPABILITIES key {key!r} does not start with "
-                    f"{cls.name!r}/ — keys are 'provider/model' so the provider is "
-                    f"explicit rather than inferred.")
-            # A dataclass cannot be constructed without its required fields, so
-            # presence is already guaranteed. What is checked here is that no
-            # field was left at a placeholder — and note that None is a LEGITIMATE
-            # value for `domain_filter` and `citation_offsets`: Anthropic has no
-            # citation offsets at all, and "this provider cannot" is exactly what
-            # None means. An earlier version treated None as missing and rejected
-            # every valid Anthropic entry.
-            unset = [f for f in REQUIRED_FIELDS
-                     if f not in ("domain_filter", "citation_offsets")
-                     and getattr(mc, f, None) is None]
-            if unset:
-                raise TypeError(
-                    f"{cls.__name__}.CAPABILITIES[{key!r}] leaves {unset} unset. "
-                    f"Every field is required; there are no defaults, because an "
-                    f"unanswered capability question becomes a silent assumption.")
-        PROVIDERS[cls.name] = cls
 
     # ── keys ─────────────────────────────────────────────────────────────────
 
@@ -203,13 +172,30 @@ class Provider(ABC):
         NO RETRY HERE. Retry lives in the runner so that `latency` measures a
         single call and `attempts` is visible in the record.
         """
+        return self.dispatch_with_status(body, timeout)[1]
+
+    def dispatch_with_status(self, body: dict,
+                             timeout: int = 1800) -> tuple[int, dict]:
+        """The same POST, keeping the HTTP status code.
+
+        `dispatch` discards the status because the runner does not need it —
+        every provider reports its own outcome in the response body, and
+        `provider.status(body)` reads that. But the drift probes DO need it: a
+        rejection probe distinguishes 400 from 200, and that is the whole signal.
+
+        This exists because they were otherwise rebuilding `url_for` and
+        `headers` themselves, which is two more copies of auth and URL
+        construction — and this file already carries the lesson that copies are
+        what drifted last time, in seven of ten shared functions.
+        """
         r = requests.post(self.url_for(body), headers=self.headers(),
                           json=body, timeout=timeout)
         try:
-            return r.json()
+            return r.status_code, r.json()
         except ValueError:
-            return {"error": {"message": f"non-JSON body: {r.text[:400]}",
-                              "code": r.status_code}}
+            return r.status_code, {"error": {
+                "message": f"non-JSON body: {r.text[:400]}",
+                "code": r.status_code}}
 
     @abstractmethod
     def url_for(self, body: dict) -> str:
@@ -319,7 +305,15 @@ class Provider(ABC):
         return ENUMS.get(self.name, {})
 
 
-PROVIDERS: dict[str, type[Provider]] = {}
+
+
+# Populated by `providers/__init__.py`, which owns the registry. Late-bound
+# because base.py cannot import its own subclasses.
+PROVIDERS: dict[str, type] = {}
+
+
+def _bind_registry(registry: dict) -> None:
+    PROVIDERS.update(registry)
 
 
 def get_provider(model_or_name: str, api_key: str | None = None) -> Provider:

@@ -39,9 +39,29 @@ re-install:
 ```
 
 Then **restart the runtime.** Python caches imported modules, and this has
-already cost time twice on this project — a patched module on disk is not a
+already cost time four times on this project — a patched module on disk is not a
 patched module in memory. The symptom is a bug you have already fixed still
 happening, or `mp.__version__` reporting the old number.
+
+## Running the drift checks
+
+`pip install` does NOT give you `drift/`. `pyproject.toml` packages
+`machine_psych*` only, deliberately — the drift scripts make live calls and cost
+money, so they are not part of the library. `from drift import tier1` after a pip
+install fails with `ModuleNotFoundError`, and it has.
+
+Clone instead:
+
+```python
+!rm -rf /content/mp
+!git clone -q https://github.com/MichaelKoach/machine-psych.git /content/mp
+import sys; sys.path.insert(0, "/content/mp")
+```
+
+**Then restart the runtime before importing.** A clone into a path that was
+already on `sys.path` during a previous import is invisible until the caches are
+cleared, and a session restart is the reliable way — it has been quicker than
+diagnosing it every time.
 
 ## Pushing changes
 

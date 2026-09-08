@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import json
 import pathlib
-from collections import OrderedDict
 from urllib.parse import urlparse
 
 import pandas as pd
@@ -37,12 +36,6 @@ __all__ = ["load_corpus", "load_record", "citations", "sources", "queries",
 
 # Bounded so a session loading many corpora does not accumulate indefinitely.
 # **A soft guard, not a tuned figure.** Eight is more corpora than anyone has open
-# at once, and a stale entry is re-derivable by reloading — if it ever evicts
-# something in use, the symptom is a clear KeyError telling you to reload, not
-# silent wrong data.
-_SIDE_TABLES: "OrderedDict[str, dict]" = OrderedDict()
-_SIDE_TABLE_LIMIT = 8
-
 IDENTITY = ["record_id", "investigation", "provider", "model", "study", "probe",
             "path", "rep", "turn", "conversation", "condition"]
 
@@ -70,18 +63,37 @@ def load_corpus(investigation: str, run: str | None = None,
     # `paths.RECORDS_DIR` read at call time, not imported as a name — set_base
     # rebinds it, and an imported name would keep the value it had at load.
     records_dir = pathlib.Path(base) if base else paths.RECORDS_DIR
+    # These three errors LIST THE ALTERNATIVES, which is the standard the rest of
+    # this package holds itself to — `caps_for` names the known models, the
+    # analysis filters name the available columns. An error that says only what
+    # is absent leaves the caller to guess, and a typo'd investigation name is
+    # the commonest way to arrive here.
     inv_dir = records_dir / investigation
     if not inv_dir.exists():
+        available = sorted(p.name for p in records_dir.iterdir()
+                           if p.is_dir()) if records_dir.exists() else []
         raise FileNotFoundError(
-            f"no investigation {investigation!r} in {records_dir}")
+            f"no investigation {investigation!r} in {records_dir}\n"
+            f"  Available: {available or '(none — nothing has been run yet)'}")
+
     runs = [p for p in inv_dir.iterdir() if p.is_dir()]
     if not runs:
-        raise FileNotFoundError(f"no runs under {inv_dir}")
+        raise FileNotFoundError(
+            f"{investigation!r} exists but has no runs under {inv_dir}. "
+            f"The spec was saved; the battery was never run.")
+
+    if run and not (inv_dir / run).exists():
+        raise FileNotFoundError(
+            f"no run {run!r} under {investigation!r}\n"
+            f"  Available: {sorted(p.name for p in runs)}")
     run_dir = inv_dir / run if run else max(runs, key=lambda p: p.name)
 
     files = sorted(run_dir.glob("[0-9]*.json"))
     if not files:
-        raise FileNotFoundError(f"no records in {run_dir}")
+        raise FileNotFoundError(
+            f"no records in {run_dir}. The directory exists, so the run started "
+            f"and wrote nothing — check whether it was interrupted on the first "
+            f"call, or whether persist=False was set.")
 
     rows: list[dict] = []
     cites: list[dict] = []
@@ -120,18 +132,24 @@ def load_corpus(investigation: str, run: str | None = None,
     corpus = pd.DataFrame(rows)
     _coerce(corpus)
 
-    key = f"{investigation}/{run_dir.name}" + (f"/{provider}" if provider else "")
-    while len(_SIDE_TABLES) >= _SIDE_TABLE_LIMIT:
-        _SIDE_TABLES.popitem(last=False)
-    _SIDE_TABLES[key] = {
+    # Side tables go straight into `attrs`.
+    #
+    # An earlier version kept them in a module-level LRU cache and stored only a
+    # KEY here, on the stated grounds that "the tables themselves would be lost
+    # by the first filter". That is false, and the comment contradicted itself —
+    # the key and the tables live in the same dict, so either both survive or
+    # neither does. Measured: `attrs` carries DataFrames through boolean
+    # filtering, column selection, head, copy, sort_values, groupby and concat.
+    #
+    # Removing the cache removed the LRU eviction, the key indirection, and a
+    # "reload with load_corpus()" error path — all of them guarding against
+    # something that does not happen.
+    corpus.attrs["side_tables"] = {
         "citations": _frame(cites), "sources": _frame(srcs),
         "queries": _frame(qs), "thoughts": _frame(ths), "units": _frame(uns),
-        "providers": sorted(corpus.provider.dropna().unique()) if len(corpus) else [],
-        "models": sorted(corpus.model.dropna().unique()) if len(corpus) else [],
     }
-    # Only the KEY goes in attrs. It survives because it is read and never
-    # propagated; the tables themselves would be lost by the first filter.
-    corpus.attrs["key"] = key
+    corpus.attrs["models"] = (sorted(corpus.model.dropna().unique())
+                              if len(corpus) else [])
     corpus.attrs["investigation"] = investigation
     corpus.attrs["run"] = run_dir.name
     corpus.attrs["run_dir"] = str(run_dir)
@@ -276,14 +294,13 @@ def _side(corpus: pd.DataFrame, name: str) -> pd.DataFrame:
     A record_id present in the cache and absent from the frame has been filtered
     out deliberately; the side table follows.
     """
-    key = corpus.attrs.get("key")
-    if key not in _SIDE_TABLES:
+    tables = corpus.attrs.get("side_tables")
+    if tables is None:
         raise KeyError(
-            "side tables are not available for this frame. They are keyed by "
-            "investigation/run and the key lives in `corpus.attrs`, which does "
-            "not survive some DataFrame operations. Reload with load_corpus(); "
-            "filtering a loaded corpus is fine, rebuilding one is not.")
-    df = _SIDE_TABLES[key][name]
+            "side tables are not available for this frame — it was built rather "
+            "than loaded. Reload with load_corpus(); filtering a loaded corpus "
+            "is fine, constructing a DataFrame by hand is not.")
+    df = tables[name]
     if not len(df) or "record_id" not in corpus.columns:
         return df
     return df[df.record_id.isin(set(corpus.record_id))]
@@ -297,8 +314,7 @@ def capability_note(corpus: pd.DataFrame, capability: str) -> dict[str, bool]:
     cite, and those are different findings — one is about the model, the other
     about the API.
     """
-    key = corpus.attrs.get("key")
-    models = _SIDE_TABLES.get(key, {}).get("models", [])
+    models = corpus.attrs.get("models", [])
     return {m: bool(getattr(caps_for(m), capability)) for m in models}
 
 

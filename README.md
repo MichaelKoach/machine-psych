@@ -16,6 +16,20 @@ research on an LLM is research on a model of a population, not on the population
 benchmarking**: there is no ground truth being scored against. The model's
 behaviour is the data.
 
+## What is in here
+
+```
+machine_psych/    the package — importable, does the work
+drift/            operational scripts — live API calls, cost money, NOT installed
+tests/            the suite, plus recorded API responses
+```
+
+**`drift/` is deliberately not part of the package.** `pyproject.toml` packages
+`machine_psych*` only, so a `pip install` gets the library and not the tooling
+that spends money. To run the drift checks, clone the repo rather than installing
+it — `from drift import tier1` after a pip install will fail, and that has cost
+time.
+
 ## Install
 
 ```python
@@ -55,3 +69,24 @@ they discard the structure this research reads.
 **No response caching, ever.** Every call is a measurement, and repetitions are
 the instrument. Run-to-run variance on identical input is a measured property,
 not noise to optimise away.
+
+## Watching what the providers change
+
+Providers ship constantly; in one week during the build, four API surfaces moved
+and none of them broke loudly. `drift/` is what looks:
+
+```bash
+python drift/tier1.py --approve   # establish the roster baseline, once
+python drift/tier1.py             # which models exist. free
+python drift/tier2.py             # do the parameters still mean what we recorded
+```
+
+Structural checks on every record run at parse time instead of on a schedule —
+see `machine_psych/integrity.py`. A third scheduled tier that compared response
+SHAPES was built and cut: it sampled a stochastic process once and could not tell
+a changed model from a different output. **Check declarations on a schedule;
+check behaviour at the point of use.**
+
+`drift/REFRESH.md` is the fixture refresh procedure. It has found four API
+changes in a single pass and is the only thing here that can contradict this
+document.

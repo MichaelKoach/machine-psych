@@ -18,6 +18,7 @@ answer is INFERRED from block position rather than stated by the API, so
 from __future__ import annotations
 
 import re
+import textwrap
 from dataclasses import dataclass, field
 
 import pandas as pd
@@ -187,7 +188,7 @@ def index(corpus: pd.DataFrame, **filters) -> pd.DataFrame:
 
 
 def read(corpus: pd.DataFrame, record_id: int | None = None, chars: int | None = None,
-         full: bool = False, sources_shown: int = 8, thoughts_shown: int = 0,
+         sources_shown: int = 8, thoughts_shown: int = 0,
          return_text: bool = False, **filters):
     """Print records in full, for understanding rather than counting.
 
@@ -417,14 +418,18 @@ def _in_heading(text: str, position: int) -> bool:
 
 
 def _indent(text: str | None, prefix: str = "  ", width: int = 84) -> str:
+    """Wrap and indent, preserving the paragraph breaks already in the text.
+
+    Per line rather than `textwrap.fill`, because fill collapses existing
+    newlines and an answer's paragraph structure is worth keeping. The wrapping
+    itself is stdlib — a hand-rolled loop here got long words and trailing
+    whitespace subtly wrong and was nine lines to textwrap's three.
+    """
     if not isinstance(text, str):
         return f"{prefix}(none)"
     out = []
     for line in text.split("\n"):
-        while len(line) > width:
-            cut = line.rfind(" ", 0, width)
-            cut = cut if cut > 0 else width
-            out.append(prefix + line[:cut])
-            line = line[cut:].lstrip()
-        out.append(prefix + line)
+        wrapped = textwrap.wrap(line, width, initial_indent=prefix,
+                                subsequent_indent=prefix)
+        out.extend(wrapped or [prefix])
     return "\n".join(out)
