@@ -30,7 +30,7 @@ from typing import Any
 
 __all__ = [
     "ModelCaps", "UnknownModelError", "CAPABILITIES", "ENUMS",
-    "DELIBERATELY_UNREAD", "CONSUMED_BY", "REQUIRED_FIELDS",
+    "DELIBERATELY_UNREAD", "CONSUMED_BY", "REQUIRED_FIELDS", "known_providers",
     "caps_for", "provider_of", "model_of", "known_models",
 ]
 
@@ -623,6 +623,17 @@ def provider_of(model: str) -> str:
 def model_of(model: str) -> str:
     """'anthropic/claude-sonnet-5' -> 'claude-sonnet-5'."""
     return model.split("/", 1)[1] if "/" in model else model
+
+
+def known_providers() -> set[str]:
+    """Provider names, derived from the model keys rather than listed.
+
+    Exists because `spec.resolve` hardcoded `("anthropic", "openai", "gemini")`
+    to recognise escape-hatch keys, so a fourth provider's hatch would have been
+    rejected as an unrecognised intent — silently, in the one place that would
+    have needed editing and gave no sign of it.
+    """
+    return {k.split("/", 1)[0] for k in CAPABILITIES}
 
 
 def known_models(provider: str | None = None) -> list[str]:

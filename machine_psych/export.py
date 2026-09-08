@@ -73,16 +73,23 @@ HOW_TO_READ = [
     "",
     "── CITATIONS: COMPARE QUOTES, NOT OFFSETS ───────────────────────────────",
     "",
-    "Three mechanisms, recorded per row in `offset_unit`:",
+    "The mechanisms present in THIS corpus are listed under `citation_mechanisms` "
+    "below, read from the records rather than asserted here. Known kinds:",
     "  'quoted' — the citation carries the quoted text directly, no offsets",
     "  'char'   — offsets index characters",
     "  'byte'   — offsets index UTF-8 BYTES",
+    "  null     — neither: a bare URL list, with nothing to locate in the answer",
     "",
-    "`quote` is populated for all three and is the comparable object. The offsets "
-    "are provenance. Do not re-slice an answer using them without checking "
+    "Where `quote` is populated it is the comparable object and the offsets are "
+    "provenance. Do not re-slice an answer using offsets without checking "
     "`offset_unit`: applying character indexing to byte offsets produces spans "
     "that are silently wrong and drift further into the answer — measured wrong "
     "on 70 of 107 citations on one record, with no error raised.",
+    "",
+    "**Where `quote` is null there is nothing to compare but the URL.** A provider "
+    "that returns a numbered source list attributes the whole answer to the set, "
+    "not a span to a source, and a comparison that assumes otherwise silently "
+    "drops it.",
     "",
     "── ABSENCE IS NOT ZERO ──────────────────────────────────────────────────",
     "",
@@ -91,15 +98,17 @@ HOW_TO_READ = [
     "them, and the difference matters: one is a fact about an API, the other a "
     "finding about a model.",
     "",
-    "`n_sources_retrieved` is None on two providers because they report only what "
-    "they CITED. One exposes the whole retrieval set — every URL it saw — which "
-    "is why 'what distinguishes a cited source from an uncited one' is answerable "
-    "there and nowhere else.",
+    "`n_sources_retrieved` is None wherever a provider reports only what it "
+    "CITED. `capabilities` below says which models in this corpus expose the "
+    "whole retrieval set — every URL seen, cited or not — and that is the only "
+    "place 'what distinguishes a cited source from an uncited one' is answerable.",
     "",
-    "`grounded` is meaningful on one provider only, where offering the search "
-    "tool is a PERMISSION rather than a condition: a prompt that does not need "
-    "retrieval comes back ungrounded with the tool attached. Elsewhere the tool "
-    "means search happened, so the column is None rather than True.",
+    "`grounded` is meaningful only where `search_conditional` is true in "
+    "`capabilities` below: there, offering the search tool is a PERMISSION rather "
+    "than a condition, and a prompt that does not need retrieval comes back "
+    "ungrounded with the tool attached. Elsewhere the tool means search happened, "
+    "so the column is None rather than True — and on a search-ALWAYS provider "
+    "there is no ungrounded arm to compare against at all.",
     "",
     "`thought_text` is present on the providers that expose readable reasoning. "
     "On one of them the summary must be REQUESTED per call, so a None there can "
@@ -114,10 +123,12 @@ HOW_TO_READ = [
     "  unavailable transient failure that exhausted its retries",
     "  error       rejected",
     "",
-    "`truncated` fires on one provider and not another, and that is architectural "
-    "rather than incidental: one streams text into blocks as it generates, so "
-    "truncation catches it mid-answer; the other emits its answer complete or not "
-    "at all. A truncated record's answer is REAL and should not be discarded.",
+    "`truncated` fires on some providers and not others, and that is "
+    "architectural rather than incidental: one that streams text into blocks as "
+    "it generates gets caught mid-answer, while one that emits its message "
+    "complete or not at all does not. Check `statuses_seen` below for which "
+    "appear here. A truncated record's answer is REAL and should not be "
+    "discarded.",
     "",
     "`conversation_status` is separate: `failed` means the conversation died on "
     "turn 0, `incomplete` means it died later and earlier turns are usable.",
@@ -198,6 +209,14 @@ def export_corpus(investigation: str, run: str | None = None,
         },
         "spec": spec,
         "capabilities": {m: _caps_summary(m) for m in models},
+        # Read from the records, because the guide above now POINTS at these
+        # instead of asserting counts. Static prose saying "three mechanisms" and
+        # "quote is populated for all three" became false the moment a fourth
+        # provider appeared whose citations are a bare URL list — and that
+        # document travels WITH the corpus to an analysing conversation.
+        "citation_mechanisms": _mechanisms(corpus),
+        "statuses_seen": (sorted(corpus.status.dropna().unique())
+                          if len(corpus) else []),
         "deliberately_unread": DELIBERATELY_UNREAD,
         "records": _records(corpus, include_raw_for, run_dir, max_answer_chars),
         "citations": _rows(citations(corpus)),
@@ -251,6 +270,35 @@ def _breakdown(payload: dict) -> list[tuple[str, float]]:
     total = sum(sizes.values()) or 1
     return sorted(((k, v / total) for k, v in sizes.items()),
                   key=lambda kv: -kv[1])
+
+
+def _mechanisms(corpus) -> dict:
+    """Which citation mechanisms are present, and whether each carries a quote.
+
+    Derived rather than declared. A provider returning a numbered source list has
+    no offsets AND no quote — it attributes the whole answer to the set rather
+    than a span to a source — and an analysis assuming a quote exists would
+    silently drop it.
+    """
+    from .corpus import citations
+    try:
+        cites = citations(corpus)
+    except (KeyError, AttributeError):
+        return {}
+    if not len(cites):
+        return {}
+    out = {}
+    for unit, group in cites.fillna({"offset_unit": "null"}).groupby("offset_unit"):
+        quoted = int(group["quote"].notna().sum())
+        out[str(unit)] = {
+            "citations": len(group),
+            "with_quote": quoted,
+            "providers": sorted(group.provider.dropna().unique()),
+            "note": ("quotes present — compare these" if quoted == len(group)
+                     else "NO quote: only the URL is comparable" if quoted == 0
+                     else "quote present on some rows only"),
+        }
+    return out
 
 
 def _caps_summary(model: str) -> dict:

@@ -656,3 +656,29 @@ def test_the_readme_describes_the_directories_that_exist():
 
     for named in ("machine_psych/", "tests/"):
         assert named in readme, f"{named} is not described"
+
+
+def test_provider_names_are_derived_not_listed():
+    """`spec.resolve` hardcoded `("anthropic", "openai", "gemini")` to recognise
+    escape-hatch keys, so a FOURTH provider's hatch would be rejected as an
+    unrecognised intent — silently, in the one place that had to be edited to add
+    a provider and gave no sign of it.
+
+    Six audit passes looked for things that were too general; none asked whether
+    anything was too specific.
+    """
+    import re
+
+    from machine_psych.capabilities import known_providers
+
+    assert known_providers() == {"anthropic", "openai", "gemini"}
+
+    source = (PKG / "spec.py").read_text()
+    tree = __import__("ast").parse(source)
+    for node in __import__("ast").walk(tree):
+        if (isinstance(node, __import__("ast").Constant)
+                and isinstance(node.value, str)
+                and node.value in ("anthropic", "openai", "gemini")):
+            line = source.split("\n")[node.lineno - 1].strip()
+            assert line.startswith("#"), (
+                f"spec.py names a provider in CODE at line {node.lineno}: {line}")

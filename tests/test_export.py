@@ -226,3 +226,55 @@ def test_size_report_measures_rather_than_assumes(tmp_path, capsys):
     out = capsys.readouterr().out
     assert "tokens/record" in out
     assert any(section in out for section in ("sources", "records", "citations"))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Generality — from the 2026-09-05 fourth-provider audit
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def test_the_guide_does_not_count_providers():
+    """`how_to_read_this` travels WITH the corpus to an analysing conversation.
+
+    It said "Three mechanisms", "`quote` is populated for all three", "None on
+    two providers" — static prose that became FALSE the moment a fourth provider
+    appeared whose citations are a bare URL list with no quote at all.
+
+    A guide that ships false claims to the reader is worse than no guide, and
+    this one is the only orientation an analysing conversation gets.
+    """
+    import re
+    text = " ".join(HOW_TO_READ)
+    for phrase in (r"all three", r"Three mechanisms", r"two providers",
+                   r"one provider only", r"on one provider and not another"):
+        assert not re.search(phrase, text), (
+            f"the guide asserts a provider COUNT ({phrase!r}) — it must point at "
+            f"`capabilities` and `citation_mechanisms` instead")
+
+    assert "citation_mechanisms" in text
+    assert "capabilities" in text
+
+
+def test_citation_mechanisms_are_derived_from_the_records(exported):
+    """Including whether each carries a quote.
+
+    A provider returning a numbered source list has no offsets AND no quote — it
+    attributes the whole answer to the SET rather than a span to a source. An
+    analysis assuming a quote exists would silently drop it, so the export says
+    so per mechanism.
+    """
+    payload, _ = exported
+    mechanisms = payload["citation_mechanisms"]
+    assert mechanisms, "no mechanisms recorded"
+    for unit, info in mechanisms.items():
+        assert set(info) >= {"citations", "with_quote", "providers", "note"}
+        if info["with_quote"] == info["citations"]:
+            assert "compare these" in info["note"]
+        elif info["with_quote"] == 0:
+            assert "only the URL" in info["note"]
+
+
+def test_statuses_seen_is_read_not_asserted(exported):
+    payload, _ = exported
+    assert payload["statuses_seen"] == sorted(set(payload["statuses_seen"]))
+    assert all(s in ("ok", "truncated", "incomplete", "unavailable", "error")
+               for s in payload["statuses_seen"])

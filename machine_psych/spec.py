@@ -29,7 +29,8 @@ import json
 import pathlib
 from typing import Any
 
-from .capabilities import ModelCaps, caps_for, provider_of
+from .capabilities import (ModelCaps, caps_for, known_providers,
+                           provider_of)
 
 __all__ = [
     "InvestigationError", "UnmetIntentError",
@@ -381,8 +382,14 @@ def resolve(model: str, passed: dict, on_unmet: str = "error"
 
     unrecognised: list[str] = []
     for intent, value in passed.items():
-        # (2) provider-keyed escape hatches are merged last, at step (6)
-        if intent in ("anthropic", "openai", "gemini"):
+        # (2) provider-keyed escape hatches are merged last, at step (6).
+        #
+        # Asked of the REGISTRY, not a hardcoded list. This read
+        # `("anthropic", "openai", "gemini")`, so a fourth provider's escape
+        # hatch would be rejected as an unrecognised intent — the one place in
+        # the package that would have to be edited to add a provider and gave no
+        # sign of it. The registry already knows the names.
+        if intent in known_providers():
             continue
         if intent not in INTENTS and intent not in META_KEYS:
             unrecognised.append(intent)
