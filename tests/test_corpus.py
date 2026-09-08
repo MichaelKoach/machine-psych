@@ -16,8 +16,14 @@ import pandas as pd
 import pytest
 
 import machine_psych.runner as R
-from machine_psych.corpus import (capability_note, citations, load_corpus,
-                                  queries, sources, thoughts, units)
+from machine_psych.corpus import (
+    capability_note,
+    citations,
+    load_corpus,
+    queries,
+    sources,
+    units,
+)
 from machine_psych.corpus import sources as mp_sources
 
 FIXTURES = pathlib.Path(__file__).parent / "fixtures"
@@ -76,7 +82,7 @@ def test_structural_nulls_raise_rather_than_fill(corpus, tmp_path):
     defaulting it to 0 would silently make a turn-3 record look like turn 0.
     """
     run_dir = pathlib.Path(corpus.attrs["run_dir"])
-    path = sorted(run_dir.glob("[0-9]*.json"))[0]
+    path = min(run_dir.glob("[0-9]*.json"))
     record = json.loads(path.read_text())
     record["turn"] = None
     path.write_text(json.dumps(record))
@@ -174,6 +180,7 @@ def test_domain_is_a_real_domain_where_urls_are_ordinary(corpus):
 def test_a_missing_is_redirect_raises_rather_than_defaulting(corpus):
     """A default that produces the WRONG BRANCH is worse than one that errors."""
     import pandas as pd_
+
     from machine_psych.corpus import _domains
     df = pd_.DataFrame([{"title": "t", "url": "https://x.com/a"}])
     with pytest.raises(KeyError, match="is_redirect"):

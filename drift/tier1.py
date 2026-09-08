@@ -23,8 +23,8 @@ import requests
 
 sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[1]))
 
-from machine_psych import paths  # noqa: E402
-from machine_psych.capabilities import caps_for, known_models  # noqa: E402
+from machine_psych import paths
+from machine_psych.capabilities import caps_for, known_models
 
 __all__ = ["roster", "run"]
 
@@ -68,10 +68,7 @@ def dispatchable(model_id: str) -> bool:
     lowered = model_id.lower()
     if any(mark in lowered for mark in NOT_DISPATCHABLE):
         return False
-    if any(lowered.startswith(gen) or f"-{gen}" in lowered
-           for gen in OLD_GENERATIONS):
-        return False
-    return True
+    return not any(lowered.startswith(gen) or f"-{gen}" in lowered for gen in OLD_GENERATIONS)
 
 
 ENDPOINTS = {

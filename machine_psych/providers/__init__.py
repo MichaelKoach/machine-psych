@@ -5,10 +5,10 @@ imported here by name, so a hook that registered them on class creation bought
 nothing a literal cannot do — and a literal is greppable, which the hook was not.
 """
 
-from .base import ParsedResponse, Provider, get_provider
 from .anthropic import Anthropic
-from .openai import OpenAI
+from .base import ParsedResponse, Provider, get_provider
 from .gemini import Gemini
+from .openai import OpenAI
 
 PROVIDERS: dict[str, type[Provider]] = {
     "anthropic": Anthropic,
@@ -18,7 +18,15 @@ PROVIDERS: dict[str, type[Provider]] = {
 
 # `get_provider` looks the name up here.
 from .base import _bind_registry  # noqa: E402
+
 _bind_registry(PROVIDERS)
 
-__all__ = ["ParsedResponse", "Provider", "PROVIDERS", "get_provider",
-           "Anthropic", "OpenAI", "Gemini"]
+__all__ = [
+    "PROVIDERS",
+    "Anthropic",
+    "Gemini",
+    "OpenAI",
+    "ParsedResponse",
+    "Provider",
+    "get_provider",
+]

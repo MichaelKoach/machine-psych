@@ -40,39 +40,106 @@ def where() -> dict:
             "investigations": paths.INVESTIGATIONS_DIR,
             "records": paths.RECORDS_DIR}
 
-from .capabilities import (CAPABILITIES, ENUMS, ModelCaps, UnknownModelError,
-                           caps_for, known_models, provider_of)
-from .spec import (InvestigationError, UnmetIntentError, expand_conditions,
-                   probe_hash, prompt_hash, resolve, validate_investigation)
-from .runner import (estimate, list_investigations, list_runs,
-                     load_investigation, run_investigation, save_investigation)
-from .corpus import (capability_note, citations, load_corpus, load_record,
-                     queries, sources, thoughts, units)
-from .analysis import (NormalizeReport, format_stability, index, mentions,
-                       normalize, read, verdict)
+from .analysis import (
+    NormalizeReport,
+    format_stability,
+    index,
+    mentions,
+    normalize,
+    read,
+    verdict,
+)
+from .capabilities import (
+    CAPABILITIES,
+    ENUMS,
+    ModelCaps,
+    UnknownModelError,
+    caps_for,
+    known_models,
+    provider_of,
+)
+from .corpus import (
+    capability_note,
+    citations,
+    load_corpus,
+    load_record,
+    queries,
+    sources,
+    thoughts,
+    units,
+)
 from .export import export_corpus
 from .providers import PROVIDERS, ParsedResponse, Provider, get_provider
+from .runner import (
+    estimate,
+    list_investigations,
+    list_runs,
+    load_investigation,
+    run_investigation,
+    save_investigation,
+)
+from .spec import (
+    InvestigationError,
+    UnmetIntentError,
+    expand_conditions,
+    probe_hash,
+    prompt_hash,
+    resolve,
+    validate_investigation,
+)
 
 __all__ = [
-    "provenance", "install_report", "where", "__version__",
     # capabilities
-    "CAPABILITIES", "ENUMS", "ModelCaps", "UnknownModelError", "caps_for",
-    "known_models", "provider_of",
+    "CAPABILITIES",
+    "ENUMS",
+    # providers
+    "PROVIDERS",
     # specs
-    "InvestigationError", "UnmetIntentError", "expand_conditions", "probe_hash",
-    "prompt_hash", "resolve", "validate_investigation",
-    # running
-    "estimate", "list_investigations", "list_runs",
-    "load_investigation", "run_investigation", "save_investigation",
-    "set_api_key", "set_base",
-    # corpus
-    "capability_note", "citations", "load_corpus", "load_record", "queries",
-    "sources", "thoughts", "units",
+    "InvestigationError",
+    "ModelCaps",
     # analysis
-    "NormalizeReport", "format_stability", "index", "mentions", "normalize",
-    "read", "verdict",
+    "NormalizeReport",
+    "ParsedResponse",
+    "Provider",
+    "UnknownModelError",
+    "UnmetIntentError",
+    "__version__",
+    # corpus
+    "capability_note",
+    "caps_for",
+    "citations",
+    # running
+    "estimate",
+    "expand_conditions",
     # export
     "export_corpus",
-    # providers
-    "PROVIDERS", "ParsedResponse", "Provider", "get_provider",
+    "format_stability",
+    "get_provider",
+    "index",
+    "install_report",
+    "known_models",
+    "list_investigations",
+    "list_runs",
+    "load_corpus",
+    "load_investigation",
+    "load_record",
+    "mentions",
+    "normalize",
+    "probe_hash",
+    "prompt_hash",
+    "provenance",
+    "provider_of",
+    "queries",
+    "read",
+    "resolve",
+    "run_investigation",
+    "save_investigation",
+    "set_api_key",
+    "set_base",
+    "sources",
+    "thoughts",
+    "units",
+    "validate_investigation",
+    "verdict",
+    "where",
 ]

@@ -23,97 +23,99 @@ from __future__ import annotations
 
 import json
 import pathlib
+
 import pandas as pd
 
 from .capabilities import DELIBERATELY_UNREAD, caps_for
+
 # `units` is deliberately NOT exported. It is the provider-native block/item/step
 # structure, it is the largest side table by a wide margin, and every question it
 # answers is either already in `citations`/`queries` or needs the raw response
 # anyway — which `include_raw_for` provides. Excluding it was an implicit choice
 # until an unused-import sweep made it visible; it is a choice now.
-from .corpus import (citations, load_corpus, queries, sources, thoughts)
+from .corpus import citations, load_corpus, queries, sources, thoughts
 
-__all__ = ["export_corpus", "HOW_TO_READ"]
+__all__ = ["HOW_TO_READ", "export_corpus"]
 
 
 HOW_TO_READ = [
     "One investigation's corpus, exported for analysis in a conversation.",
     "",
-    "STRUCTURE. `spec` is the investigation that produced these records, "
+    ("STRUCTURE. `spec` is the investigation that produced these records, "
     "including the rationale fields explaining what each probe was for. "
     "`records` is one entry per API call. The side tables — citations, sources, "
     "queries, thoughts — carry the identity columns, so they group and join "
-    "without a merge.",
+    "without a merge."),
     "",
-    "A record's identity is provider / study / probe / path / rep / turn. "
+    ("A record's identity is provider / study / probe / path / rep / turn. "
     "`conversation` groups the turns of one multi-turn exchange. `prompt_hash` "
     "is a content hash, so the SAME PROMPT sent to three providers joins across "
     "them with no shared identifier and no coordination — which is the mechanism "
-    "the whole cross-provider design rests on.",
+    "the whole cross-provider design rests on."),
     "",
     "── WHAT IS NOT COMPARABLE ACROSS PROVIDERS ──────────────────────────────",
     "",
-    "`out_tok_reported` is NOT comparable across providers. Two count thinking "
+    ("`out_tok_reported` is NOT comparable across providers. Two count thinking "
     "tokens INSIDE this figure and one keeps it separate and adds it to the "
     "total, so comparing it directly measures accounting convention rather than "
-    "output. **Use `answer_chars`**, which is the same measurement everywhere.",
+    "output. **Use `answer_chars`**, which is the same measurement everywhere."),
     "",
-    "`in_tok_billed` is NOT comparable either. Billing policy differs: one "
+    ("`in_tok_billed` is NOT comparable either. Billing policy differs: one "
     "provider does not bill retrieved search content as input at all, so a "
     "grounded call there reports a fraction of what it processed. "
     "`in_tok_processed` is the comparable figure, and on that provider it has "
     "measured 100x the billed number — a gap that looked architectural until it "
-    "turned out to be an invoice.",
+    "turned out to be an invoice."),
     "",
-    "`condition` — PROVIDER-SCOPED. Conditions are written per provider because "
+    ("`condition` — PROVIDER-SCOPED. Conditions are written per provider because "
     "they are not cross-comparable: a reasoning level on one provider is not the "
     "same manipulation as the same word on another. **Never group on `condition` "
     "across providers.** Group on `config_resolved`, which records what was "
-    "actually sent.",
+    "actually sent."),
     "",
     "── CITATIONS: COMPARE QUOTES, NOT OFFSETS ───────────────────────────────",
     "",
-    "The mechanisms present in THIS corpus are listed under `citation_mechanisms` "
-    "below, read from the records rather than asserted here. Known kinds:",
+    ("The mechanisms present in THIS corpus are listed under `citation_mechanisms` "
+    "below, read from the records rather than asserted here. Known kinds:"),
     "  'quoted' — the citation carries the quoted text directly, no offsets",
     "  'char'   — offsets index characters",
     "  'byte'   — offsets index UTF-8 BYTES",
     "  null     — neither: a bare URL list, with nothing to locate in the answer",
     "",
-    "Where `quote` is populated it is the comparable object and the offsets are "
+    ("Where `quote` is populated it is the comparable object and the offsets are "
     "provenance. Do not re-slice an answer using offsets without checking "
     "`offset_unit`: applying character indexing to byte offsets produces spans "
     "that are silently wrong and drift further into the answer — measured wrong "
-    "on 70 of 107 citations on one record, with no error raised.",
+    "on 70 of 107 citations on one record, with no error raised."),
     "",
-    "**Where `quote` is null there is nothing to compare but the URL.** A provider "
+    ("**Where `quote` is null there is nothing to compare but the URL.** A provider "
     "that returns a numbered source list attributes the whole answer to the set, "
     "not a span to a source, and a comparison that assumes otherwise silently "
-    "drops it.",
+    "drops it."),
     "",
     "── ABSENCE IS NOT ZERO ──────────────────────────────────────────────────",
     "",
-    "A `None` in a Tier 3 column can mean the provider CANNOT do the thing or "
+    ("A `None` in a Tier 3 column can mean the provider CANNOT do the thing or "
     "that it DID NOT on this record. `capabilities` in this file distinguishes "
     "them, and the difference matters: one is a fact about an API, the other a "
-    "finding about a model.",
+    "finding about a model."),
     "",
-    "`n_sources_retrieved` is None wherever a provider reports only what it "
+    ("`n_sources_retrieved` is None wherever a provider reports only what it "
     "CITED. `capabilities` below says which models in this corpus expose the "
     "whole retrieval set — every URL seen, cited or not — and that is the only "
-    "place 'what distinguishes a cited source from an uncited one' is answerable.",
+    "place 'what distinguishes a cited source from an uncited one' is answerable."),
     "",
-    "`grounded` is meaningful only where `search_conditional` is true in "
+    ("`grounded` is meaningful only where `search_conditional` is true in "
     "`capabilities` below: there, offering the search tool is a PERMISSION rather "
     "than a condition, and a prompt that does not need retrieval comes back "
     "ungrounded with the tool attached. Elsewhere the tool means search happened, "
     "so the column is None rather than True — and on a search-ALWAYS provider "
-    "there is no ungrounded arm to compare against at all.",
+    "there is no ungrounded arm to compare against at all."),
     "",
-    "`thought_text` is present on the providers that expose readable reasoning. "
+    ("`thought_text` is present on the providers that expose readable reasoning. "
     "On one of them the summary must be REQUESTED per call, so a None there can "
     "also mean the request did not ask — `config_resolved` on the record says "
-    "which.",
+    "which."),
     "",
     "── STATUS ───────────────────────────────────────────────────────────────",
     "",
@@ -123,41 +125,41 @@ HOW_TO_READ = [
     "  unavailable transient failure that exhausted its retries",
     "  error       rejected",
     "",
-    "`truncated` fires on some providers and not others, and that is "
+    ("`truncated` fires on some providers and not others, and that is "
     "architectural rather than incidental: one that streams text into blocks as "
     "it generates gets caught mid-answer, while one that emits its message "
     "complete or not at all does not. Check `statuses_seen` below for which "
     "appear here. A truncated record's answer is REAL and should not be "
-    "discarded.",
+    "discarded."),
     "",
-    "`conversation_status` is separate: `failed` means the conversation died on "
-    "turn 0, `incomplete` means it died later and earlier turns are usable.",
+    ("`conversation_status` is separate: `failed` means the conversation died on "
+    "turn 0, `incomplete` means it died later and earlier turns are usable."),
     "",
     "── OMITTED ──────────────────────────────────────────────────────────────",
     "",
-    "Raw response bodies. They are on disk and are several times the size of "
+    ("Raw response bodies. They are on disk and are several times the size of "
     "everything here — mostly encrypted reasoning signatures and provider widget "
     "markup that no analysis reads. `include_raw_for=[record_ids]` attaches "
-    "specific ones.",
+    "specific ones."),
     "",
-    "The `units` table — the provider-native block/item/step structure. It is the "
+    ("The `units` table — the provider-native block/item/step structure. It is the "
     "largest side table and every question it answers is either already in "
     "`citations` and `queries` or needs the raw response anyway. Reachable from "
-    "the corpus on disk as `units(corpus)`.",
+    "the corpus on disk as `units(corpus)`."),
     "",
     "── READING IT ───────────────────────────────────────────────────────────",
     "",
-    "**Extract before you read.** Pull pairings, entities and citations "
+    ("**Extract before you read.** Pull pairings, entities and citations "
     "mechanically across ALL records first, then read to understand what the "
     "numbers mean. Reading a few records and inferring the pattern is how this "
     "project produced three findings that died at n=7 — and in each case the "
     "records that were read were simply the ones a notebook happened to print "
-    "first, which is a sampling decision disguised as a display choice.",
+    "first, which is a sampling decision disguised as a display choice."),
     "",
-    "**One record is a story; five is a finding.** Run-to-run variance is high "
+    ("**One record is a story; five is a finding.** Run-to-run variance is high "
     "on at least one provider — six of six distinct answers on a one-sentence "
     "prompt, with product-level disagreement — so a difference between two arms "
-    "must clear that floor before it means anything.",
+    "must clear that floor before it means anything."),
 ]
 
 
@@ -252,9 +254,9 @@ def export_corpus(investigation: str, run: str | None = None,
                 if share >= 0.08:
                     print(f"      {section:<14} {share:>5.0%}")
             if per * 200 > 200_000:
-                print(f"    a corpus that size does not fit a context window. "
-                      f"Reduce the LARGEST section above —")
-                print(f"    max_answer_chars only helps if `records` dominates.")
+                print("    a corpus that size does not fit a context window. "
+                      "Reduce the LARGEST section above —")
+                print("    max_answer_chars only helps if `records` dominates.")
         print(f"    {dest}")
     return dest
 

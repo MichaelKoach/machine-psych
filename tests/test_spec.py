@@ -12,10 +12,16 @@ import warnings
 
 import pytest
 
-from machine_psych.capabilities import UnknownModelError, caps_for, known_models
+from machine_psych.capabilities import UnknownModelError, known_models
 from machine_psych.spec import (
-    InvestigationError, UnmetIntentError, expand_conditions, join_text,
-    probe_hash, prompt_hash, resolve, validate_investigation,
+    InvestigationError,
+    UnmetIntentError,
+    expand_conditions,
+    join_text,
+    probe_hash,
+    prompt_hash,
+    resolve,
+    validate_investigation,
 )
 
 

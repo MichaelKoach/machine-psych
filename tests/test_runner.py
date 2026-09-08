@@ -12,17 +12,15 @@ itself worth knowing: the providers correctly refuse to parse each other's error
 
 from __future__ import annotations
 
-import io
 import contextlib
+import io
 import json
 import pathlib
-import tempfile
 
 import pytest
 
 import machine_psych.runner as R
 from machine_psych.providers import Anthropic, Gemini
-
 
 SPEC = {
     "investigation_id": "t",
@@ -397,7 +395,7 @@ def test_run_records_three_kinds_of_provenance(loaded):
 
 def test_probe_hash_is_stable_and_content_derived(loaded):
     res, _ = _run(loaded, lambda cfg: _ok_body(cfg, 1))
-    for probe, group in res.groupby("probe"):
+    for _probe, group in res.groupby("probe"):
         assert group.probe_hash.nunique() == 1
 
 

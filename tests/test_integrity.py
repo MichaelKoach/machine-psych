@@ -21,7 +21,7 @@ import pytest
 
 import machine_psych as mp
 from machine_psych.capabilities import caps_for
-from machine_psych.integrity import Issue, check_record, describe_integrity
+from machine_psych.integrity import check_record, describe_integrity
 from machine_psych.providers import get_provider
 
 FIXTURES = pathlib.Path(__file__).parent / "fixtures"
@@ -91,7 +91,7 @@ def test_a_served_model_mismatch_is_critical():
     parsed, status = parse("anthropic", body)
     issues = check_record(parsed, status, INTENT, caps_for(ANTH))
     assert "served_model_mismatch" in codes(issues)
-    assert [i for i in issues if i.code == "served_model_mismatch"][0].severity == "critical"
+    assert next(i for i in issues if i.code == "served_model_mismatch").severity == "critical"
 
 
 def test_the_tool_usage_removal_is_caught():

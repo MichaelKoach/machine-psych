@@ -11,16 +11,23 @@ from __future__ import annotations
 import contextlib
 import io
 import json
-import math
 import pathlib
-import re
 
 import pandas as pd
 import pytest
 
 import machine_psych.runner as R
-from machine_psych.analysis import (TIER1, TIER2, TIER3, format_stability,
-                                    index, mentions, normalize, read, verdict)
+from machine_psych.analysis import (
+    TIER1,
+    TIER2,
+    TIER3,
+    format_stability,
+    index,
+    mentions,
+    normalize,
+    read,
+    verdict,
+)
 from machine_psych.corpus import citations, load_corpus, sources, thoughts
 
 FIXTURES = pathlib.Path(__file__).parent / "fixtures"
@@ -79,7 +86,7 @@ def test_normalize_loses_nothing(corpus):
     If this fails, the whole argument for building this instead of using one of
     them collapses.
     """
-    view, report = normalize(corpus)
+    view, _report = normalize(corpus)
     assert "grounded" not in view.columns
     assert "thought_text" not in view.columns
 

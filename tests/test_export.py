@@ -265,7 +265,7 @@ def test_citation_mechanisms_are_derived_from_the_records(exported):
     payload, _ = exported
     mechanisms = payload["citation_mechanisms"]
     assert mechanisms, "no mechanisms recorded"
-    for unit, info in mechanisms.items():
+    for info in mechanisms.values():
         assert set(info) >= {"citations", "with_quote", "providers", "note"}
         if info["with_quote"] == info["citations"]:
             assert "compare these" in info["note"]

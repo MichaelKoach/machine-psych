@@ -18,8 +18,18 @@ from __future__ import annotations
 import pathlib
 from importlib import metadata
 
-__all__ = ["BASE", "INVESTIGATIONS_DIR", "RECORDS_DIR", "DIST", "VERSION",
-           "set_base", "set_api_key", "api_key", "provenance", "install_report"]
+__all__ = [
+    "BASE",
+    "DIST",
+    "INVESTIGATIONS_DIR",
+    "RECORDS_DIR",
+    "VERSION",
+    "api_key",
+    "install_report",
+    "provenance",
+    "set_api_key",
+    "set_base",
+]
 
 DIST = "machine-psych"
 

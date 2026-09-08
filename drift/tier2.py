@@ -33,15 +33,13 @@ import sys
 import time
 from dataclasses import dataclass, field
 
-import requests
-
 sys.path.insert(0, str(__import__("pathlib").Path(__file__).resolve().parents[1]))
 
-from machine_psych import paths  # noqa: E402
-from machine_psych.capabilities import ENUMS, caps_for  # noqa: E402
-from machine_psych.providers import get_provider  # noqa: E402
+from machine_psych import paths
+from machine_psych.capabilities import ENUMS, caps_for
+from machine_psych.providers import get_provider
 
-__all__ = ["run", "Finding"]
+__all__ = ["Finding", "run"]
 
 BOGUS = "__drift_probe_invalid__"
 
@@ -163,8 +161,8 @@ def _probe_enums(provider: str, model: str, report: Report) -> None:
             # longer read.
             report.findings.append(Finding(
                 "unexpected", model, parameter,
-                f"a bogus value was ACCEPTED (HTTP 200) — the parameter may no "
-                f"longer be validated, which usually means it is no longer read"))
+                "a bogus value was ACCEPTED (HTTP 200) — the parameter may no "
+                "longer be validated, which usually means it is no longer read"))
             continue
 
         returned = set(_values_in_error(response))

@@ -342,7 +342,7 @@ def test_new_is_measured_against_the_roster_not_the_capability_table(roster_at, 
 
 
 def test_a_genuinely_new_model_is_reported(roster_at, capsys):
-    roster_at(BASE, BASE + ["claude-opus-4-9"])
+    roster_at(BASE, [*BASE, "claude-opus-4-9"])
     assert tier1.run(["anthropic"]) == 1
     assert "NEW        claude-opus-4-9" in capsys.readouterr().out
 

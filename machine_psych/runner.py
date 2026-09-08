@@ -34,19 +34,33 @@ import pandas as pd
 from . import paths
 from .capabilities import caps_for, provider_of
 from .integrity import check_record
-from .providers import get_provider
-from .spec import (InvestigationError, expand_conditions, join_text, probe_hash,
-                   prompt_hash, resolve, validate_investigation)
 
 # Re-exported so `runner.set_base(...)` keeps working for callers, while the
 # STATE lives in `paths`. A facade over one source of truth, not a copy of it —
 # an earlier version held the paths here and `corpus` reached back into this
 # module to read them, which made a low-level module depend on a high-level one.
-from .paths import set_api_key, set_base  # noqa: F401
+from .paths import set_api_key, set_base
+from .providers import get_provider
+from .spec import (
+    InvestigationError,
+    expand_conditions,
+    join_text,
+    probe_hash,
+    prompt_hash,
+    resolve,
+    validate_investigation,
+)
 
-__all__ = ["load_investigation", "run_investigation", "save_investigation",
-           "list_investigations", "list_runs", "estimate",
-           "set_base", "set_api_key"]
+__all__ = [
+    "estimate",
+    "list_investigations",
+    "list_runs",
+    "load_investigation",
+    "run_investigation",
+    "save_investigation",
+    "set_api_key",
+    "set_base",
+]
 
 # Paths and keys live in `paths` — a layer-0 module — and are read AT CALL TIME
 # rather than imported as names. `set_base` rebinds module globals, so a name
@@ -338,7 +352,7 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
             for turn_i, turn_text in enumerate(r.turns):
                 # (3) PROVIDER-SHAPED. messages / input list / step_list — and
                 #     the wrong one is a 400 on every turn after the first.
-                input_items = input_items + [provider.user_turn(turn_text)]
+                input_items = [*input_items, provider.user_turn(turn_text)]
                 config = provider.build(input_items, r.params)
 
                 # (4) RETRY LIVES HERE, not in dispatch, so `latency` measures

@@ -15,14 +15,13 @@ not**, and the capability table is what tells them apart.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from dataclasses import dataclass, field, fields
+from dataclasses import dataclass, field
 
 import requests
 
-from ..capabilities import (ENUMS, ModelCaps,
-                            UnknownModelError, caps_for)
+from ..capabilities import ENUMS, ModelCaps, UnknownModelError, caps_for
 
-__all__ = ["ParsedResponse", "Provider", "PROVIDERS", "get_provider"]
+__all__ = ["PROVIDERS", "ParsedResponse", "Provider", "get_provider"]
 
 
 @dataclass(frozen=True)

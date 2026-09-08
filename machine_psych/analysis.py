@@ -26,8 +26,15 @@ import pandas as pd
 from .capabilities import caps_for
 from .corpus import capability_note
 
-__all__ = ["index", "read", "normalize", "mentions", "verdict",
-           "format_stability", "NormalizeReport"]
+__all__ = [
+    "NormalizeReport",
+    "format_stability",
+    "index",
+    "mentions",
+    "normalize",
+    "read",
+    "verdict",
+]
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -311,7 +318,7 @@ def mentions(corpus: pd.DataFrame, vocabulary: list[str],
         for term in vocabulary:
             pattern = (rf"\b{re.escape(term)}\b" if whole_word
                        else re.escape(term))
-            n = len(re.findall(pattern, text, re.I))
+            n = len(re.findall(pattern, text, re.IGNORECASE))
             if n:
                 rows.append({"record_id": r.record_id, "provider": r.provider,
                              "probe": r.probe, "condition": r.condition,
@@ -321,7 +328,7 @@ def mentions(corpus: pd.DataFrame, vocabulary: list[str],
 
 
 def verdict(corpus: pd.DataFrame, pattern: str, column: str = "answer_text",
-            chars: int = 160, flags=re.I, **filters) -> pd.DataFrame:
+            chars: int = 160, flags=re.IGNORECASE, **filters) -> pd.DataFrame:
     """Where a pattern appears in each answer, and how far in.
 
     `position` is the fraction of the answer at which the match occurs. Verdicts
@@ -373,7 +380,7 @@ def format_stability(corpus: pd.DataFrame, **filters) -> pd.DataFrame:
         sets = []
         for text in group[group.turn == 0].answer_text:
             if isinstance(text, str):
-                sets.append(frozenset(re.findall(r"^#{1,4}\s*(.+)$", text, re.M)))
+                sets.append(frozenset(re.findall(r"^#{1,4}\s*(.+)$", text, re.MULTILINE)))
         if len(sets) < 2:
             continue
         pairs = [(a, b) for i, a in enumerate(sets) for b in sets[i + 1:]]
