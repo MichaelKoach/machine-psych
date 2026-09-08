@@ -29,14 +29,20 @@ import json
 import pathlib
 from typing import Any
 
-from .capabilities import (ModelCaps, caps_for, known_providers,
-                           provider_of)
+from .capabilities import ModelCaps, caps_for, known_providers, provider_of
 
 __all__ = [
-    "InvestigationError", "UnmetIntentError",
-    "join_text", "probe_hash", "prompt_hash", "validate_investigation",
-    "expand_conditions", "resolve", "load_investigation_dict",
-    "INTENTS", "META_KEYS",
+    "INTENTS",
+    "META_KEYS",
+    "InvestigationError",
+    "UnmetIntentError",
+    "expand_conditions",
+    "join_text",
+    "load_investigation_dict",
+    "probe_hash",
+    "prompt_hash",
+    "resolve",
+    "validate_investigation",
 ]
 
 
@@ -286,7 +292,10 @@ def expand_conditions(block: dict) -> list[dict]:
 
     if use_grid:
         for combo in itertools.product(*[list(levels[k].items()) for k in keys]):
-            labelled = dict(zip(keys, combo))
+            # strict=True: `combo` comes from product(*values) over `keys`, so a
+            # length mismatch is impossible — and would silently drop a
+            # condition rather than fail.
+            labelled = dict(zip(keys, combo, strict=True))
             if _excluded(labelled, block.get("exclude", [])):
                 continue
             label = "|".join(labelled[k][0] for k in varying) if varying else "base"
@@ -452,11 +461,11 @@ def resolve(model: str, passed: dict, on_unmet: str = "error"
                  for intent, value in unmet]
         raise UnmetIntentError(
             f"{model} cannot honour:\n" + "\n".join(lines) + "\n"
-            f"  Options: write what this provider actually does (conditions are "
-            f"per-provider for exactly this reason), or set "
-            f"on_unmet='exclude' to drop the cell from the grid.\n"
-            f"  Running anyway is not offered — it would produce an arm whose "
-            f"condition label does not describe it.")
+            "  Options: write what this provider actually does (conditions are "
+            "per-provider for exactly this reason), or set "
+            "on_unmet='exclude' to drop the cell from the grid.\n"
+            "  Running anyway is not offered — it would produce an arm whose "
+            "condition label does not describe it.")
 
     return resolved, dict(passed), unmet
 

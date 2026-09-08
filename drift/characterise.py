@@ -24,8 +24,8 @@ import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
-from drift.tier2 import PROBE, _body_with, _dispatch, _values_in_error  # noqa: E402
-from machine_psych import paths  # noqa: E402
+from drift.tier2 import PROBE, _body_with, _dispatch, _values_in_error
+from machine_psych import paths
 
 __all__ = ["characterise"]
 
@@ -221,14 +221,14 @@ def _answer_text(response: dict, provider: str) -> str:
 
 def _render(result: dict) -> str:
     """A pasteable ModelCaps block. Unmeasured fields are left as None with a note."""
-    from datetime import date
+    from datetime import datetime, timezone
     lines = [f'    "{result["model"]}": ModelCaps(']
     for key, value in sorted(result["measured"].items()):
         if key.startswith("_"):
             continue
         lines.append(f"        {key}={value!r},"
                      + ("   # UNMEASURED — see notes" if value is None else ""))
-    lines.append(f'        measured_on="{date.today().isoformat()}",')
+    lines.append(f'        measured_on="{datetime.now(timezone.utc).date().isoformat()}",')
     if result["notes"]:
         lines.append('        notes="' + " ".join(result["notes"])[:200] + '",')
     lines.append("    ),")

@@ -29,9 +29,18 @@ from dataclasses import dataclass, fields
 from typing import Any
 
 __all__ = [
-    "ModelCaps", "UnknownModelError", "CAPABILITIES", "ENUMS",
-    "DELIBERATELY_UNREAD", "CONSUMED_BY", "REQUIRED_FIELDS", "known_providers",
-    "caps_for", "provider_of", "model_of", "known_models",
+    "CAPABILITIES",
+    "CONSUMED_BY",
+    "DELIBERATELY_UNREAD",
+    "ENUMS",
+    "REQUIRED_FIELDS",
+    "ModelCaps",
+    "UnknownModelError",
+    "caps_for",
+    "known_models",
+    "known_providers",
+    "model_of",
+    "provider_of",
 ]
 
 
@@ -273,7 +282,7 @@ class ModelCaps:
             # a model that rejects it, and the spec layer passed it through to
             # be refused by the API one call and thirty seconds later. The
             # levels are PER-MODEL and the schema does not know it.
-            usable = {lv for lv in self.reasoning_levels}
+            usable = set(self.reasoning_levels)
             if "off" in usable or self.reasoning_off:
                 usable.add("off")
                 usable.add("none")
@@ -331,7 +340,7 @@ class ModelCaps:
 # an uncontrolled variable.
 # ═══════════════════════════════════════════════════════════════════════════════
 
-_ANTHROPIC_COMMON = dict(
+_ANTHROPIC_COMMON = {
     # Re-measured 2026-08-27 during fixture collection, and the surface had moved.
     # `thinking: {"type": "enabled", "budget_tokens": N}` is now REJECTED on
     # claude-sonnet-5 — "not supported for this model. Use thinking.type.adaptive
@@ -343,76 +352,76 @@ _ANTHROPIC_COMMON = dict(
     # that were previously incomparable — budget tokens against effort levels —
     # now share a vocabulary. Whether the levels MEAN the same thing is a
     # separate question and remains an asserted mapping, not a measured one.
-    reasoning_levels=("off", "low", "medium", "high", "xhigh", "max"),
-    readable_reasoning=False,
-    verbosity=False,
-    combined_token_budget=False,
-    search=True,
-    search_conditional=False,
-    domain_filter="param",
-    max_tool_calls=False,
-    page_age=True,
-    retrieval_set=True,
-    citation_offsets="quoted",
-    answer_extraction="heuristic",
-    cross_turn="researches",
-    sampling_meaningful=False,
-    sampling_silently_ignored=False,
-    in_tok_processed_field="input_tokens",
-    thinking_in_output_tokens=True,
-    tokens_per_query=11_600,
-    measured_on="2026-08-27",   # family default; per-model overrides below
-)
+    "reasoning_levels": ("off", "low", "medium", "high", "xhigh", "max"),
+    "readable_reasoning": False,
+    "verbosity": False,
+    "combined_token_budget": False,
+    "search": True,
+    "search_conditional": False,
+    "domain_filter": "param",
+    "max_tool_calls": False,
+    "page_age": True,
+    "retrieval_set": True,
+    "citation_offsets": "quoted",
+    "answer_extraction": "heuristic",
+    "cross_turn": "researches",
+    "sampling_meaningful": False,
+    "sampling_silently_ignored": False,
+    "in_tok_processed_field": "input_tokens",
+    "thinking_in_output_tokens": True,
+    "tokens_per_query": 11_600,
+    "measured_on": "2026-08-27",   # family default; per-model overrides below
+}
 
-_OPENAI_COMMON = dict(
-    reasoning_levels=("none", "low", "medium", "high", "xhigh", "max"),
+_OPENAI_COMMON = {
+    "reasoning_levels": ("none", "low", "medium", "high", "xhigh", "max"),
     # Requires `reasoning.summary` to be requested; without it the reasoning
     # items carry `encrypted_content` only. Unlike Gemini's, where the summary
     # arrives whenever thinking_summaries is set, this one is opt-in per call.
-    readable_reasoning=True,
-    verbosity=True,
-    combined_token_budget=False,
-    search=True,
-    search_conditional=False,
-    domain_filter="param",
-    max_tool_calls=True,
-    page_age=False,
-    retrieval_set=False,
-    citation_offsets="char",
-    answer_extraction="structural",
-    cross_turn="front_loads",
-    sampling_meaningful=False,
-    sampling_silently_ignored=False,
-    in_tok_processed_field="input_tokens",
-    thinking_in_output_tokens=True,
-    tokens_per_query=11_100,
-    measured_on="2026-08-27",   # family default; per-model overrides below
-)
+    "readable_reasoning": True,
+    "verbosity": True,
+    "combined_token_budget": False,
+    "search": True,
+    "search_conditional": False,
+    "domain_filter": "param",
+    "max_tool_calls": True,
+    "page_age": False,
+    "retrieval_set": False,
+    "citation_offsets": "char",
+    "answer_extraction": "structural",
+    "cross_turn": "front_loads",
+    "sampling_meaningful": False,
+    "sampling_silently_ignored": False,
+    "in_tok_processed_field": "input_tokens",
+    "thinking_in_output_tokens": True,
+    "tokens_per_query": 11_100,
+    "measured_on": "2026-08-27",   # family default; per-model overrides below
+}
 
-_GEMINI_COMMON = dict(
-    reasoning_off=False,
+_GEMINI_COMMON = {
+    "reasoning_off": False,
     # SCHEMA default. Per-model overrides below — `minimal` is rejected by
     # 3.7-flash and 3.8-flash and accepted by 3.5-flash, measured 2026-09-05.
-    reasoning_levels=("minimal", "low", "medium", "high"),
-    readable_reasoning=True,
-    verbosity=False,
-    combined_token_budget=True,
-    search=True,
-    search_conditional=True,
-    domain_filter="prompt",
-    max_tool_calls=False,
-    page_age=False,
-    retrieval_set=False,
-    citation_offsets="byte",
-    answer_extraction="structural",
-    cross_turn="reuses_context",
-    sampling_meaningful=False,
-    sampling_silently_ignored=True,
-    in_tok_processed_field="raw_prompt_token",
-    thinking_in_output_tokens=False,
-    tokens_per_query=4_100,
-    measured_on="2026-08-24",   # family default; per-model overrides below
-)
+    "reasoning_levels": ("minimal", "low", "medium", "high"),
+    "readable_reasoning": True,
+    "verbosity": False,
+    "combined_token_budget": True,
+    "search": True,
+    "search_conditional": True,
+    "domain_filter": "prompt",
+    "max_tool_calls": False,
+    "page_age": False,
+    "retrieval_set": False,
+    "citation_offsets": "byte",
+    "answer_extraction": "structural",
+    "cross_turn": "reuses_context",
+    "sampling_meaningful": False,
+    "sampling_silently_ignored": True,
+    "in_tok_processed_field": "raw_prompt_token",
+    "thinking_in_output_tokens": False,
+    "tokens_per_query": 4_100,
+    "measured_on": "2026-08-24",   # family default; per-model overrides below
+}
 
 CAPABILITIES: dict[str, ModelCaps] = {
     # ── Anthropic ────────────────────────────────────────────────────────────
@@ -499,7 +508,7 @@ CAPABILITIES: dict[str, ModelCaps] = {
 # against the wrong values.
 # ═══════════════════════════════════════════════════════════════════════════════
 
-# TODO (MERGE_SPEC Appendix J): `compare_capabilities(model)` should send a
+# TODO (drift/README.md): `compare_capabilities(model)` should send a
 # deliberately bogus value for each parameter below, read the rejection, and diff
 # the returned valid set against what is recorded here. That is the technique that
 # recovered these in the first place, and it costs one rejected call per parameter.
@@ -658,16 +667,28 @@ def caps_for(model: str) -> ModelCaps:
     except KeyError:
         prov = model.split("/", 1)[0] if "/" in model else None
         siblings = known_models(prov)
+        # Two branches, because one message for both cases lied. With an UNKNOWN
+        # provider, `siblings` is empty and the fallback printed every model from
+        # every provider under the heading "Known for perplexity" — a misleading
+        # message on the exact path a new provider takes.
+        if siblings:
+            known = f"  Known for {prov}: {siblings}\n"
+        else:
+            known = (f"  No provider {prov!r} — known providers: "
+                     f"{sorted(known_providers())}\n"
+                     f"  A new provider needs a Provider subclass AND "
+                     f"CAPABILITIES entries; see drift/README.md.\n")
         raise UnknownModelError(
             f"{model!r} is not in CAPABILITIES.\n"
-            f"  Known for {prov or 'all providers'}: {siblings or sorted(known_models())}\n"
-            f"  Adding one is deliberate, not automatic. Four probes establish "
-            f"an entry: reasoning off, a sampling parameter, a grounded call, "
-            f"and a small max_tokens on a long prompt — plus a bogus value per "
-            f"enumerated parameter to record the enums. See MERGE_SPEC Appendix "
-            f"J; the script that automates this is planned, not built.\n"
-            f"  A defaulted capability would produce an arm whose condition is a "
-            f"guess, which is worse than this error because it looks like data."
+            + known
+            + "  Adding one is deliberate, not automatic. Four probes establish "
+              "an entry: reasoning off, a sampling parameter, a grounded call, "
+              "and a small max_tokens on a long prompt — plus a bogus value per "
+              "enumerated parameter to record the enums. See drift/README.md; "
+              "the script that automates this is planned, not built.\n"
+              "  A defaulted capability would produce an arm whose condition is "
+              "a guess, which is worse than this error because it looks like "
+              "data."
         ) from None
 
 
@@ -750,7 +771,7 @@ CONSUMED_BY: dict[str, str] = {
     "thinking_in_output_tokens": "analysis.normalize — why out_tok is not comparable",
     "tokens_per_query":          "spec._estimate — cost is n_queries x this",
     "measured_on":               "compare_capabilities — the staleness warning",
-    # NOTE: compare_capabilities is NOT BUILT. See MERGE_SPEC Appendix J. It is
+    # NOTE: compare_capabilities is NOT BUILT. See drift/README.md. It is
     # deferred until after the first live battery, and this comment exists so the
     # assignment above is not mistaken for a working consumer — an unread field
     # with a plausible owner is worse than one with none, because the map says it

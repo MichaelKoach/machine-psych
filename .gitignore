@@ -1,12 +1,29 @@
+# Python
 __pycache__/
 *.py[cod]
-.ipynb_checkpoints/
 *.egg-info/
 dist/
 build/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
+
+# macOS — Finder writes these into every directory it opens, and they were
+# committed once already. This line was LOST once when the file was rebuilt from
+# a copy that predated it; the fix is to edit this file, never to regenerate it.
+.DS_Store
+
+# Secrets
 .env
-# corpora and client material never belong in the repo
+
+# Corpora and client material never belong in a public repo. This file is a
+# convenience; the rule is the actual protection.
 Output Log/
 Investigations/
 *_corpus.json
-.DS_Store
+
+# Local drift baselines — machine state, not source.
+drift/roster.json
+drift/baseline.json

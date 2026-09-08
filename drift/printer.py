@@ -38,9 +38,9 @@ from typing import Any
 try:
     from genson import SchemaBuilder
 except ImportError:  # pragma: no cover
-    raise SystemExit("drift needs GenSON:  pip install genson")
+    raise SystemExit("drift needs GenSON:  pip install genson") from None
 
-__all__ = ["print_response", "shape_of", "compare", "SCRUB_KEYS", "SCRUB_PATTERNS"]
+__all__ = ["SCRUB_KEYS", "SCRUB_PATTERNS", "compare", "print_response", "shape_of"]
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

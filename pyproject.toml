@@ -17,3 +17,61 @@ include = ["machine_psych*"]
 
 [project.optional-dependencies]
 drift = ["genson>=1.2"]
+
+# ── the deterministic layer ────────────────────────────────────────────────────
+#
+# Added 2026-09-05, and it found 114 things on its first run — including a dead
+# local variable that a hand-written dead-code sweep had missed, because that
+# sweep looked for unused FUNCTIONS and not unused NAMES.
+#
+# That is the argument for this layer in one finding: a tool that does not share
+# the author's blind spots. Every other check in this repo was written by whoever
+# wrote the code.
+
+[tool.ruff]
+line-length = 88
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "C4", "SIM", "RUF", "ISC", "DTZ", "PERF", "FURB"]
+ignore = [
+    "E501",     # line length — the prose comments here are deliberate
+    "RUF001",   # ambiguous unicode: the fixtures REQUIRE en-dashes, on purpose
+    "RUF002",
+    "RUF003",
+    "SIM108",   # ternaries are not always clearer than an if
+    "PERF203",  # try/except in a loop is the retry pattern
+    # PERF401/403 want comprehensions where an explicit loop reads better —
+    # several of these sit inside try blocks or carry a comment per branch, and
+    # collapsing them would trade clarity for a micro-optimisation on lists of
+    # tens of items. Rejected on the merits, not silenced for convenience.
+    "PERF401",
+    "PERF403",
+]
+
+# Each ignore below is a REASON, not a silencing. A rule turned off because
+# fixing it is inconvenient is a rule that will hide something later.
+[tool.ruff.lint.per-file-ignores]
+# Tests assert on internals and construct deliberately broken input.
+"tests/*" = ["E402", "F841", "B011", "RUF012", "PERF401", "SIM117", "E741"]
+
+# `drift/` scripts insert on sys.path BEFORE importing the package, because they
+# run from a clone rather than an install — pyproject packages `machine_psych*`
+# only, deliberately, so these are not installed.
+"drift/*" = ["E402"]
+
+# `__init__.py` re-exports after defining `where()`, which needs the package to
+# exist first. The import order is the API surface, not an accident.
+"machine_psych/__init__.py" = ["E402"]
+
+# Each provider's CAPABILITIES is a filtered VIEW of the module dict — the
+# objects are literally identical and it is never mutated. RUF012 exists for
+# class attributes that get mutated per instance, which these cannot be.
+"machine_psych/providers/*.py" = ["RUF012"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+source = ["machine_psych"]
+omit = ["*/__pycache__/*"]

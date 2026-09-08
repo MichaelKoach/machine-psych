@@ -104,13 +104,13 @@ def check_record(parsed, status: str, intent: dict, caps) -> list[Issue]:
                 "the table records readable_reasoning=True and reasoning was "
                 "requested, but no thought text came back"))
 
-    if caps.retrieval_set and intent.get("search") and status == "ok":
-        if parsed.n_sources_retrieved is None:
-            issues.append(Issue(
-                "warning", "retrieval_set_absent",
-                "the table records retrieval_set=True but no retrieval set came "
-                "back — the only provider answering 'what did it see but not "
-                "cite' may have stopped reporting it"))
+    if (caps.retrieval_set and intent.get("search") and status == "ok"
+            and parsed.n_sources_retrieved is None):
+        issues.append(Issue(
+            "warning", "retrieval_set_absent",
+            "the table records retrieval_set=True but no retrieval set came "
+            "back — the only provider answering 'what did it see but not "
+            "cite' may have stopped reporting it"))
 
     # ── status and content disagree ──────────────────────────────────────────
     #

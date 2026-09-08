@@ -1,0 +1,63 @@
+# The deterministic layer.
+#
+# This exists because of a specific problem: the code, the tests, and seven audit
+# passes were all written by the same author. "The tests pass" says very little
+# when whoever wrote the code also wrote the grader — every layer shares the same
+# blind spots, and in this repo the same narrow-search mistake recurred inside the
+# tool built to catch it.
+#
+# What runs here does not depend on that author's judgement. Ruff found 114
+# things on its first run, including a dead local variable that a hand-written
+# dead-code sweep had missed — because that sweep looked for unused FUNCTIONS and
+# not unused NAMES. That is the whole argument in one finding.
+
+name: verify
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e . ruff pytest pytest-cov genson
+
+      # ── lint: mechanical, no judgement ──────────────────────────────────────
+      - name: ruff
+        run: ruff check machine_psych drift tests
+
+      # ── the suite, in isolation ─────────────────────────────────────────────
+      #
+      # Runs from a fresh checkout with nothing above the repo root, which is the
+      # condition a test once quietly depended on and failed to meet: it looked
+      # for a document one level ABOVE the repo and skipped in every checkout for
+      # weeks, reporting itself as a skip rather than as a gap.
+      - name: tests
+        run: pytest tests/ -q --cov=machine_psych --cov-report=term-missing
+
+      # ── the contract, not the implementation ────────────────────────────────
+      #
+      # Every name the package exports must exist and be documented. This is the
+      # surface a reader is asked to trust; the implementation behind it is what
+      # the tests are for.
+      - name: contract
+        run: |
+          python - <<'PY'
+          import machine_psych as mp
+          missing = [n for n in mp.__all__ if not hasattr(mp, n)]
+          assert not missing, f"exported but absent: {missing}"
+          undoc = [n for n in mp.__all__
+                   if callable(getattr(mp, n)) and not (getattr(mp, n).__doc__ or "").strip()]
+          assert not undoc, f"exported but undocumented: {undoc}"
+          print(f"{len(mp.__all__)} public names, all present and documented")
+          PY

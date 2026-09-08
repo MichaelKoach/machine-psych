@@ -31,8 +31,16 @@ from . import paths
 from .capabilities import caps_for
 from .providers import get_provider
 
-__all__ = ["load_corpus", "load_record", "citations", "sources", "queries",
-           "thoughts", "units", "capability_note"]
+__all__ = [
+    "capability_note",
+    "citations",
+    "load_corpus",
+    "load_record",
+    "queries",
+    "sources",
+    "thoughts",
+    "units",
+]
 
 # Bounded so a session loading many corpora does not accumulate indefinitely.
 # **A soft guard, not a tuned figure.** Eight is more corpora than anyone has open
@@ -180,7 +188,11 @@ def _domains(df: pd.DataFrame) -> list:
             "declare it — a default would silently route rows down the redirect "
             "branch and fill `domain` with page titles.")
     out = []
-    for title, url, redirect in zip(df["title"], df["url"], df["is_redirect"]):
+    # strict=True: these are three columns of ONE frame, so they cannot
+    # differ in length — and if that ever stops being true, silent
+    # truncation would drop rows rather than raise.
+    for title, url, redirect in zip(df["title"], df["url"],
+                                    df["is_redirect"], strict=True):
         if bool(redirect):
             out.append(title)
         elif url:

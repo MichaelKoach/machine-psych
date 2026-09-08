@@ -33,8 +33,8 @@ import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
-from machine_psych import paths  # noqa: E402
-from machine_psych.providers import get_provider  # noqa: E402
+from machine_psych import paths
+from machine_psych.providers import get_provider
 
 __all__ = ["collect_all"]
 
@@ -93,7 +93,7 @@ def collect(root: pathlib.Path, provider: str, name: str, body: dict,
     units = response.get("content") or response.get("output") or response.get("steps") or []
     kinds = [u.get("type") for u in units if isinstance(u, dict)]
     print(f"  {name:<26} {status} "
-          f"{str(response.get('stop_reason') or response.get('status')):<11}"
+          f"{response.get('stop_reason') or response.get('status')!s:<11}"
           f" {len(units):>3} {kinds[:4]}")
     time.sleep(0.4)
     return response
@@ -101,7 +101,8 @@ def collect(root: pathlib.Path, provider: str, name: str, body: dict,
 
 def collect_all(root: pathlib.Path) -> None:
     A = lambda **kw: {"model": MODELS["anthropic"], **kw}          # noqa: E731
-    O = lambda **kw: {"model": MODELS["openai"], "store": False, **kw}  # noqa: E731
+    def oai(**kw):
+        return {"model": MODELS["openai"], "store": False, **kw}
 
     def G(**kw):
         gen = {"max_output_tokens": kw.pop("max_output_tokens", 16384),
@@ -171,44 +172,44 @@ def collect_all(root: pathlib.Path) -> None:
         go("anthropic", name, body, why)
 
     print("\nOPENAI")
-    go("openai", "ungrounded_ok", O(max_output_tokens=2048,
+    go("openai", "ungrounded_ok", oai(max_output_tokens=2048,
        input="Name one CRM tool."),
        "Baseline. STRUCTURAL answer extraction — the API says which item is the "
        "answer. Note a reasoning item is NOT always present.")
-    go("openai", "grounded_ok", O(max_output_tokens=16384, tools=SO, input=PRICE),
+    go("openai", "grounded_ok", oai(max_output_tokens=16384, tools=SO, input=PRICE),
        "MAIN PARSE TARGET. CHARACTER-offset annotations. `usage.tool_usage` was "
        "removed in Aug 2026, so n_queries now falls back to the item count.")
     for budget in (16, 64, 256, 1024, 4096):
-        go("openai", f"truncate_{budget}", O(max_output_tokens=budget, input=LONG),
+        go("openai", f"truncate_{budget}", oai(max_output_tokens=budget, input=LONG),
            f"Budget sweep at {budget}. Single-turn incomplete arms have zero "
            f"message items — but a two-turn ladder at 200 DOES produce partial "
            f"text, so 'complete or not at all' is wrong as a general claim.")
-    go("openai", "truncate_grounded_512", O(max_output_tokens=512, tools=SO,
+    go("openai", "truncate_grounded_512", oai(max_output_tokens=512, tools=SO,
        input=LONG), "Truncation with search on.")
-    o0 = go("openai", "multiturn_t0", O(max_output_tokens=8192, tools=SO, input=LONG),
+    o0 = go("openai", "multiturn_t0", oai(max_output_tokens=8192, tools=SO, input=LONG),
             "Turn 0 with store:false, so history is passed explicitly.")
-    go("openai", "multiturn_t1", O(max_output_tokens=8192, tools=SO,
+    go("openai", "multiturn_t1", oai(max_output_tokens=8192, tools=SO,
        input=[{"role": "user", "content": LONG}] + (o0.get("output") or [])
        + [{"role": "user", "content": "Which for a two-person firm?"}]),
        "Turn 1 with reasoning items resent — they carry encrypted_content.")
     for level in ("low", "high"):
-        go("openai", f"verbosity_{level}", O(max_output_tokens=8192,
+        go("openai", f"verbosity_{level}", oai(max_output_tokens=8192,
            text={"verbosity": level}, input=LONG),
            f"verbosity={level}. The only output-length control of the three.")
-    go("openai", "max_tool_calls_1", O(max_output_tokens=8192, tools=SO,
+    go("openai", "max_tool_calls_1", oai(max_output_tokens=8192, tools=SO,
        max_tool_calls=1, input=LONG), "The only search cap of the three.")
-    go("openai", "effort_none", O(max_output_tokens=8192,
+    go("openai", "effort_none", oai(max_output_tokens=8192,
        reasoning={"effort": "none"}, input=MATH),
        "0 reasoning tokens: a real off arm. Note `minimal` is in the SCHEMA and "
        "rejected by this model — schema is not capability.")
-    go("openai", "reasoning_summary", O(max_output_tokens=8192,
+    go("openai", "reasoning_summary", oai(max_output_tokens=8192,
        reasoning={"effort": "high", "summary": "detailed"}, input=MATH),
        "READABLE REASONING, opt-in per call. Was empty at characterisation and "
        "populates now.")
     for name, body, why in [
-        ("rejects_temperature", O(max_output_tokens=1024, temperature=0.7,
+        ("rejects_temperature", oai(max_output_tokens=1024, temperature=0.7,
          input="hi"), "400 where Gemini accepts and ignores."),
-        ("rejects_unknown_param", O(max_output_tokens=1024, nonsense_parameter=1,
+        ("rejects_unknown_param", oai(max_output_tokens=1024, nonsense_parameter=1,
          input="hi"), "Unknown parameter named in the error."),
         ("rejects_bad_model", {"model": "gpt-nonexistent", "max_output_tokens": 1024,
          "input": "hi", "store": False}, "Bad model. Error, never retried.")]:

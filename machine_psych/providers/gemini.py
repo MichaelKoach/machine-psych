@@ -215,8 +215,6 @@ class Gemini(Provider):
         caps = self.caps(body.get("model") or "gemini-3.7-flash", "gemini-3.7-flash")
 
         answer = self._answer(steps)
-        n_search_calls = sum(1 for s in steps
-                             if s.get("type") == "google_search_call")
 
         return ParsedResponse(
             answer_text=answer or None,

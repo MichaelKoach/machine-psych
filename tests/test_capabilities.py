@@ -14,15 +14,22 @@ import re
 from dataclasses import fields
 
 import pytest
-
 import requests
 
-from machine_psych.providers.base import Provider
 from machine_psych.capabilities import (
-    CAPABILITIES, CONSUMED_BY, DELIBERATELY_UNREAD, ENUMS, ModelCaps,
-    REQUIRED_FIELDS, UnknownModelError, caps_for, known_models, model_of,
+    CAPABILITIES,
+    CONSUMED_BY,
+    DELIBERATELY_UNREAD,
+    ENUMS,
+    REQUIRED_FIELDS,
+    ModelCaps,
+    UnknownModelError,
+    caps_for,
+    known_models,
+    model_of,
     provider_of,
 )
+from machine_psych.providers.base import Provider
 
 PKG = pathlib.Path(__file__).resolve().parent.parent / "machine_psych"
 PROVIDERS = {"anthropic", "openai", "gemini"}
@@ -185,8 +192,9 @@ def test_tier3_columns_can_span_providers():
     that change was a one-line table edit — a parser branching on `if provider ==
     "gemini"` would have silently kept extracting nothing from OpenAI.
     """
-    from machine_psych.providers import Anthropic
     import inspect
+
+    from machine_psych.providers import Anthropic
     src = inspect.getsource(Anthropic)
     assert 'readable_reasoning' in src, "parser must gate on the capability"
     assert '== "gemini"' not in src and "== 'gemini'" not in src, (
@@ -395,21 +403,37 @@ def test_interrupts_are_not_classified(exc):
         Provider.classify_exception(exc)
 
 
-def test_contract_covers_every_runner_call():
-    """Every `provider.X(...)` in the spec's runner sequence must exist.
+def test_the_contract_is_what_the_runner_actually_calls():
+    """Every provider method the runner calls must exist on the ABC.
 
-    The runner is specified as pseudocode in §6b; this is the check that the
-    pseudocode and the ABC agree, since nothing else forces them to.
+    This used to parse the pseudocode in MERGE_SPEC §6b and compare it to the
+    contract — a check that the DESIGN DOCUMENT and the code agreed, which was
+    the right check while the code was being built from the document.
+
+    The code is built and directly tested now, so the runner IS the truth and a
+    document cannot contradict it. Reads the runner instead, which also means the
+    check no longer skips when the spec is not alongside the package.
     """
-    import re
-    spec = pathlib.Path(__file__).resolve().parents[1].parent / "MERGE_SPEC.md"
-    if not spec.exists():
-        pytest.skip("spec not alongside the package")
-    text = spec.read_text()
-    runner = text[text.index("## 6b."):text.index("## 7.", text.index("## 6b."))]
-    called = set(re.findall(r"provider\.(\w+)\(", runner))
+    import ast
+
+    from machine_psych import runner
+
+    # Parsed, not grepped. A first version regexed `impl.(\w+)\(` and caught
+    # `corpus.model.dropna().unique()` — the fifth time in this project a check
+    # matched text rather than structure.
+    source = pathlib.Path(runner.__file__).read_text()
+    provider_vars = {"provider", "impl"}
+    called = set()
+    for node in ast.walk(ast.parse(source)):
+        if (isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id in provider_vars):
+            called.add(node.func.attr)
     available = {n for n in dir(Provider) if not n.startswith("_")}
-    assert called <= available, f"runner calls methods the contract lacks: {called - available}"
+    assert called <= available, (
+        f"the runner calls methods the contract lacks: {sorted(called - available)}")
+    assert called, "no provider calls found — the regex has drifted from the code"
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -441,7 +465,7 @@ def test_no_module_imports_the_package_root():
         if path.name == "__init__.py":
             continue
         src = path.read_text()
-        assert not re.search(r"^from \. import (?!paths\b)", src, re.M), (
+        assert not re.search(r"^from \. import (?!paths\b)", src, re.MULTILINE), (
             f"{path.name} imports from the package root; import a MODULE instead")
 
 
@@ -667,7 +691,6 @@ def test_provider_names_are_derived_not_listed():
     Six audit passes looked for things that were too general; none asked whether
     anything was too specific.
     """
-    import re
 
     from machine_psych.capabilities import known_providers
 
@@ -682,3 +705,28 @@ def test_provider_names_are_derived_not_listed():
             line = source.split("\n")[node.lineno - 1].strip()
             assert line.startswith("#"), (
                 f"spec.py names a provider in CODE at line {node.lineno}: {line}")
+
+
+def test_an_unknown_provider_says_so_rather_than_listing_everything():
+    """One message for both cases lied.
+
+    With an unknown PROVIDER, `known_models(prov)` returns nothing and the
+    fallback printed every model from every provider under the heading "Known
+    for perplexity" — a misleading message on the exact path someone adding a
+    provider takes.
+    """
+    try:
+        caps_for("perplexity/sonar-pro")
+    except UnknownModelError as exc:
+        text = str(exc)
+    assert "No provider 'perplexity'" in text
+    assert "known providers:" in text
+    assert "gpt-5.6-sol" not in text, (
+        "an unknown provider was answered with another provider's models")
+
+    try:
+        caps_for("openai/gpt-99")
+    except UnknownModelError as exc:
+        text = str(exc)
+    assert "Known for openai" in text
+    assert "gpt-5.6-sol" in text, "a known provider should list its siblings"
