@@ -184,10 +184,11 @@ def test_no_retrieval_set(provider):
     assert all(s["cited"] for s in parsed.sources)
 
 
-def test_grounded_is_none_because_search_is_not_conditional(provider):
-    """`grounded` is only meaningful where providing the tool is a permission
-    rather than a condition. Here the tool means search ran."""
-    assert provider.parse(load("grounded_ok")).grounded is None
+def test_grounded_reports_whether_search_actually_ran(provider):
+    """Search is a PERMISSION on every provider, not a condition — measured
+    2026-09-09. A grounded fixture searched, so this is True; a call with the
+    tool attached on a prompt needing nothing would be False."""
+    assert provider.parse(load("grounded_ok")).grounded is True
 
 
 def test_zero_is_not_absent(provider):

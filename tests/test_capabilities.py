@@ -144,8 +144,13 @@ def test_bare_model_name_is_rejected():
     ("anthropic/claude-sonnet-5", "thinking_in_output_tokens", True),
     ("anthropic/claude-sonnet-5", "answer_extraction", "heuristic"),
     ("openai/gpt-5.6-sol", "answer_extraction", "structural"),
+    # search_conditional is TRUE on all three, measured 2026-09-09. It was
+    # recorded as Gemini-only because Gemini was the only provider it was tested
+    # on — every one declines to search on "what is 2 plus 2" with the tool
+    # attached, and every one searches when the prompt needs current information.
     ("gemini/gemini-3.7-flash", "search_conditional", True),
-    ("anthropic/claude-sonnet-5", "search_conditional", False),
+    ("anthropic/claude-sonnet-5", "search_conditional", True),
+    ("openai/gpt-5.6-sol", "search_conditional", True),
     ("gemini/gemini-3.7-flash", "combined_token_budget", True),
     ("openai/gpt-5.6-sol", "verbosity", True),
     ("gemini/gemini-3.7-flash", "verbosity", False),
@@ -730,3 +735,36 @@ def test_an_unknown_provider_says_so_rather_than_listing_everything():
         text = str(exc)
     assert "Known for openai" in text
     assert "gpt-5.6-sol" in text, "a known provider should list its siblings"
+
+
+def test_cross_turn_is_not_a_provider_trait():
+    """Measured 2026-09-09: every provider re-searches when the follow-up needs
+    new information — 2/1/0 searches on an answerable follow-up, 6/6/2 on one
+    requiring fresh data.
+
+    It was recorded as three distinct provider behaviours from ONE ladder whose
+    follow-up happened to be answerable from what turn 0 retrieved. Three
+    providers, one prompt, three "traits" that were a property of the prompt.
+    """
+    values = {caps_for(m).cross_turn for m in known_models()}
+    assert values == {"question_dependent"}, (
+        f"cross_turn still claims per-provider behaviour: {values}")
+
+
+def test_evidence_marks_which_fields_rest_on_one_observation():
+    """The schema gap that produced six wrong claims.
+
+    Every other field is a static property, so a value measured ONCE on ONE
+    prompt was indistinguishable from one measured across a sweep.
+    """
+    from machine_psych.capabilities import provisional
+
+    caps = caps_for("anthropic/claude-sonnet-5")
+    assert caps.evidence["search_conditional"] == "swept"
+    assert caps.evidence["cross_turn"] == "swept"
+    assert caps.evidence["citation_offsets"] == "structural"
+
+    single = provisional("anthropic/claude-sonnet-5")
+    assert single, "nothing marked provisional — the field is decorative"
+    assert "search_conditional" not in single
+    assert "tokens_per_query" in single

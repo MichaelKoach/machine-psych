@@ -105,17 +105,19 @@ HOW_TO_READ = [
     "whole retrieval set — every URL seen, cited or not — and that is the only "
     "place 'what distinguishes a cited source from an uncited one' is answerable."),
     "",
-    ("`grounded` is meaningful only where `search_conditional` is true in "
-    "`capabilities` below: there, offering the search tool is a PERMISSION rather "
-    "than a condition, and a prompt that does not need retrieval comes back "
-    "ungrounded with the tool attached. Elsewhere the tool means search happened, "
-    "so the column is None rather than True — and on a search-ALWAYS provider "
-    "there is no ungrounded arm to compare against at all."),
+    ("`grounded` must be read PER RECORD on every provider. Measured 2026-09-09: "
+     "every provider declines to search on a prompt that does not need it, even "
+     "with the tool attached — so `search: on` is a PERMISSION, never a condition, and "
+     "an arm labelled 'grounded' contains ungrounded records. "),
+    ("Recorded for a single provider until 2026-09-09, because it was the only "
+     "one tested. `capabilities` below carries the current values."),
     "",
-    ("`thought_text` is present on the providers that expose readable reasoning. "
-    "On one of them the summary must be REQUESTED per call, so a None there can "
-    "also mean the request did not ask — `config_resolved` on the record says "
-    "which."),
+    ("`thought_text` is present wherever `readable_reasoning` is true in "
+     "`capabilities` below. Where a provider needs the summary REQUESTED per "
+     "call, a null can also mean the request did not ask — `config_resolved` on "
+     "the record says which. And a null appears when no reasoning OCCURRED: "
+     "measured 2026-09-09, a low reasoning level on an easy prompt produces zero "
+     "thought tokens and therefore nothing to summarise."),
     "",
     "── STATUS ───────────────────────────────────────────────────────────────",
     "",

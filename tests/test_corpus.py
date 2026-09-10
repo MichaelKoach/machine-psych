@@ -236,10 +236,20 @@ def test_capability_note_explains_an_empty_table(corpus):
     assert reasoning["gemini/gemini-3.7-flash"] is True
 
 
-def test_grounded_is_meaningful_on_one_provider_only(corpus):
-    """Only where providing the tool is a permission rather than a condition."""
-    assert corpus[corpus.provider == "gemini"].grounded.notna().all()
-    assert corpus[corpus.provider != "gemini"].grounded.isna().all()
+def test_grounded_is_populated_on_every_provider(corpus):
+    """`grounded` used to be Gemini-only, on the belief that only Gemini treated
+    the search tool as a permission rather than a condition.
+
+    Measured 2026-09-09: **all three decline to search on a prompt that does not
+    need it**, even with the tool attached. The belief came from testing one
+    provider and generalising.
+
+    So an arm labelled "grounded" contains ungrounded records on EVERY provider,
+    and the column must be read per record everywhere.
+    """
+    assert corpus.grounded.notna().all(), (
+        "some provider still returns None — `search_conditional` is True for all "
+        "three, so every parser should populate this")
 
 
 def test_tier3_columns_are_never_filled(corpus):
@@ -249,7 +259,7 @@ def test_tier3_columns_are_never_filled(corpus):
     `fillna(False)` on `grounded` says a provider declined to do something it
     cannot do — false, and it destroys the distinction the whole design turns on.
     """
-    for col in ("grounded", "n_sources_retrieved", "thought_text"):
+    for col in ("n_sources_retrieved", "thought_text"):
         assert corpus[col].isna().any(), f"{col} has no nulls — was it filled?"
 
 

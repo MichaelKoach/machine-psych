@@ -132,8 +132,10 @@ def test_nan_becomes_null_not_nan(exported):
 def test_tier3_nulls_survive_the_export(exported):
     payload, _ = exported
     by_provider = {r["provider"]: r for r in payload["records"]}
+    # `grounded` is populated on EVERY provider as of 2026-09-09 — all three
+    # gate search on whether the prompt needs it, so it is no longer Tier 3.
     assert by_provider["gemini"]["grounded"] is True
-    assert by_provider["openai"]["grounded"] is None
+    assert by_provider["openai"]["grounded"] is not None
     assert by_provider["openai"]["n_sources_retrieved"] is None
     assert by_provider["anthropic"]["n_sources_retrieved"] > 0
 

@@ -14,7 +14,7 @@ from collections import Counter
 
 import pytest
 
-from machine_psych.providers import Anthropic, Gemini, OpenAI
+from machine_psych.providers import Anthropic, Gemini, OpenAI, get_provider
 
 HERE = pathlib.Path(__file__).parent
 GE, OA, AN = (HERE / "fixtures" / n for n in ("gemini", "openai", "anthropic"))
@@ -184,10 +184,13 @@ def test_tool_provided_does_not_mean_search_ran(provider):
     assert provider.parse(load("grounded_ok")).grounded is True
 
 
-def test_grounded_is_none_on_providers_where_it_is_meaningless():
-    an = Anthropic(api_key="k").parse(load("grounded_ok", AN))
-    oa = OpenAI(api_key="k").parse(load("grounded_ok", OA))
-    assert an.grounded is None and oa.grounded is None
+def test_grounded_is_populated_on_every_provider():
+    """Was asserted as Gemini-only. Measured 2026-09-09, all three gate search on
+    whether the prompt needs it, so the column is meaningful everywhere."""
+    an = get_provider("anthropic", api_key="k").parse(load("grounded_ok", AN))
+    oa = get_provider("openai", api_key="k").parse(load("grounded_ok", OA))
+    assert an.grounded is not None
+    assert oa.grounded is not None
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -338,17 +341,26 @@ def test_every_provider_returns_the_same_dataclass():
 
 
 def test_tier3_columns_follow_capabilities_not_provider_names():
-    """Each provider fills exactly what its capabilities say.
+    """A Tier 3 column is present where the CAPABILITY says so, never where a
+    provider name says so.
 
-    Anthropic has the retrieval set; Gemini and OpenAI have readable reasoning;
-    only Gemini has meaningful `grounded`. No parser branches on a provider name,
-    which is why a capability changing was a one-line table edit.
+    `grounded` left Tier 3 on 2026-09-09: every provider gates search on whether
+    the prompt needs it, so the column is meaningful everywhere and belongs in the
+    comparable set. `n_sources_retrieved` is the remaining clean example — one
+    provider exposes the retrieval set and the others cannot.
     """
-    an, oa, ge = _all_three()
-    assert an.n_sources_retrieved is not None
-    assert oa.n_sources_retrieved is None and ge.n_sources_retrieved is None
-    assert ge.grounded is not None
-    assert an.grounded is None and oa.grounded is None
+    from machine_psych.capabilities import caps_for
+
+    for model, name, where in (("anthropic/claude-sonnet-5", "anthropic", AN),
+                               ("openai/gpt-5.6-sol", "openai", OA),
+                               ("gemini/gemini-3.7-flash", "gemini", GE)):
+        caps = caps_for(model)
+        parsed = get_provider(name, api_key="k").parse(load("grounded_ok", where))
+        if caps.retrieval_set:
+            assert parsed.n_sources_retrieved is not None
+        else:
+            assert parsed.n_sources_retrieved is None
+        assert parsed.grounded is not None, "grounded is comparable everywhere now"
 
 
 def test_no_parser_branches_on_provider_identity():

@@ -127,9 +127,16 @@ class ModelCaps:
     search_conditional: bool
     """Is providing the tool a permission rather than a condition.
 
-    True on Gemini: a prompt that does not need retrieval comes back ungrounded
-    with the tool attached. So "search on" is not a study condition there, and
-    `grounded` must be recorded per record to know which arm a call landed in.
+    **True on all three, measured 2026-09-09.** Every provider declined to search
+    on "what is 2 plus 2" with the tool attached, and every one searched when the
+    prompt needed current information.
+
+    So **"search on" is not a study condition anywhere.** `grounded` must be read
+    per record on every provider to know which arm a call actually landed in.
+
+    Recorded as Gemini-only until 2026-09-09, for the worst reason: Gemini was the
+    only provider it was tested on. The other two were assumed to search whenever
+    the tool was present, and nobody checked.
     """
 
     domain_filter: str | None
@@ -198,11 +205,23 @@ class ModelCaps:
     """
 
     cross_turn: str
-    """'researches' | 'front_loads' | 'reuses_context'.
+    """`"question_dependent"` on every provider — this is NOT a provider trait.
 
-    Recorded, never acted on. This once gated multi-turn in the Anthropic
-    validator, which was a provider mechanism promoted to a format constraint.
-    All three behave differently and none of them is wrong.
+    Measured 2026-09-09 on a grounded ladder with two different follow-ups:
+
+        follow-up answerable from turn 1 : 2 / 1 / 0 searches
+        follow-up needing NEW information: 6 / 6 / 2 searches
+
+    **Every provider re-searches when the question demands it.** The variable is
+    the follow-up, not the provider.
+
+    Previously recorded as three distinct provider behaviours — `researches`,
+    `front_loads`, `reuses_context` — from ONE ladder whose follow-up happened to
+    be answerable from what turn 0 had already retrieved. Three providers, one
+    prompt, three "traits" that were really one property of the prompt.
+
+    Kept as a field because a future measurement might find a real difference, and
+    because the wrong version reached the project notes and the export guide.
     """
 
     # ── sampling ─────────────────────────────────────────────────────────────
@@ -254,6 +273,31 @@ class ModelCaps:
     """
 
     # ── provenance ───────────────────────────────────────────────────────────
+    evidence: dict[str, str]
+    """How each field was measured. The schema gap that produced six wrong claims.
+
+    Every other field is a static property, so a value measured ONCE on ONE
+    prompt is indistinguishable from one measured across a sweep. Six claims went
+    wrong that way and each was corrected only when something forced a second
+    look:
+
+    | claim | what it was measured on | what it actually is |
+    |---|---|---|
+    | `search_conditional` Gemini-only | one provider | true on all three |
+    | `cross_turn` three provider traits | one follow-up | a property of the question |
+    | OpenAI "complete or not at all" | single-turn, tiny budgets | truncates on ladders |
+    | `thinking.type: enabled` withdrawn | sent without its companion field | still valid |
+    | enums are per-provider | a bogus value | the API-wide SCHEMA, not the model |
+    | `reasoning: low` is off | one easy prompt | a gate that opens on hard ones |
+
+    Values: `"swept"` — varied across prompts or models; `"single"` — one
+    observation, treat as provisional; `"structural"` — read from response shape,
+    not behaviour, so one observation suffices; `"unmeasured"`.
+
+    **A field absent from this dict is `"single"` by default**, because that is the
+    honest assumption about anything nobody recorded evidence for.
+    """
+
     measured_on: str
     """ISO date. Not a correctness flag, a staleness one. A year-old entry is not
     wrong, but it is worth seeing before a battery relies on it."""
@@ -340,7 +384,43 @@ class ModelCaps:
 # an uncontrolled variable.
 # ═══════════════════════════════════════════════════════════════════════════════
 
+# How each field was measured. See ModelCaps.evidence.
+#
+#   swept      — varied across prompts, models or budgets
+#   single     — ONE observation. Provisional. Six of these turned out wrong.
+#   structural — read from response SHAPE rather than behaviour, so one
+#                observation is enough: a citation either carries offsets or it
+#                does not, and that cannot vary by prompt.
+EVIDENCE = {
+    # varied deliberately, on 2026-09-09 unless noted
+    "search_conditional":        "swept",   # 2 prompts x 3 providers
+    "cross_turn":                "swept",   # 2 follow-ups x 3 providers
+    "reasoning_off":             "swept",   # 3 difficulties x 3 providers
+    "verbosity":                 "swept",   # 3 prompts, ratio stable 5.0-5.8x
+    "reasoning_levels":          "swept",   # per-model probe, 2026-09-05
+
+    # read from response structure — cannot vary by prompt
+    "citation_offsets":          "structural",
+    "answer_extraction":         "structural",
+    "in_tok_processed_field":    "structural",
+    "thinking_in_output_tokens": "structural",
+    "retrieval_set":             "structural",
+
+    # ONE observation. Provisional until something varies the input.
+    "combined_token_budget":     "single",
+    "max_tool_calls":            "single",
+    "page_age":                  "single",   # 33 of 41 results on one record
+    "domain_filter":             "single",
+    "search":                    "single",
+    "sampling_meaningful":       "single",
+    "sampling_silently_ignored": "single",
+    "readable_reasoning":        "single",   # and now known to need thinking to occur
+    "tokens_per_query":          "single",   # an average from one battery
+}
+
+
 _ANTHROPIC_COMMON = {
+    "evidence": EVIDENCE,
     # Re-measured 2026-08-27 during fixture collection, and the surface had moved.
     # `thinking: {"type": "enabled", "budget_tokens": N}` is now REJECTED on
     # claude-sonnet-5 — "not supported for this model. Use thinking.type.adaptive
@@ -357,14 +437,14 @@ _ANTHROPIC_COMMON = {
     "verbosity": False,
     "combined_token_budget": False,
     "search": True,
-    "search_conditional": False,
+    "search_conditional": True,
     "domain_filter": "param",
     "max_tool_calls": False,
     "page_age": True,
     "retrieval_set": True,
     "citation_offsets": "quoted",
     "answer_extraction": "heuristic",
-    "cross_turn": "researches",
+    "cross_turn": "question_dependent",
     "sampling_meaningful": False,
     "sampling_silently_ignored": False,
     "in_tok_processed_field": "input_tokens",
@@ -374,6 +454,7 @@ _ANTHROPIC_COMMON = {
 }
 
 _OPENAI_COMMON = {
+    "evidence": EVIDENCE,
     "reasoning_levels": ("none", "low", "medium", "high", "xhigh", "max"),
     # Requires `reasoning.summary` to be requested; without it the reasoning
     # items carry `encrypted_content` only. Unlike Gemini's, where the summary
@@ -382,14 +463,14 @@ _OPENAI_COMMON = {
     "verbosity": True,
     "combined_token_budget": False,
     "search": True,
-    "search_conditional": False,
+    "search_conditional": True,
     "domain_filter": "param",
     "max_tool_calls": True,
     "page_age": False,
     "retrieval_set": False,
     "citation_offsets": "char",
     "answer_extraction": "structural",
-    "cross_turn": "front_loads",
+    "cross_turn": "question_dependent",
     "sampling_meaningful": False,
     "sampling_silently_ignored": False,
     "in_tok_processed_field": "input_tokens",
@@ -399,6 +480,7 @@ _OPENAI_COMMON = {
 }
 
 _GEMINI_COMMON = {
+    "evidence": EVIDENCE,
     "reasoning_off": False,
     # SCHEMA default. Per-model overrides below — `minimal` is rejected by
     # 3.7-flash and 3.8-flash and accepted by 3.5-flash, measured 2026-09-05.
@@ -414,7 +496,7 @@ _GEMINI_COMMON = {
     "retrieval_set": False,
     "citation_offsets": "byte",
     "answer_extraction": "structural",
-    "cross_turn": "reuses_context",
+    "cross_turn": "question_dependent",
     "sampling_meaningful": False,
     "sampling_silently_ignored": True,
     "in_tok_processed_field": "raw_prompt_token",
@@ -634,6 +716,21 @@ def model_of(model: str) -> str:
     return model.split("/", 1)[1] if "/" in model else model
 
 
+def provisional(model: str) -> list[str]:
+    """Fields on this model resting on ONE observation.
+
+    Read before designing a study around any of them. A `"single"` field is not
+    wrong — it is unverified, and six of them turned out wrong when someone
+    finally varied the input.
+    """
+    caps = caps_for(model)
+    from dataclasses import fields as _fields
+    ev = getattr(caps, "evidence", {}) or {}
+    return sorted(f.name for f in _fields(caps)
+                  if f.name not in ("evidence", "measured_on", "notes")
+                  and ev.get(f.name, "single") == "single")
+
+
 def known_providers() -> set[str]:
     """Provider names, derived from the model keys rather than listed.
 
@@ -770,6 +867,9 @@ CONSUMED_BY: dict[str, str] = {
     "in_tok_processed_field":    "providers.*.parse — which usage field to read",
     "thinking_in_output_tokens": "analysis.normalize — why out_tok is not comparable",
     "tokens_per_query":          "spec._estimate — cost is n_queries x this",
+    "evidence":                  "capabilities.provisional — names the fields resting "
+                                 "on ONE observation, so a study is not designed "
+                                 "around an unverified claim",
     "measured_on":               "compare_capabilities — the staleness warning",
     # NOTE: compare_capabilities is NOT BUILT. See drift/README.md. It is
     # deferred until after the first live battery, and this comment exists so the

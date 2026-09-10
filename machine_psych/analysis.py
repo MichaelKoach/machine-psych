@@ -77,7 +77,6 @@ TIER3 = {
     "thought_text": "readable_reasoning",
     "n_thought_steps": "readable_reasoning",
     "n_sources_retrieved": "retrieval_set",
-    "grounded": "search_conditional",
     "n_answer_blocks": None,
     "n_process_blocks": None,
 }
