@@ -70,6 +70,12 @@ TIER2 = {
                  "from counting blocks or items",
     "n_citations": "comparable in count; the citation MECHANISM differs three "
                    "ways, so compare quotes rather than spans",
+    "grounded": "did search ACTUALLY run on this record. Comparable across "
+                "providers, and it must be read PER RECORD: measured 2026-09-09, "
+                "every provider declines to search on a prompt that does not need "
+                "it even with the tool attached, so an arm labelled `search: on` "
+                "contains ungrounded records. Moved here from Tier 3, where it "
+                "sat on the belief that only one provider gated search.",
 }
 
 # Present only where the provider can. Each names the capability that decides.

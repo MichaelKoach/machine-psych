@@ -87,7 +87,14 @@ def test_normalize_loses_nothing(corpus):
     them collapses.
     """
     view, _report = normalize(corpus)
-    assert "grounded" not in view.columns
+    # `n_sources_retrieved` and `thought_text` are the remaining clean Tier 3
+    # cases — one provider can answer and the others cannot.
+    #
+    # `grounded` was asserted here until 2026-09-09 and no longer is: it became
+    # COMPARABLE when every provider turned out to gate search on whether the
+    # prompt needs it. A test naming a specific column has to move when the
+    # column does.
+    assert "n_sources_retrieved" not in view.columns
     assert "thought_text" not in view.columns
 
     # and yet
@@ -290,3 +297,40 @@ def test_disjoint_headers_score_zero():
         {"record_id": 1, "provider": "p", "probe": "x", "condition": "c",
          "rep": 1, "turn": 0, "answer_text": "# Beta\ntext"}])
     assert format_stability(df).iloc[0].jaccard == 0.0
+
+
+def test_no_parsed_field_falls_out_of_every_tier():
+    """A column in no tier is SILENTLY DROPPED — absent from the normalised view
+    AND from the report of what was set aside.
+
+    That happened on 2026-09-09: `grounded` was removed from TIER3 when it became
+    comparable, and the edit adding it to TIER2 did not land. The field vanished
+    from `normalize()` entirely and nothing said so — worse than leaving it
+    misclassified, because a misclassified column is at least reported.
+
+    The marker check that would have caught it DID fail, and was dismissed as a
+    string mismatch.
+    """
+    import dataclasses
+
+    from machine_psych.providers.base import ParsedResponse
+
+    # Side tables and provider-specific extras are not corpus columns.
+    not_columns = {"citations", "sources", "queries", "thoughts", "units",
+                   "extra", "served_model"}
+    fields = {f.name for f in dataclasses.fields(ParsedResponse)} - not_columns
+    tiered = set(TIER1) | set(TIER2) | set(TIER3)
+
+    orphans = sorted(fields - tiered)
+    assert not orphans, (
+        f"parsed fields in no tier, so normalize() drops them without saying so: "
+        f"{orphans}")
+
+
+def test_grounded_is_comparable_not_tier3():
+    """It left Tier 3 on 2026-09-09. Every provider gates search on whether the
+    prompt needs it, so the column is meaningful everywhere — and the caveat that
+    it must be read PER RECORD is the thing an analysis has to know."""
+    assert "grounded" in TIER2
+    assert "grounded" not in TIER3
+    assert "PER RECORD" in TIER2["grounded"]
