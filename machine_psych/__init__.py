@@ -56,7 +56,9 @@ from .capabilities import (
     UnknownModelError,
     caps_for,
     known_models,
+    known_providers,
     provider_of,
+    provisional,
 )
 from .corpus import (
     capability_note,
@@ -118,6 +120,7 @@ __all__ = [
     "index",
     "install_report",
     "known_models",
+    "known_providers",
     "list_investigations",
     "list_runs",
     "load_corpus",
@@ -129,6 +132,7 @@ __all__ = [
     "prompt_hash",
     "provenance",
     "provider_of",
+    "provisional",
     "queries",
     "read",
     "resolve",
