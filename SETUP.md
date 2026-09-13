@@ -28,6 +28,41 @@ reads pip's `direct_url.json` to recover the SHA; a local install correctly
 reports "not from git", but the git path only exists once the package is
 installed from a URL. Fix it before anything depends on it.
 
+## Keys and where output goes
+
+Installing gets you the package. **Two more things are needed before it can run**,
+and neither has a default that will work for someone else.
+
+```python
+import machine_psych as mp
+from machine_psych import paths
+
+paths.set_api_key("anthropic", "sk-ant-...")
+paths.set_api_key("openai",    "sk-...")
+paths.set_api_key("gemini",    "...")
+
+mp.set_base("/path/that/persists")
+```
+
+**Keys are held in memory only** — never written to disk, never read from a file
+in the repo. In Colab they come from the secrets panel via
+`userdata.get("YOUR_SECRET_NAME")`; the names are whatever you called them.
+
+**`set_base` decides where records are written**, and records are written as they
+arrive rather than at the end. It defaults to the current working directory, which
+is fine locally and **wrong in Colab** — `/content` is wiped on disconnect, so a
+long battery would vanish. Point it at Drive there.
+
+`MACHINE_PSYCH_BASE` sets it from the environment if that suits better.
+
+**Two functions answer "where am I pointed":** `mp.where()` returns the base and
+the directories under it; `mp.install_report()` prints the version and the commit
+it was installed from, or says plainly that provenance cannot be recorded when
+installed from a local path rather than git.
+
+Run both first if something is not working — a corpus written to the wrong base
+and a package installed without provenance both fail quietly.
+
 ## Update after a change
 
 Colab caches by package name, so a new commit is not picked up by a plain

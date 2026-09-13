@@ -232,3 +232,50 @@ def test_no_doc_claims_something_is_unbuilt_when_it_is_built():
     built = "drift/collect_fixtures.py"
     assert built in text, "the refresh doc does not name the tool that exists"
     assert (REPO / built).exists()
+
+
+def test_no_personal_paths_or_names_in_the_repo():
+    """The repo must be usable by someone who is not its author.
+
+    `paths.BASE` defaulted to one person's Google Drive folder until 2026-09-09.
+    Anyone else importing the package wrote to a path that did not exist for them
+    and failed on the first RECORD WRITE rather than at import — which is a
+    confusing place to discover a configuration problem.
+    """
+    import re
+
+    OFFENDERS = {
+        "a personal Drive path": r"MyDrive",
+        "a named project folder": r"Adaptation Systems|AEO GEO Research",
+        "an absolute home path": r"/Users/|/home/[a-z]",
+    }
+    bad = []
+    for f in _source_files():
+        if f.suffix == ".json" or f.name.startswith("test_"):
+            continue          # fixtures hold real recorded data; tests may assert on it
+        text = f.read_text(errors="replace")
+        for i, line in enumerate(text.split("\n"), 1):
+            for name, pat in OFFENDERS.items():
+                if re.search(pat, line):
+                    bad.append(f"{f.relative_to(REPO)}:{i} — {name}")
+    assert not bad, "paths specific to one person:\n  " + "\n  ".join(bad)
+
+
+def test_the_base_defaults_to_something_neutral():
+    """And can be set from the environment without a code change."""
+    from machine_psych import paths
+
+    assert "MyDrive" not in str(paths.BASE)
+    source = pathlib.Path(paths.__file__).read_text()
+    assert "MACHINE_PSYCH_BASE" in source, (
+        "no environment override — the only way to set the base is a code change")
+
+
+def test_setup_documents_keys_and_output_location():
+    """Installing gets you the package. Neither keys nor the output path has a
+    default that works for someone else, so both must be documented."""
+    setup = (REPO / "SETUP.md").read_text()
+    assert "set_api_key" in setup, "SETUP never mentions API keys"
+    assert "set_base" in setup, "SETUP never says where output goes"
+    assert "wiped on disconnect" in setup or "wiped" in setup, (
+        "SETUP does not warn that the Colab default is ephemeral")

@@ -15,6 +15,7 @@ neither belongs to any of them, so they live here.
 
 from __future__ import annotations
 
+import os
 import pathlib
 from importlib import metadata
 
@@ -44,7 +45,19 @@ def _installed_version() -> str:
 
 VERSION = _installed_version()
 
-BASE = pathlib.Path("/content/drive/MyDrive/Adaptation Systems/AEO GEO Research")
+# A NEUTRAL default. This was one person's Google Drive folder until 2026-09-09,
+# which meant anyone else importing the package wrote to a path that did not exist
+# for them — and failed on the first record write rather than at import, which is
+# a confusing place to discover it.
+#
+# `MACHINE_PSYCH_BASE` lets an environment set it without a code change. Falling
+# back to the working directory means the package is usable immediately from a
+# checkout, and `set_base()` is how anyone points it somewhere durable.
+#
+# In Colab the fallback is EPHEMERAL — /content vanishes on disconnect — so
+# `set_base()` to a Drive path is effectively required there. `install_report()`
+# prints where it is currently pointed.
+BASE = pathlib.Path(os.environ.get("MACHINE_PSYCH_BASE", pathlib.Path.cwd()))
 INVESTIGATIONS_DIR = BASE / "Investigations"
 RECORDS_DIR = BASE / "Output Log"
 

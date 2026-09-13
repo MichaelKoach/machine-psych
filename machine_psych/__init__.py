@@ -5,10 +5,10 @@ it recommends, what it associates with a brand, and what moves any of that.
 
     import machine_psych as mp
     mp.install_report()
-    mp.set_base("/content/drive/MyDrive/...")
-    mp.set_api_key("anthropic", userdata.get("..."))
+    mp.set_base("...")            # anywhere durable; in Colab, a Drive path
+    mp.set_api_key("anthropic", "...")
 
-    run = mp.load_investigation("discuss_cross_provider")   # sends nothing
+    run = mp.load_investigation(spec)          # validates and costs it, sends nothing
     results, raw = mp.run_investigation(run)
     corpus = mp.load_corpus("discuss_cross_provider")
 
