@@ -486,3 +486,46 @@ def test_load_record_returns_the_raw_body(tmp_path):
     record = load_record(path)
     assert "response" in record
     assert record["response"], "the raw body, unparsed"
+
+
+def test_conversation_id_distinguishes_models_from_one_provider(tmp_path):
+    """Two models from one provider produced IDENTICAL conversation ids.
+
+    An 80-record battery comparing Sonnet against Opus collapsed to 40
+    conversations, and the run summary reported "40 conversations" against 80
+    records. Any analysis using `conversation` as a unique key silently merged
+    the two arms it was built to compare.
+    """
+    R.set_base(tmp_path)
+    spec = {"investigation_id": "twomodels", "studies": [{
+        "study_id": "s", "probes": [{"probe_id": "p", "prompt_paths": [["q"]]}],
+        "providers": {"anthropic/claude-sonnet-5": {"reasoning": "off", "repetitions": 2},
+                      "anthropic/claude-opus-5": {"reasoning": "off", "repetitions": 2}}}]}
+    with contextlib.redirect_stdout(io.StringIO()):
+        run = R.load_investigation(spec)
+        res, _ = R.run_investigation(run, dispatch=lambda c: _ok_body(c, 0),
+                                     backoff=0, verbose=False, export=False)
+
+    assert len(res) == 4
+    assert res.conversation.nunique() == 4, (
+        f"conversation ids collide across models: {sorted(res.conversation.unique())}")
+    for model in res.model.unique():
+        tag = model.split("/", 1)[1]
+        assert all(tag in c for c in res[res.model == model].conversation)
+
+
+def test_the_estimate_floor_is_reachable_when_search_is_permitted():
+    """It read "80 records (80 searched)" and put the floor at 1.86M input tokens
+    for a battery that used 328K — 18% of the stated minimum.
+
+    It treated every search-ENABLED record as grounding. Measured on that
+    battery: 5 of 80 actually searched. The floor must therefore assume none of
+    them do, or the range cannot contain the real outcome.
+    """
+    rows = [{"model": "anthropic/claude-sonnet-5", "params": {"search": True},
+             "turns": ["q"]} for _ in range(80)]
+    est = R.estimate(rows)["anthropic"]
+    assert est["search_permitted"] == 80
+    assert est["est_in_low"] < 328_000 < est["est_in_high"], (
+        f"the real 328K outcome is outside the range "
+        f"{est['est_in_low']}-{est['est_in_high']}")

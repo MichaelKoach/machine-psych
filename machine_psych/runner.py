@@ -133,17 +133,31 @@ def estimate(rows: list[dict]) -> dict:
         caps = caps_for(model)
         provider = provider_of(model)
         entry = out.setdefault(provider, {
-            "records": 0, "searched": 0, "est_in_low": 0, "est_in_high": 0})
+            "records": 0, "search_permitted": 0,
+            "est_in_low": 0, "est_in_high": 0})
 
-        searched = bool(row["params"].get("search"))
+        permitted = bool(row["params"].get("search"))
         n_turns = len(row["turns"])
         entry["records"] += n_turns
-        entry["searched"] += n_turns if searched else 0
+        entry["search_permitted"] += n_turns if permitted else 0
 
-        if searched:
-            # 2 searches on a recognition-shaped probe, 11 on a neighbour-shaped
-            # one — both measured, and the spec cannot tell which this is.
-            entry["est_in_low"] += n_turns * 2 * caps.tokens_per_query
+        # ── the LOW bound assumes search PERMITTED is not search USED ────────
+        #
+        # This read "80 records (80 searched)" and estimated 1.86M-10.2M input
+        # tokens for a battery that used 328K — 18% of the stated floor. It
+        # treated every search-enabled record as grounding.
+        #
+        # Measured on that battery: **5 of 80 records actually searched.** All
+        # three providers decline when the prompt does not need retrieval, which
+        # this project established and this function did not apply.
+        #
+        # So the range now spans the real outcome: the floor assumes NOTHING
+        # searches, the ceiling assumes everything does at the heavy end. That is
+        # a wide range, and honestly so — grounding is a model decision, not a
+        # setting, and a spec cannot predict it. The floor is now reachable,
+        # which the old one was not.
+        if permitted:
+            entry["est_in_low"] += n_turns * 2_000            # none of them search
             entry["est_in_high"] += n_turns * 11 * caps.tokens_per_query
         else:
             entry["est_in_low"] += n_turns * 200
@@ -267,12 +281,16 @@ def _print_plan(spec: dict, summary: list, rows: list[dict]) -> None:
           "comparison:")
     for provider, e in sorted(est.items()):
         print(f"    {provider:<12} {e['records']:>4} records "
-              f"({e['searched']} searched)   "
+              f"({e['search_permitted']} may search)   "
               f"{e['est_in_low']/1000:>6,.0f}K - {e['est_in_high']/1000:,.0f}K in")
-    if any(e["searched"] for e in est.values()):
-        print("  the range is wide because search COUNT varies by question shape "
-              "— 2\n  on a recognition probe, 11 on a neighbour probe, both "
-              "measured — and\n  a spec cannot say which this is.")
+    if any(e["search_permitted"] for e in est.values()):
+        # "(80 searched)" said PERMITTED and read as EXECUTED. On a real battery
+        # 5 of 80 searched, and the estimate overstated input by 6x at its floor.
+        print("  `may search` counts records where search is PERMITTED, not where "
+              "it will\n  RUN — that is the model's decision, made per prompt. "
+              "Measured: 5 of 80\n  on one battery. The floor below assumes none "
+              "search; the ceiling assumes\n  all of them do, heavily. Expect the "
+              "low end unless the prompts plainly\n  need current information.")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -344,7 +362,18 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
         for r in run.itertuples(index=False):
             provider = providers[r.provider]
             send = dispatch or provider.dispatch
-            conversation = f"{r.provider}/{r.probe}/p{r.path}/r{r.rep}"
+            # MODEL, not provider. Two models from one provider produced
+            # IDENTICAL conversation ids — 80 records collapsed into 40
+            # conversations, and the run summary reported "40 conversations"
+            # against 80 records. Any analysis using `conversation` as a unique
+            # key silently merged the two arms it was comparing.
+            #
+            # The condition is included too: a sweep runs the same probe at
+            # several settings, and those are separate conversations.
+            _model = r.model.split("/", 1)[-1]
+            conversation = (f"{r.provider}/{_model}/{r.probe}"
+                            f"/p{r.path}/r{r.rep}"
+                            + (f"/{r.condition}" if r.condition else ""))
             input_items: list = []
             conv_rows = []
             broke_at = None

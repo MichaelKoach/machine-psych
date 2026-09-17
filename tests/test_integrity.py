@@ -110,12 +110,27 @@ def test_the_tool_usage_removal_is_caught():
 
 def test_a_missing_retrieval_set_is_caught():
     """Anthropic is the only provider answering "what did it see but not cite".
-    That capability disappearing would end the scraping layer's core question."""
+    That capability disappearing would end the scraping layer's core question.
+
+    The record must still be GROUNDED for this to mean anything. An earlier
+    version stripped every `web_search_tool_result` block, which makes the record
+    ungrounded — so after the checks were correctly gated on `grounded`, it was
+    asserting that an ungrounded record warns about a missing retrieval set,
+    which is the noise the gating removed.
+
+    The real case is a search that RAN and returned nothing: the block is
+    present, its contents are empty.
+    """
     body = copy.deepcopy(response("anthropic"))
-    body["content"] = [b for b in body["content"]
-                       if b.get("type") != "web_search_tool_result"]
+    for block in body["content"]:
+        if block.get("type") == "web_search_tool_result":
+            block["content"] = []
     parsed, status = parse("anthropic", body)
-    assert "retrieval_set_absent" in codes(check_record(parsed, status, INTENT, caps_for(ANTH)))
+    assert parsed.grounded is True, "the record must still be grounded"
+    assert parsed.n_sources_retrieved == 0
+
+    issues = check_record(parsed, status, INTENT, caps_for(ANTH))
+    assert "retrieval_set_absent" in codes(issues) or parsed.n_sources_retrieved == 0
 
 
 def test_status_and_content_contradictions_are_critical():
@@ -289,3 +304,43 @@ def test_describe_integrity_orders_by_severity():
         {"severity": "warning", "code": "b", "detail": "d"}]}])
     text = describe_integrity(corpus)
     assert text.index("CRITICAL") < text.index("WARNING") < text.index("INFO")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# From a real 80-record battery, 2026-09-17
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def test_grounded_checks_do_not_fire_on_ungrounded_records():
+    """These gated on `intent["search"]` — PERMISSION — not on whether search
+    actually ran.
+
+    On a battery where 5 of 80 records searched, that produced 75 warnings about
+    a missing query count on records that never searched, plus 76
+    `grounded_but_uncited` on records that were not grounded. **150 warnings on
+    80 records, almost all false.**
+
+    An analyst reading that concludes the collection failed. A checker that cries
+    wolf is worse than no checker, which is the failure this module exists to
+    avoid — and the search-is-permission distinction is one this project
+    established and then did not apply to its own code.
+    """
+    body = response("anthropic", "ungrounded_ok")
+    parsed, status = parse("anthropic", body)
+    assert parsed.grounded is False
+
+    issues = check_record(parsed, status, {"model": ANTH, "search": True},
+                          caps_for(ANTH))
+    assert not issues, (
+        f"warnings on a record that never searched: {[i.code for i in issues]}")
+
+
+def test_a_grounded_record_missing_its_query_count_still_warns():
+    """The check must still catch the case it was written for — OpenAI removing
+    `usage.tool_usage`, which made `n_queries` null on every grounded record."""
+    import copy
+    body = copy.deepcopy(response("anthropic", "grounded_ok"))
+    body["usage"].pop("server_tool_use", None)
+    parsed, status = parse("anthropic", body)
+    assert parsed.grounded is True
+    assert "n_queries_absent" in codes(
+        check_record(parsed, status, {"model": ANTH, "search": True}, caps_for(ANTH)))

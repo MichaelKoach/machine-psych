@@ -244,8 +244,12 @@ def test_no_personal_paths_or_names_in_the_repo():
     """
     import re
 
+    # `MyDrive` alone is the standard Colab mount point and belongs in setup
+    # examples. What makes a path personal is a NAMED FOLDER under it — an
+    # earlier version flagged `MyDrive/<your folder>`, which is exactly the
+    # generic form the docs should use.
     OFFENDERS = {
-        "a personal Drive path": r"MyDrive",
+        "a personal Drive folder": r"MyDrive/(?!<)[A-Za-z0-9 ]{3,}",
         "a named project folder": r"Adaptation Systems|AEO GEO Research",
         "an absolute home path": r"/Users/|/home/[a-z]",
     }

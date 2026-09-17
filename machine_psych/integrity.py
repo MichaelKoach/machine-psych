@@ -78,22 +78,33 @@ def check_record(parsed, status: str, intent: dict, caps) -> list[Issue]:
             f"requested {requested!r}, served {served!r} — the subject of this "
             f"record is not the model the spec named"))
 
-    # ── search was requested and no query count came back ────────────────────
+    # ── search actually RAN, and the telemetry is missing ────────────────────
     #
     # THE tool_usage CASE. OpenAI removed `usage.tool_usage` and `n_queries`
     # returned None on every grounded record for a full session. Nothing failed,
-    # nothing raised, and the column was simply null. Caught here, it is visible
-    # on the run that hits it.
-    if intent.get("search") and status in ("ok", "truncated"):
+    # nothing raised, and the column was simply null.
+    #
+    # **Gated on `grounded`, not on `intent["search"]`.** These checks asked
+    # whether search was PERMITTED, which is the distinction this project spent a
+    # session establishing — and then failed to apply here. On a real battery
+    # where 5 of 80 records searched, that produced 75 warnings about missing
+    # query counts on records that never searched, plus 76 "grounded_but_uncited"
+    # on records that were not grounded.
+    #
+    # 150 warnings out of 80 records, almost all false. An analyst reading that
+    # concludes the collection failed. A checker that cries wolf is worse than no
+    # checker, which is the failure this module exists to avoid.
+    if parsed.grounded and status in ("ok", "truncated"):
         if parsed.n_queries is None:
             issues.append(Issue(
                 "warning", "n_queries_absent",
-                "search was enabled and the provider reported no query count — "
-                "the usage field it comes from may have been removed"))
+                "search RAN on this record and the provider reported no query "
+                "count — the usage field it comes from may have been removed"))
         if len(parsed.citations) == 0 and parsed.answer_chars:
             issues.append(Issue(
-                "info", "grounded_but_uncited",
-                "search was enabled and the answer cites nothing"))
+                "info", "searched_but_cited_nothing",
+                "search ran, sources came back, and the answer cites none of "
+                "them — a real behaviour worth looking at, not a defect"))
 
     # ── a capability the table claims, absent from the response ──────────────
     if caps.readable_reasoning and status == "ok":
@@ -104,7 +115,9 @@ def check_record(parsed, status: str, intent: dict, caps) -> list[Issue]:
                 "the table records readable_reasoning=True and reasoning was "
                 "requested, but no thought text came back"))
 
-    if (caps.retrieval_set and intent.get("search") and status == "ok"
+    # Also gated on `grounded`: a record that declined to search has no retrieval
+    # set BY CONSTRUCTION, and warning about it is noise.
+    if (caps.retrieval_set and parsed.grounded and status == "ok"
             and parsed.n_sources_retrieved is None):
         issues.append(Issue(
             "warning", "retrieval_set_absent",
