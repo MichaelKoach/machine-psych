@@ -26,7 +26,9 @@ from __future__ import annotations
 import hashlib
 import json
 import pathlib
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timezone
 
 import pandas as pd
@@ -309,7 +311,7 @@ def _write_record(path: pathlib.Path, record: dict) -> None:
 
 def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backoff,
                       persist, run_dir, inv, verbose, failures, raw_out,
-                      conv_rows):
+                      conv_rows, print_lock=None):
     """Run one conversation — every turn of one row of the plan — and return its
     records.
 
@@ -449,8 +451,15 @@ def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backof
         raw_out.append(body)
 
         if verbose:
-            _print_line(seq_base + turn_i + 1, n_records, r, turn_i, status, attempt,
-                        latency, parsed)
+            # One line at a time. Sixteen workers writing to stdout interleave
+            # mid-line and the progress log becomes unreadable.
+            if print_lock is not None:
+                with print_lock:
+                    _print_line(seq_base + turn_i + 1, n_records, r, turn_i,
+                                status, attempt, latency, parsed)
+            else:
+                _print_line(seq_base + turn_i + 1, n_records, r, turn_i, status,
+                            attempt, latency, parsed)
 
         # (9) A FAILED TURN ENDS THIS CONVERSATION, NEVER THE RUN.
         #     `truncated` CONTINUES: the answer is real — measured at
@@ -486,11 +495,26 @@ def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backof
 def run_investigation(run: pd.DataFrame, persist: bool = True,
                       export: bool = True, verbose: bool = True,
                       retries: int = 5, backoff: int = 4,
+                      concurrency: int = 1,
                       dispatch=None) -> tuple[pd.DataFrame, list]:
     """Execute a loaded investigation. Returns (results, raw).
 
     `dispatch` overrides the provider's own, for tests. Everything else follows
     §6b; the numbered comments mark orderings, not preferences.
+
+    **`concurrency` is per provider, not global.** Rate limits are per provider,
+    so three providers at concurrency 4 means twelve calls in flight and four
+    against each account. Default 1 — sequential, the behaviour every earlier
+    battery had.
+
+    Conversations run in parallel WITHIN a repetition and the run waits at each
+    repetition boundary. That is what keeps the ordering guarantee: retrieval
+    drift must spread across conditions rather than confound with them, which
+    requires that no arm FINISHES before another STARTS. Running every arm of
+    rep 0 in one window satisfies that; running all of arm A then all of arm B
+    does not — and so does not become acceptable just because it is faster.
+
+    Measured sequentially: ~40s per record, so 8,000 records is about four days.
     """
     inv = run.attrs.get("investigation_id", "unnamed")
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
@@ -531,32 +555,97 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
     #     NameError there loses everything collected.
     conv_rows: list[dict] = []
     interrupted: BaseException | None = None
-    seq = 0
     t_start = time.perf_counter()
 
+    # (1b) SEQUENCE NUMBERS ARE PRE-ASSIGNED, never counted during the run.
+    #      A shared counter makes a record's filename depend on which thread
+    #      finished first, so the same battery rerun would name the same record
+    #      differently. Position in the plan is stable; arrival order is not.
+    plan = list(run.itertuples(index=False))
+    bases, _n = {}, 0
+    for i, r in enumerate(plan):
+        bases[i] = _n
+        _n += len(r.turns)
+
+    # (1c) IN FLIGHT, so the interrupt handler can still see partial work.
+    #      Every worker appends to its own list; the handler walks all of them.
+    #      `conv_rows` alone was enough while this was sequential and is not now.
+    in_flight: list[list[dict]] = []
+    print_lock = threading.Lock()
+
+    def _one(i, r):
+        mine: list[dict] = []
+        in_flight.append(mine)
+        _run_conversation(
+            r, provider=providers[r.provider],
+            send=dispatch or providers[r.provider].dispatch,
+            seq_base=bases[i], n_records=n_records, retries=retries,
+            backoff=backoff, persist=persist, run_dir=run_dir, inv=inv,
+            verbose=verbose, failures=failures, raw_out=raw,
+            conv_rows=mine, print_lock=print_lock)
+        return mine
+
     try:
-        for r in run.itertuples(index=False):
-            conv_rows = []          # the handler reads this if an interrupt lands
-            _run_conversation(
-                r, provider=providers[r.provider],
-                send=dispatch or providers[r.provider].dispatch,
-                seq_base=seq, n_records=n_records, retries=retries,
-                backoff=backoff, persist=persist, run_dir=run_dir, inv=inv,
-                verbose=verbose, failures=failures, raw_out=raw,
-                conv_rows=conv_rows)
-            seq += len(conv_rows)
-            rows.extend(conv_rows)
-            conv_rows = []
+        if concurrency <= 1:
+            for i, r in enumerate(plan):
+                conv_rows = []
+                in_flight.append(conv_rows)
+                _run_conversation(
+                    r, provider=providers[r.provider],
+                    send=dispatch or providers[r.provider].dispatch,
+                    seq_base=bases[i], n_records=n_records, retries=retries,
+                    backoff=backoff, persist=persist, run_dir=run_dir, inv=inv,
+                    verbose=verbose, failures=failures, raw_out=raw,
+                    conv_rows=conv_rows, print_lock=print_lock)
+                rows.extend(conv_rows)
+                in_flight.remove(conv_rows)
+                conv_rows = []
+        else:
+            # (1d) A BARRIER AT EVERY REPETITION. Parallel inside one rep,
+            #      sequential between them. Without the barrier the first
+            #      conditions to finish would see a different web from the last,
+            #      which is the confound the ordering exists to prevent.
+            #
+            #      Workers are capped PER PROVIDER because rate limits are.
+            by_rep: dict = {}
+            for i, r in enumerate(plan):
+                by_rep.setdefault(r.rep, []).append((i, r))
+
+            for rep in sorted(by_rep):
+                group = by_rep[rep]
+                n_providers = len({r.provider for _, r in group})
+                workers = max(1, concurrency * n_providers)
+                with ThreadPoolExecutor(max_workers=workers) as pool:
+                    futures = [pool.submit(_one, i, r) for i, r in group]
+                    try:
+                        for f in as_completed(futures):
+                            done = f.result()
+                            rows.extend(done)
+                            if done in in_flight:
+                                in_flight.remove(done)
+                    except BaseException:
+                        # (1e) STOP SUBMITTING, then let the outer handler write
+                        #      whatever is still in flight. Without this the pool
+                        #      drains every queued conversation before the
+                        #      interrupt is honoured.
+                        pool.shutdown(wait=False, cancel_futures=True)
+                        raise
 
     # (13) BaseException, not Exception — a notebook stop is KeyboardInterrupt.
     except BaseException as e:
         interrupted = e
-        for rec in conv_rows:
-            if rec.get("conversation_status") is None:
-                rec["conversation_status"] = "incomplete"
-                if persist and rec.get("path_on_disk"):
-                    _write_record(pathlib.Path(rec["path_on_disk"]), rec)
-        rows.extend(rec for rec in conv_rows if rec not in rows)
+        # A COPY, deliberately. Workers may still be appending when the handler
+        # runs, and iterating a list that is being mutated raises "list changed
+        # size during iteration" — which would lose exactly the partial records
+        # this handler exists to save. Ruff's PERF101 flags the cast as
+        # unnecessary; it is not, and the rule is disabled for this line.
+        for pending in list(in_flight):  # noqa: PERF101
+            for rec in pending:
+                if rec.get("conversation_status") is None:
+                    rec["conversation_status"] = "incomplete"
+                    if persist and rec.get("path_on_disk"):
+                        _write_record(pathlib.Path(rec["path_on_disk"]), rec)
+            rows.extend(rec for rec in pending if rec not in rows)
 
         # (13b) SAVE, THEN RE-RAISE ANYTHING THAT IS NOT AN INTERRUPT.
         #
@@ -570,6 +659,15 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
         # nothing and surfaces the traceback that names the actual fault.
         if not isinstance(e, (KeyboardInterrupt, SystemExit)):
             raise
+
+    # (13c) SORT BY PLAN POSITION. Under concurrency rows arrive in COMPLETION
+    #       order, which varies run to run — so a corpus would not be
+    #       reproducible and record_id would not match the filename on disk.
+    #       `path_on_disk` carries the pre-assigned sequence; records without a
+    #       path (persist=False) keep their arrival order, which is all that is
+    #       available.
+    rows.sort(key=lambda rec: (pathlib.Path(rec["path_on_disk"]).name
+                               if rec.get("path_on_disk") else ""))
 
     # (14) STRIP SCRATCH KEYS before the DataFrame, or they leak into it and
     #      then into the export.

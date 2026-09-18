@@ -14,8 +14,11 @@ from __future__ import annotations
 
 import contextlib
 import io
+import itertools
 import json
 import pathlib
+import threading
+import time
 
 import pytest
 
@@ -529,3 +532,114 @@ def test_the_estimate_floor_is_reachable_when_search_is_permitted():
     assert est["est_in_low"] < 328_000 < est["est_in_high"], (
         f"the real 328K outcome is outside the range "
         f"{est['est_in_low']}-{est['est_in_high']}")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Concurrency — 40s/record sequential made 8,000 records a four-day run
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _many_probes(inv, probes=6, reps=3):
+    return {"investigation_id": inv, "studies": [{
+        "study_id": "s",
+        "probes": [{"probe_id": f"p{i}", "prompt_paths": [[f"q{i}"]]}
+                   for i in range(probes)],
+        "providers": {"anthropic/claude-sonnet-5": {"reasoning": "off",
+                                                    "repetitions": reps}}}]}
+
+
+def test_concurrency_produces_identical_output_to_sequential(tmp_path):
+    """The only acceptable speedup is one that changes nothing else.
+
+    Under concurrency rows arrive in COMPLETION order, which varies run to run.
+    Without sorting by the pre-assigned sequence a corpus would not be
+    reproducible and `record_id` would not line up with the filename on disk.
+    """
+    results = {}
+    for conc in (1, 6):
+        R.set_base(tmp_path / f"c{conc}")
+        spec = _many_probes(f"conc{conc}")
+        with contextlib.redirect_stdout(io.StringIO()):
+            run = R.load_investigation(spec)
+            res, _ = R.run_investigation(run, dispatch=lambda c: _ok_body(c, 0),
+                                         backoff=0, verbose=False, export=False,
+                                         concurrency=conc)
+        results[conc] = res
+
+    assert len(results[1]) == len(results[6]) == 18
+    assert list(results[1].conversation) == list(results[6].conversation), (
+        "concurrent run produced a different record ORDER — the corpus is not "
+        "reproducible")
+    assert results[1].status.tolist() == results[6].status.tolist()
+
+
+def test_repetitions_do_not_overlap(tmp_path):
+    """**The ordering guarantee, which speed must not buy.**
+
+    Retrieval drift has to spread across conditions rather than confound with
+    them, which requires that no arm FINISHES before another STARTS. Parallel
+    within a repetition satisfies that; parallel across repetitions does not,
+    and would make the first conditions to run see a different web from the last.
+    """
+    R.set_base(tmp_path)
+    seen, lock = [], threading.Lock()
+
+    def watch(cfg):
+        with lock:
+            seen.append(time.perf_counter())
+        time.sleep(0.05)
+        return _ok_body(cfg, 0)
+
+    with contextlib.redirect_stdout(io.StringIO()):
+        run = R.load_investigation(_many_probes("barrier", probes=4, reps=3))
+        res, _ = R.run_investigation(run, dispatch=watch, backoff=0,
+                                     verbose=False, export=False, concurrency=4)
+
+    by_rep = {}
+    for i, rep in enumerate(res.rep):
+        if i < len(seen):
+            by_rep.setdefault(rep, []).append(seen[i])
+    reps = sorted(by_rep)
+    for a, b in itertools.pairwise(reps):
+        assert min(by_rep[b]) > max(by_rep[a]), (
+            f"rep {b} began before rep {a} finished — the barrier is gone")
+
+
+def test_an_interrupt_under_concurrency_keeps_partial_work(tmp_path):
+    """The piece most likely to be silently wrong.
+
+    `conv_rows` alone was enough while this was sequential. With a pool there are
+    several conversations in flight, so the handler walks a registry of them —
+    and the pool is shut down with `cancel_futures` so queued conversations are
+    not drained before the interrupt is honoured.
+    """
+    R.set_base(tmp_path)
+    calls, lock = {"n": 0}, threading.Lock()
+
+    def stop_midway(cfg):
+        with lock:
+            calls["n"] += 1
+            n = calls["n"]
+        if n > 5:
+            raise KeyboardInterrupt
+        return _ok_body(cfg, 0)
+
+    with contextlib.redirect_stdout(io.StringIO()):
+        run = R.load_investigation(_many_probes("intr", probes=6, reps=4))
+        res, _ = R.run_investigation(run, dispatch=stop_midway, backoff=0,
+                                     verbose=False, export=False, concurrency=4)
+
+    assert 0 < len(res) < 24, f"expected partial results, got {len(res)}"
+    assert res.attrs.get("interrupted")
+
+    written = [json.loads(p.read_text())
+               for p in pathlib.Path(tmp_path).rglob("[0-9]*.json")]
+    assert written, "nothing persisted"
+    nulls = [w for w in written if w.get("conversation_status") is None]
+    assert not nulls, f"{len(nulls)} persisted records have no conversation_status"
+
+
+def test_concurrency_defaults_to_sequential():
+    """Every battery run before this existed used the sequential path. The
+    default must keep doing exactly that."""
+    import inspect
+    assert inspect.signature(R.run_investigation).parameters["concurrency"].default == 1
