@@ -20,6 +20,7 @@ from dataclasses import dataclass, field
 import requests
 
 from ..capabilities import ENUMS, ModelCaps, UnknownModelError, caps_for
+from ..ratelimit import RateLimits, parse_headers
 
 __all__ = ["PROVIDERS", "ParsedResponse", "Provider", "get_provider"]
 
@@ -187,14 +188,32 @@ class Provider(ABC):
         construction — and this file already carries the lesson that copies are
         what drifted last time, in seven of ten shared functions.
         """
+        status, parsed, _ = self.dispatch_full(body, timeout)
+        return status, parsed
+
+    def dispatch_full(self, body: dict,
+                      timeout: int = 1800) -> tuple[int, dict, RateLimits]:
+        """The same POST, keeping the status AND the rate-limit headers.
+
+        Every provider reports remaining capacity on every response and this
+        project discarded all of it, which left "how hard can a battery run"
+        answerable only by guessing. `dispatch` and `dispatch_with_status` both
+        delegate here, so there is still exactly one POST and one place auth
+        lives.
+
+        Parsing never raises: a provider that sends no headers yields an
+        all-None `RateLimits`, because failing here would turn a reporting
+        nicety into a dispatch error.
+        """
         r = requests.post(self.url_for(body), headers=self.headers(),
                           json=body, timeout=timeout)
+        limits = parse_headers(self.name, r.headers)
         try:
-            return r.status_code, r.json()
+            return r.status_code, r.json(), limits
         except ValueError:
             return r.status_code, {"error": {
                 "message": f"non-JSON body: {r.text[:400]}",
-                "code": r.status_code}}
+                "code": r.status_code}}, limits
 
     @abstractmethod
     def url_for(self, body: dict) -> str:

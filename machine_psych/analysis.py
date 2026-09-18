@@ -79,7 +79,25 @@ TIER2 = {
 }
 
 # Present only where the provider can. Each names the capability that decides.
+# Rate-limit headers are TIER 3, with NO governing capability — `None`, like
+# `n_answer_blocks`. The value in this map is a capability FIELD NAME, not a
+# description, and no `ModelCaps` field decides whether a provider sends
+# rate-limit headers: that is a property of the API surface, not of the model.
+#
+# Tier 3 rather than Tier 2 because Gemini sends none at all, so the columns are
+# always null there — "this provider cannot" is the Tier 3 contract exactly. And
+# the two that do report use incompatible shapes: Anthropic separates input from
+# output counters and rounds remaining to the nearest thousand; OpenAI counts one
+# combined pool. Comparing the numbers across providers compares different
+# quantities.
+#
+# Listed rather than left out. A column in NO tier is dropped by `normalize()`
+# and omitted from the report of what was set aside, which is worse than being
+# misfiled — that is the bug found with `grounded` on 2026-09-09.
+_RATE_LIMIT_TIER3 = dict.fromkeys(__import__("machine_psych.ratelimit", fromlist=["x"]).RATE_LIMIT_COLUMNS)
+
 TIER3 = {
+    **_RATE_LIMIT_TIER3,
     "thought_text": "readable_reasoning",
     "n_thought_steps": "readable_reasoning",
     "n_sources_retrieved": "retrieval_set",

@@ -283,3 +283,18 @@ def test_setup_documents_keys_and_output_location():
     assert "set_base" in setup, "SETUP never says where output goes"
     assert "wiped on disconnect" in setup or "wiped" in setup, (
         "SETUP does not warn that the Colab default is ephemeral")
+
+
+def test_no_test_files_outside_the_tests_directory():
+    """A `test_runner.py` sat inside `machine_psych/` — an identical copy of the
+    real one, created by a `cp` with two sources, and nothing noticed.
+
+    Same class as the stray `anthropic.py` and `openai.py` that shipped in the
+    package root until ruff found them. A test file in the package is worse:
+    pytest's `testpaths` is `tests/`, so it is never collected and never runs,
+    while looking exactly like coverage.
+    """
+    strays = [str(f.relative_to(REPO)) for f in _source_files()
+              if f.name.startswith("test_") and f.suffix == ".py"
+              and f.parts[-2] != "tests"]
+    assert not strays, f"test files outside tests/: {strays}"

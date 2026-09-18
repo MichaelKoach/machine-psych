@@ -155,6 +155,21 @@ def _probe_enums(provider: str, model: str, report: Report) -> None:
         status, response = _dispatch(provider, body)
         time.sleep(0.5)
 
+        if status == 429:
+            # RATE LIMITED, not rejected. This tier reads a 4xx body for the
+            # valid values a provider names when it refuses one — and a 429 body
+            # names none, so the extraction returns nothing and the probe would
+            # be recorded as "this parameter accepts no values at all".
+            #
+            # That is a FALSE CAPABILITY FINDING, which is the exact failure this
+            # tier exists to prevent. Skip and say so.
+            report.findings.append(Finding(
+                "error", model, parameter,
+                "RATE LIMITED (HTTP 429) — not probed. Re-run when capacity "
+                "recovers; a 429 body names no valid values, so treating it as "
+                "a rejection would record a parameter as accepting nothing."))
+            continue
+
         if status == 200:
             # A bogus value ACCEPTED is the loudest possible signal: the
             # parameter is no longer validated, which usually means it is no
@@ -195,6 +210,14 @@ def _probe_enums(provider: str, model: str, report: Report) -> None:
             provider, short, parameter, plausible))
         time.sleep(0.5)
         if status == 200:
+            continue
+        if status == 429:
+            # Same hazard on the per-model probe: a rate-limited response names
+            # no values, and an empty set here reads as "this model accepts
+            # nothing", which is a narrowing that never happened.
+            report.findings.append(Finding(
+                "error", model, parameter,
+                "RATE LIMITED (HTTP 429) on the per-model probe — not measured."))
             continue
         message = str((response.get("error") or {}).get("message") or "")
 

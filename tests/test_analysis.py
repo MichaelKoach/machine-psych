@@ -299,32 +299,39 @@ def test_disjoint_headers_score_zero():
     assert format_stability(df).iloc[0].jaccard == 0.0
 
 
-def test_no_parsed_field_falls_out_of_every_tier():
+def test_no_corpus_column_falls_out_of_every_tier(corpus):
     """A column in no tier is SILENTLY DROPPED — absent from the normalised view
     AND from the report of what was set aside.
 
-    That happened on 2026-09-09: `grounded` was removed from TIER3 when it became
-    comparable, and the edit adding it to TIER2 did not land. The field vanished
-    from `normalize()` entirely and nothing said so — worse than leaving it
-    misclassified, because a misclassified column is at least reported.
-
-    The marker check that would have caught it DID fail, and was dismissed as a
-    string mismatch.
+    That happened on 2026-09-09 with `grounded`, and the guard written then
+    checked `ParsedResponse` FIELDS. It would not have caught the rate-limit
+    columns added on 2026-09-17, because those are record fields rather than
+    parsed fields. **Checking the real corpus catches both.**
     """
-    import dataclasses
-
-    from machine_psych.providers.base import ParsedResponse
-
-    # Side tables and provider-specific extras are not corpus columns.
-    not_columns = {"citations", "sources", "queries", "thoughts", "units",
-                   "extra", "served_model"}
-    fields = {f.name for f in dataclasses.fields(ParsedResponse)} - not_columns
     tiered = set(TIER1) | set(TIER2) | set(TIER3)
-
-    orphans = sorted(fields - tiered)
+    # Scratch and identity columns the analysis layer owns rather than tiers.
+    not_tiered = {"record_id", "path_on_disk", "integrity", "file"}
+    orphans = sorted(set(corpus.columns) - tiered - not_tiered)
     assert not orphans, (
-        f"parsed fields in no tier, so normalize() drops them without saying so: "
-        f"{orphans}")
+        f"corpus columns in no tier, so normalize() drops them without saying "
+        f"so: {orphans}")
+
+
+def test_rate_limit_columns_are_tier_3():
+    """One provider sends no rate-limit headers and the two that do use
+    incompatible shapes — Anthropic separates input from output token counters,
+    OpenAI counts one combined pool. `None` therefore means "this provider does
+    not report it", which is the Tier 3 contract exactly."""
+    from machine_psych.ratelimit import RATE_LIMIT_COLUMNS
+
+    for col in RATE_LIMIT_COLUMNS:
+        assert col in TIER3, f"{col} is not declared Tier 3"
+        # No `ModelCaps` field governs whether a provider sends these headers —
+        # that is a property of the API surface, not of the model. `None` is the
+        # declared way to say "set aside, nothing decides it", as used by
+        # `n_answer_blocks`.
+        assert TIER3[col] is None, (
+            f"{col} names a capability; no capability governs header presence")
 
 
 def test_grounded_is_comparable_not_tier3():

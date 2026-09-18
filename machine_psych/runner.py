@@ -26,6 +26,7 @@ from __future__ import annotations
 import hashlib
 import json
 import pathlib
+import random
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -43,6 +44,7 @@ from .integrity import check_record
 # module to read them, which made a low-level module depend on a high-level one.
 from .paths import set_api_key, set_base
 from .providers import get_provider
+from .ratelimit import RateLimits
 from .spec import (
     InvestigationError,
     expand_conditions,
@@ -365,10 +367,24 @@ def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backof
         status = error = None
         attempt = 0
         latency = 0.0
+        # Initialised OUTSIDE the retry loop, like `body` and `status`, because
+        # the record is built after the loop ends and a dispatch that raised on
+        # its first attempt would otherwise leave this unbound.
+        limits = RateLimits(source=r.provider)
         for attempt in range(1, retries + 1):
             t0 = time.perf_counter()
             try:
-                body, exc = send(config), None
+                # (4b) THE FULL PATH WHERE THERE IS ONE, so rate-limit headers
+                #      survive. `send` is the provider's own bound `dispatch`
+                #      in a real run and a plain function in a test, and only
+                #      the former can report headers — a stub keeps the
+                #      all-None `RateLimits` set above.
+                bound = getattr(send, "__self__", None)
+                if bound is not None and hasattr(bound, "dispatch_full"):
+                    _http, body, limits = bound.dispatch_full(config)
+                else:
+                    body = send(config)
+                exc = None
             # (5) Exception, NOT BaseException — an interrupt must reach
             #     the outer handler rather than being caught here.
             except Exception as e:
@@ -388,7 +404,15 @@ def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backof
             if status != "unavailable":
                 break
             if attempt < retries:
-                time.sleep(backoff * attempt)
+                # (7a) THE PROVIDER'S OWN NUMBER FIRST. Every one returns
+                #      `retry-after` saying exactly how long to wait; a fixed
+                #      schedule ignores it. That matters more under concurrency,
+                #      where every worker otherwise wakes at the same instant
+                #      and re-trips the same limit.
+                #
+                #      Jitter regardless, for the same reason.
+                wait = limits.retry_after or backoff * attempt
+                time.sleep(wait * (1 + random.random() * 0.25))
 
         parsed = provider.parse(body or {})
         prompt = turn_text
@@ -398,6 +422,10 @@ def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backof
         # finding.
         issues = check_record(parsed, status, r.params, caps_for(r.model))
         record = {
+            # Remaining capacity as of THIS response. All-None where the provider
+            # sends no headers — `None` means "did not say", which is not the
+            # same as zero remaining.
+            **limits.as_record(),
             "integrity": [
                 {"severity": i.severity, "code": i.code, "detail": i.detail}
                 for i in issues] or None,
