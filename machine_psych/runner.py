@@ -307,6 +307,182 @@ def _write_record(path: pathlib.Path, record: dict) -> None:
                                default=str))
 
 
+def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backoff,
+                      persist, run_dir, inv, verbose, failures, raw_out,
+                      conv_rows):
+    """Run one conversation — every turn of one row of the plan — and return its
+    records.
+
+    **This is the unit of concurrency.** Turns inside a conversation are
+    sequential by necessity: turn 1 passes back turn 0's response. Conversations
+    are independent of one another, so they are what can safely run in parallel.
+
+    Lifted out of `run_investigation` without changing what it does, so the
+    numbered orderings it carries still hold. Two things changed to make it
+    callable from several threads:
+
+    **`seq_base` replaces a shared counter.** Record filenames were numbered from
+    a mutable `seq` incremented per turn. Under concurrency that makes a filename
+    depend on which thread finished first, so the same battery rerun would name
+    the same record differently. The number now comes from the row's position in
+    the plan.
+
+    **`failures`, `raw_out` and `conv_rows` are passed IN.** `list.append` is
+    atomic under the GIL so the lists are safe, but their ORDER is not
+    deterministic — the caller sorts by sequence before building the frame.
+
+    `conv_rows` in particular must be the caller's list, not a local one. The
+    interrupt handler marks whatever is in flight as `incomplete` and writes it,
+    and it can only do that if it holds a reference. Making it local here broke
+    that, which the interrupt test caught immediately.
+    """
+    # MODEL, not provider. Two models from one provider produced
+    # IDENTICAL conversation ids — 80 records collapsed into 40
+    # conversations, and the run summary reported "40 conversations"
+    # against 80 records. Any analysis using `conversation` as a unique
+    # key silently merged the two arms it was comparing.
+    #
+    # The condition is included too: a sweep runs the same probe at
+    # several settings, and those are separate conversations.
+    _model = r.model.split("/", 1)[-1]
+    conversation = (f"{r.provider}/{_model}/{r.probe}"
+                    f"/p{r.path}/r{r.rep}"
+                    + (f"/{r.condition}" if r.condition else ""))
+    input_items: list = []
+    broke_at = None
+
+    for turn_i, turn_text in enumerate(r.turns):
+        # (3) PROVIDER-SHAPED. messages / input list / step_list — and
+        #     the wrong one is a 400 on every turn after the first.
+        input_items = [*input_items, provider.user_turn(turn_text)]
+        config = provider.build(input_items, r.params)
+
+        # (4) RETRY LIVES HERE, not in dispatch, so `latency` measures
+        #     ONE call and `attempts` is visible in the record.
+        body = None
+        status = error = None
+        attempt = 0
+        latency = 0.0
+        for attempt in range(1, retries + 1):
+            t0 = time.perf_counter()
+            try:
+                body, exc = send(config), None
+            # (5) Exception, NOT BaseException — an interrupt must reach
+            #     the outer handler rather than being caught here.
+            except Exception as e:
+                body, exc = None, e
+            latency = time.perf_counter() - t0
+
+            if exc is not None:
+                # (6) A TIMEOUT IS TRANSIENT. An earlier draft broke on
+                #     any exception, losing records a retry recovers.
+                status = provider.classify_exception(exc)
+                error = repr(exc)
+            else:
+                status, error = provider.status(body)
+
+            # (7) ONLY `unavailable` retries. A 400 five times wastes a
+            #     minute per record and never succeeds.
+            if status != "unavailable":
+                break
+            if attempt < retries:
+                time.sleep(backoff * attempt)
+
+        parsed = provider.parse(body or {})
+        prompt = turn_text
+        # Structural checks AT PARSE TIME, warn-only. A weekly check
+        # samples once; this sees every call. Never raises — failing
+        # would lose the count, and how OFTEN an issue occurs is the
+        # finding.
+        issues = check_record(parsed, status, r.params, caps_for(r.model))
+        record = {
+            "integrity": [
+                {"severity": i.severity, "code": i.code, "detail": i.detail}
+                for i in issues] or None,
+            "investigation": inv,
+            "provider": r.provider, "model": r.model,
+            "served_model": parsed.served_model,
+            "study": r.study, "probe": r.probe, "probe_hash": r.probe_hash,
+            "path": r.path, "rep": r.rep, "turn": turn_i,
+            "conversation": conversation, "n_turns": len(r.turns),
+            "condition": r.condition,
+            "status": status,
+            # (7b) NOT YET KNOWABLE. Written null here and filled after
+            #      the conversation ends.
+            "conversation_status": None,
+            "error": error, "attempts": attempt,
+            "latency": round(latency, 2),
+            "prompt": prompt, "prompt_hash": prompt_hash(prompt),
+            "answer_text": parsed.answer_text,
+            "answer_chars": parsed.answer_chars,
+            "answer_extraction": parsed.answer_extraction,
+            "in_tok_billed": parsed.in_tok_billed,
+            "in_tok_processed": parsed.in_tok_processed,
+            "out_tok_reported": parsed.out_tok_reported,
+            "thinking_tok": parsed.thinking_tok,
+            "n_queries": parsed.n_queries,
+            "n_citations": len(parsed.citations),
+            "thought_text": parsed.thought_text,
+            "n_thought_steps": parsed.n_thought_steps,
+            "n_sources_retrieved": parsed.n_sources_retrieved,
+            "n_answer_blocks": parsed.n_answer_blocks,
+            "n_process_blocks": parsed.n_process_blocks,
+            "grounded": parsed.grounded,
+            "config_passed": r.config_passed,
+            "config_resolved": r.params,
+            "intent_unmet": r.intent_unmet,
+            "_body": body, "_config": config,
+            "path_on_disk": None,
+        }
+
+        if persist:
+            name = (f"{seq_base + turn_i:04d}_{r.provider}_{r.study}_{r.probe}"
+                    f"_p{r.path}_r{r.rep}_t{turn_i}.json")
+            safe = "".join(c if c.isalnum() or c in "-_." else "_"
+                           for c in name)
+            fp = run_dir / safe
+            record["path_on_disk"] = str(fp)
+            # (8) FIRST WRITE. An interrupt keeps it.
+            _write_record(fp, record)
+
+        conv_rows.append(record)
+        raw_out.append(body)
+
+        if verbose:
+            _print_line(seq_base + turn_i + 1, n_records, r, turn_i, status, attempt,
+                        latency, parsed)
+
+        # (9) A FAILED TURN ENDS THIS CONVERSATION, NEVER THE RUN.
+        #     `truncated` CONTINUES: the answer is real — measured at
+        #     4,338 characters on one provider — and a truncated turn 0
+        #     can still be passed back.
+        if status not in ("ok", "truncated"):
+            broke_at = turn_i
+            failures.append((seq_base + turn_i, conversation, turn_i, error))
+            break
+
+        # (10) AFTER the ok check. All steps verbatim where signatures
+        #      are required.
+        input_items = input_items + provider.passback(body or {})
+
+    # (11) `failed` means it died on turn 0; `incomplete` means later.
+    #      A conversation of truncated turns is still `ok` here —
+    #      per-record status carries truncation, this carries whether the
+    #      conversation finished.
+    conv_status = ("ok" if broke_at is None
+                   else "failed" if broke_at == 0
+                   else "incomplete")
+    for rec in conv_rows:
+        rec["conversation_status"] = conv_status
+        if persist and rec.get("path_on_disk"):
+            # (12) SECOND WRITE. Skipping this leaves null on disk while
+            #      the in-memory frame is correct — the bug that survived
+            #      a whole session of testing because nobody reloaded.
+            _write_record(pathlib.Path(rec["path_on_disk"]), rec)
+    return conv_rows
+
+
+
 def run_investigation(run: pd.DataFrame, persist: bool = True,
                       export: bool = True, verbose: bool = True,
                       retries: int = 5, backoff: int = 4,
@@ -360,153 +536,15 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
 
     try:
         for r in run.itertuples(index=False):
-            provider = providers[r.provider]
-            send = dispatch or provider.dispatch
-            # MODEL, not provider. Two models from one provider produced
-            # IDENTICAL conversation ids — 80 records collapsed into 40
-            # conversations, and the run summary reported "40 conversations"
-            # against 80 records. Any analysis using `conversation` as a unique
-            # key silently merged the two arms it was comparing.
-            #
-            # The condition is included too: a sweep runs the same probe at
-            # several settings, and those are separate conversations.
-            _model = r.model.split("/", 1)[-1]
-            conversation = (f"{r.provider}/{_model}/{r.probe}"
-                            f"/p{r.path}/r{r.rep}"
-                            + (f"/{r.condition}" if r.condition else ""))
-            input_items: list = []
-            conv_rows = []
-            broke_at = None
-
-            for turn_i, turn_text in enumerate(r.turns):
-                # (3) PROVIDER-SHAPED. messages / input list / step_list — and
-                #     the wrong one is a 400 on every turn after the first.
-                input_items = [*input_items, provider.user_turn(turn_text)]
-                config = provider.build(input_items, r.params)
-
-                # (4) RETRY LIVES HERE, not in dispatch, so `latency` measures
-                #     ONE call and `attempts` is visible in the record.
-                body = None
-                status = error = None
-                attempt = 0
-                latency = 0.0
-                for attempt in range(1, retries + 1):
-                    t0 = time.perf_counter()
-                    try:
-                        body, exc = send(config), None
-                    # (5) Exception, NOT BaseException — an interrupt must reach
-                    #     the outer handler rather than being caught here.
-                    except Exception as e:
-                        body, exc = None, e
-                    latency = time.perf_counter() - t0
-
-                    if exc is not None:
-                        # (6) A TIMEOUT IS TRANSIENT. An earlier draft broke on
-                        #     any exception, losing records a retry recovers.
-                        status = provider.classify_exception(exc)
-                        error = repr(exc)
-                    else:
-                        status, error = provider.status(body)
-
-                    # (7) ONLY `unavailable` retries. A 400 five times wastes a
-                    #     minute per record and never succeeds.
-                    if status != "unavailable":
-                        break
-                    if attempt < retries:
-                        time.sleep(backoff * attempt)
-
-                parsed = provider.parse(body or {})
-                prompt = turn_text
-                # Structural checks AT PARSE TIME, warn-only. A weekly check
-                # samples once; this sees every call. Never raises — failing
-                # would lose the count, and how OFTEN an issue occurs is the
-                # finding.
-                issues = check_record(parsed, status, r.params, caps_for(r.model))
-                record = {
-                    "integrity": [
-                        {"severity": i.severity, "code": i.code, "detail": i.detail}
-                        for i in issues] or None,
-                    "investigation": inv,
-                    "provider": r.provider, "model": r.model,
-                    "served_model": parsed.served_model,
-                    "study": r.study, "probe": r.probe, "probe_hash": r.probe_hash,
-                    "path": r.path, "rep": r.rep, "turn": turn_i,
-                    "conversation": conversation, "n_turns": len(r.turns),
-                    "condition": r.condition,
-                    "status": status,
-                    # (7b) NOT YET KNOWABLE. Written null here and filled after
-                    #      the conversation ends.
-                    "conversation_status": None,
-                    "error": error, "attempts": attempt,
-                    "latency": round(latency, 2),
-                    "prompt": prompt, "prompt_hash": prompt_hash(prompt),
-                    "answer_text": parsed.answer_text,
-                    "answer_chars": parsed.answer_chars,
-                    "answer_extraction": parsed.answer_extraction,
-                    "in_tok_billed": parsed.in_tok_billed,
-                    "in_tok_processed": parsed.in_tok_processed,
-                    "out_tok_reported": parsed.out_tok_reported,
-                    "thinking_tok": parsed.thinking_tok,
-                    "n_queries": parsed.n_queries,
-                    "n_citations": len(parsed.citations),
-                    "thought_text": parsed.thought_text,
-                    "n_thought_steps": parsed.n_thought_steps,
-                    "n_sources_retrieved": parsed.n_sources_retrieved,
-                    "n_answer_blocks": parsed.n_answer_blocks,
-                    "n_process_blocks": parsed.n_process_blocks,
-                    "grounded": parsed.grounded,
-                    "config_passed": r.config_passed,
-                    "config_resolved": r.params,
-                    "intent_unmet": r.intent_unmet,
-                    "_body": body, "_config": config,
-                    "path_on_disk": None,
-                }
-
-                if persist:
-                    name = (f"{seq:04d}_{r.provider}_{r.study}_{r.probe}"
-                            f"_p{r.path}_r{r.rep}_t{turn_i}.json")
-                    safe = "".join(c if c.isalnum() or c in "-_." else "_"
-                                   for c in name)
-                    fp = run_dir / safe
-                    record["path_on_disk"] = str(fp)
-                    # (8) FIRST WRITE. An interrupt keeps it.
-                    _write_record(fp, record)
-
-                conv_rows.append(record)
-                raw.append(body)
-                seq += 1
-
-                if verbose:
-                    _print_line(seq, n_records, r, turn_i, status, attempt,
-                                latency, parsed)
-
-                # (9) A FAILED TURN ENDS THIS CONVERSATION, NEVER THE RUN.
-                #     `truncated` CONTINUES: the answer is real — measured at
-                #     4,338 characters on one provider — and a truncated turn 0
-                #     can still be passed back.
-                if status not in ("ok", "truncated"):
-                    broke_at = turn_i
-                    failures.append((seq - 1, conversation, turn_i, error))
-                    break
-
-                # (10) AFTER the ok check. All steps verbatim where signatures
-                #      are required.
-                input_items = input_items + provider.passback(body or {})
-
-            # (11) `failed` means it died on turn 0; `incomplete` means later.
-            #      A conversation of truncated turns is still `ok` here —
-            #      per-record status carries truncation, this carries whether the
-            #      conversation finished.
-            conv_status = ("ok" if broke_at is None
-                           else "failed" if broke_at == 0
-                           else "incomplete")
-            for rec in conv_rows:
-                rec["conversation_status"] = conv_status
-                if persist and rec.get("path_on_disk"):
-                    # (12) SECOND WRITE. Skipping this leaves null on disk while
-                    #      the in-memory frame is correct — the bug that survived
-                    #      a whole session of testing because nobody reloaded.
-                    _write_record(pathlib.Path(rec["path_on_disk"]), rec)
+            conv_rows = []          # the handler reads this if an interrupt lands
+            _run_conversation(
+                r, provider=providers[r.provider],
+                send=dispatch or providers[r.provider].dispatch,
+                seq_base=seq, n_records=n_records, retries=retries,
+                backoff=backoff, persist=persist, run_dir=run_dir, inv=inv,
+                verbose=verbose, failures=failures, raw_out=raw,
+                conv_rows=conv_rows)
+            seq += len(conv_rows)
             rows.extend(conv_rows)
             conv_rows = []
 
