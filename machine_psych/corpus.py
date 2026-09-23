@@ -54,7 +54,7 @@ def load_record(path) -> dict:
     The escape hatch for a question the side tables cannot answer. Everything
     else in this module reads through a provider parser; this does not.
     """
-    return json.loads(pathlib.Path(path).read_text())
+    return json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
 
 
 def load_corpus(investigation: str, run: str | None = None,
@@ -313,7 +313,17 @@ def _side(corpus: pd.DataFrame, name: str) -> pd.DataFrame:
             "than loaded. Reload with load_corpus(); filtering a loaded corpus "
             "is fine, constructing a DataFrame by hand is not.")
     df = tables[name]
-    if not len(df) or "record_id" not in corpus.columns:
+    if not len(df):
+        # An EMPTY side table still needs its columns. A corpus where nothing
+        # grounded has no sources and no citations at all, and a bare empty
+        # frame has no `record_id` to filter on — so `read()` raised
+        # AttributeError on any all-ungrounded corpus, which is a common shape
+        # rather than an edge case. Identity columns at minimum, so every
+        # downstream filter and groupby still works on nothing.
+        if not list(df.columns):
+            df = pd.DataFrame(columns=IDENTITY)
+        return df
+    if "record_id" not in corpus.columns:
         return df
     return df[df.record_id.isin(set(corpus.record_id))]
 

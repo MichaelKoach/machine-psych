@@ -88,7 +88,7 @@ def collect(root: pathlib.Path, provider: str, name: str, body: dict,
         "_why": why,
         "_collected": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
         "_request": body, "_http_status": status,
-        "response": response}, indent=1))
+        "response": response}, indent=1), encoding="utf-8")
 
     units = response.get("content") or response.get("output") or response.get("steps") or []
     kinds = [u.get("type") for u in units if isinstance(u, dict)]
@@ -265,7 +265,7 @@ recreate them, and a refresh that drops them makes every one look removed:
 Gemini's are less synthetic than the others — its capacity failures were observed
 live at roughly 1 in 6, arriving as `code: "api_error"` with a prose message
 rather than an HTTP 503. That shape is real; only the saved file is reconstructed.
-""")
+""", encoding="utf-8")
     n = len(list(root.rglob("*.json")))
     print(f"\n  {n} fixtures in {root}")
     print("  Now see drift/REFRESH.md — the DIFF is the point, not the collection.")

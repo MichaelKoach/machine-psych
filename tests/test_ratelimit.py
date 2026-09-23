@@ -99,7 +99,11 @@ def test_every_record_carries_the_columns_even_with_no_headers():
 def test_headers_reach_the_corpus_when_a_provider_sends_them():
     mp.set_base(tempfile.mkdtemp())
     impl = get_provider("anthropic", api_key="k")
-    impl.dispatch_full = lambda cfg, timeout=1800: (200, _body(), parse_headers(
+    # **kw so the stub keeps matching when dispatch_full gains a parameter. An
+    # earlier version pinned the signature; adding `idempotency_key` made the
+    # call raise TypeError, which the runner caught as a dispatch failure and
+    # reported as all-None headers rather than as a broken test.
+    impl.dispatch_full = lambda cfg, timeout=1800, **kw: (200, _body(), parse_headers(
         "anthropic", {"anthropic-ratelimit-requests-limit": "50",
                       "anthropic-ratelimit-requests-remaining": "43",
                       "anthropic-ratelimit-input-tokens-limit": "500000",

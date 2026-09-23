@@ -298,3 +298,112 @@ def test_no_test_files_outside_the_tests_directory():
               if f.name.startswith("test_") and f.suffix == ".py"
               and f.parts[-2] != "tests"]
     assert not strays, f"test files outside tests/: {strays}"
+
+    # A 400-line copy of `corpus.py` sat at the repo root beside the real
+    # 412-line one, twelve lines behind and missing an encoding fix. Third stray
+    # this project has shipped — after `anthropic.py`/`openai.py` in the package
+    # root, and a `test_runner.py` inside `machine_psych/`. Every one came from a
+    # copy that landed in the wrong directory and nothing looked.
+    package_names = {f.name for f in (REPO / "machine_psych").glob("*.py")}
+    shadows = [f.name for f in REPO.glob("*.py")
+               if f.name in package_names and f.name != "conftest.py"]
+    assert not shadows, (
+        f"modules at the repo root shadowing the package: {shadows}")
+
+
+def test_api_keys_can_come_from_the_environment():
+    """A battery left running for days is started by a script, not a notebook,
+    and a key pasted into that script is a key that gets committed.
+
+    Explicit `set_api_key` still wins, because every run before this worked that
+    way and a notebook must be able to override per session.
+    """
+    import os
+
+    from machine_psych import paths
+
+    saved_mem = dict(paths._API_KEYS)
+    saved_env = os.environ.get("ANTHROPIC_API_KEY")
+    try:
+        paths._API_KEYS.clear()
+        os.environ.pop("ANTHROPIC_API_KEY", None)
+        assert paths.api_key("anthropic") is None
+
+        os.environ["ANTHROPIC_API_KEY"] = "from-env"
+        assert paths.api_key("anthropic") == "from-env"
+
+        paths.set_api_key("anthropic", "explicit")
+        assert paths.api_key("anthropic") == "explicit", (
+            "the environment overrode an explicit key")
+    finally:
+        paths._API_KEYS.clear()
+        paths._API_KEYS.update(saved_mem)
+        if saved_env is None:
+            os.environ.pop("ANTHROPIC_API_KEY", None)
+        else:
+            os.environ["ANTHROPIC_API_KEY"] = saved_env
+
+
+def test_no_key_is_ever_written_to_disk():
+    """Keys live in memory or the environment. A corpus or a spec carrying one
+    would leak it into a repo, a Drive folder, or an LLM context window."""
+    import re
+
+    for f in _source_files():
+        if f.suffix not in (".py", ".md", ".json", ".toml", ".yml"):
+            continue
+        text = f.read_text(errors="replace")
+        # `\b` matters. An earlier version without it matched inside an
+        # encrypted reasoning blob in a fixture — the characters `...isk-ODHG...`
+        # in base64 read as a key prefix. A guard that cries wolf on recorded API
+        # output is a guard people switch off.
+        # Hyphens and underscores are IN the key body: a real Anthropic key is
+        # `sk-ant-api03-...`, and requiring alphanumerics straight after the
+        # prefix stopped at the hyphen. The first version of this guard could not
+        # have matched a genuine key — it was tested only against a string that
+        # looked like one.
+        for pat in (r"\bsk-ant-[A-Za-z0-9_\-]{20,}",
+                    r"\bsk-proj-[A-Za-z0-9_\-]{20,}",
+                    r"\bsk-[A-Za-z0-9]{32,}",
+                    r"\bAIza[A-Za-z0-9_\-]{30,}"):
+            assert not re.search(pat, text), (
+                f"what looks like a live API key is committed in {f.name}")
+
+
+def test_every_file_read_and_write_names_its_encoding():
+    """**Invisible on Linux, corrupting on Windows.**
+
+    `read_text()` and `write_text()` with no `encoding` use
+    `locale.getpreferredencoding()`, which is UTF-8 on Linux and typically
+    cp1252 on Windows. Records are written with `ensure_ascii=False`, so they
+    contain real unicode — and the fixtures carry en-dashes deliberately,
+    because byte and character offsets only differ on non-ASCII.
+
+    A battery run on Windows would therefore write records that fail or come
+    back mangled, on exactly the characters the project uses to detect a wrong
+    parser. Nothing in a Linux test run would show it.
+    """
+    import ast
+
+    # The PACKAGE and `drift`, not the tests. The package is what runs
+    # unattended on someone else's machine; the tests run where CI runs. Holding
+    # tests to it would mean ~45 mechanical edits for a risk that does not exist
+    # there, and a guard with a long ignore list is a guard nobody reads.
+    offenders = []
+    for f in _source_files():
+        if f.suffix != ".py" or f.parts[-2] == "tests":
+            continue
+        for node in ast.walk(ast.parse(f.read_text(encoding="utf-8"))):
+            if not (isinstance(node, ast.Call)
+                    and isinstance(node.func, ast.Attribute)
+                    and node.func.attr in ("read_text", "write_text")):
+                continue
+            # `importlib.metadata.Distribution.read_text` takes a filename and
+            # has no encoding parameter. Distinguished by its positional arg.
+            if node.func.attr == "read_text" and node.args:
+                continue
+            if not any(k.arg == "encoding" for k in node.keywords):
+                offenders.append(f"{f.relative_to(REPO)}:{node.lineno}")
+
+    assert not offenders, (
+        "file operations with a platform-dependent encoding: " + str(offenders))

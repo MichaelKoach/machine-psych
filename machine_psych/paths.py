@@ -86,8 +86,32 @@ def set_api_key(provider: str, key: str) -> None:
     _API_KEYS[provider] = key
 
 
+# The conventional names, so a machine that already has them set for another
+# tool needs no extra configuration.
+_ENV_KEYS = {"anthropic": "ANTHROPIC_API_KEY",
+             "openai": "OPENAI_API_KEY",
+             "gemini": ("GEMINI_API_KEY", "GOOGLE_API_KEY")}
+
+
 def api_key(provider: str) -> str | None:
-    return _API_KEYS.get(provider)
+    """An explicit `set_api_key` wins; otherwise the environment.
+
+    A battery left running for days is started by a script, not by a notebook,
+    and a key pasted into that script is a key that gets committed. Reading the
+    environment means the script carries no secret and the same file works on any
+    machine.
+
+    In-memory first so a notebook can still override per session, which is how
+    every run before this worked.
+    """
+    if provider in _API_KEYS:
+        return _API_KEYS[provider]
+    names = _ENV_KEYS.get(provider, ())
+    for name in (names,) if isinstance(names, str) else names:
+        value = os.environ.get(name)
+        if value:
+            return value
+    return None
 
 
 def provenance() -> dict:

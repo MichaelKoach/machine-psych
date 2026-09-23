@@ -231,7 +231,7 @@ def export_corpus(investigation: str, run: str | None = None,
 
     dest = pathlib.Path(path) if path else run_dir / "_corpus.json"
     dest.write_text(json.dumps(payload, indent=1, ensure_ascii=False,
-                               default=str))
+                               default=str), encoding="utf-8")
 
     if not quiet:
         size_kb = dest.stat().st_size / 1024
@@ -338,7 +338,7 @@ def _records(corpus: pd.DataFrame, include_raw_for, run_dir,
     raw_by_id = {}
     if wanted:
         for path in sorted(run_dir.glob("[0-9]*.json")):
-            d = json.loads(path.read_text())
+            d = json.loads(path.read_text(encoding="utf-8"))
             rec_id = int(path.name.split("_")[0])
             if rec_id in wanted:
                 raw_by_id[rec_id] = d.get("response")
@@ -391,4 +391,4 @@ def _load_quietly(investigation: str, run: str | None):
 
 
 def _read_json(path: pathlib.Path) -> dict:
-    return json.loads(path.read_text()) if path.exists() else {}
+    return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}

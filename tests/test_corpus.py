@@ -364,3 +364,25 @@ def test_load_errors_list_the_alternatives(corpus, tmp_path):
 
     with pytest.raises(FileNotFoundError, match="Available"):
         load_corpus(corpus.attrs["investigation"], run="1999-01-01_00-00-00")
+
+
+def test_an_empty_side_table_keeps_its_columns(corpus):
+    """A corpus where NOTHING grounded has no sources and no citations at all.
+
+    A bare empty frame has no `record_id` to filter on, so `read()` raised
+    AttributeError on any all-ungrounded corpus — a common shape rather than an
+    edge case, and one the fixtures happened not to produce.
+    """
+    import pandas as pd
+
+    empty = corpus.copy()
+    empty.attrs = dict(corpus.attrs)
+    empty.attrs["side_tables"] = {k: pd.DataFrame()
+                                 for k in corpus.attrs["side_tables"]}
+
+    for fn in (sources, citations, queries):
+        table = fn(empty)
+        assert len(table) == 0
+        assert "record_id" in table.columns, (
+            f"{fn.__name__} returned an empty frame with no columns — every "
+            f"filter and groupby downstream of it raises")

@@ -89,7 +89,7 @@ def save_investigation(spec: dict, name: str | None = None,
     path = paths.INVESTIGATIONS_DIR / f"{name or spec['investigation_id']}.json"
     if path.exists() and not overwrite:
         raise FileExistsError(f"{path} exists — pass overwrite=True")
-    path.write_text(json.dumps(spec, indent=2, ensure_ascii=False))
+    path.write_text(json.dumps(spec, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"wrote {path}")
     return path
 
@@ -309,7 +309,7 @@ def _write_record(path: pathlib.Path, record: dict) -> None:
     payload["config"] = record.get("_config")
     payload["response"] = record.get("_body")
     path.write_text(json.dumps(payload, indent=1, ensure_ascii=False,
-                               default=str))
+                               default=str), encoding="utf-8")
 
 
 def ledger_key(provider, model, study, probe, path, rep, turn, condition) -> str:
@@ -351,7 +351,7 @@ def completed_keys(run_dir: pathlib.Path) -> set[str]:
         return done
     for f in sorted(run_dir.glob("[0-9]*.json")):
         try:
-            rec = json.loads(f.read_text())
+            rec = json.loads(f.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue          # a torn write from a power cut; redo it
         if rec.get("conversation_status") is None:
@@ -676,7 +676,7 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
                 n += 1
         run_dir.mkdir(parents=True, exist_ok=True)
         (run_dir / "_spec.json").write_text(
-            json.dumps(run.attrs.get("spec", {}), indent=2, ensure_ascii=False))
+            json.dumps(run.attrs.get("spec", {}), indent=2, ensure_ascii=False), encoding="utf-8")
         (run_dir / "_run.json").write_text(json.dumps({
             "investigation_id": inv,
             "started_at": stamp,
@@ -688,7 +688,7 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
             "probe_hashes": {r.probe: r.probe_hash
                              for r in run.itertuples(index=False)},
             "providers": sorted(run.provider.unique()),
-        }, indent=2, default=str))
+        }, indent=2, default=str), encoding="utf-8")
 
     providers = {p: get_provider(p, api_key=paths.api_key(p))
                  for p in run.provider.unique()}
@@ -853,7 +853,7 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
     if already:
         for f in sorted(run_dir.glob("[0-9]*.json")):
             try:
-                rec = json.loads(f.read_text())
+                rec = json.loads(f.read_text(encoding="utf-8"))
             except (OSError, json.JSONDecodeError):
                 continue
             if rec.get("conversation_status") is None:

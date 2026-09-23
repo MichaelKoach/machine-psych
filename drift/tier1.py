@@ -130,7 +130,7 @@ def run(providers: list[str] | None = None, verbose: bool = False) -> int:
         2  incomplete — a provider could not be reached, or no roster approved
     """
     providers = providers or sorted(ENDPOINTS)
-    approved = json.loads(ROSTER.read_text()) if ROSTER.exists() else None
+    approved = json.loads(ROSTER.read_text(encoding="utf-8")) if ROSTER.exists() else None
     differences = incomplete = False
 
     print("TIER 1 — which models exist\n")
@@ -201,7 +201,7 @@ def run(providers: list[str] | None = None, verbose: bool = False) -> int:
 
     if current:
         ROSTER.with_suffix(".current.json").write_text(
-            json.dumps(current, indent=1, sort_keys=True))
+            json.dumps(current, indent=1, sort_keys=True), encoding="utf-8")
 
     print("  measured_on — when each model in use was last CHECKED, which is not")
     print("  the same as whether checking again would find something different:")
@@ -236,7 +236,7 @@ def approve(providers: list[str] | None = None) -> int:
             print("  a vanished model on the next run.")
             return 2
         current[provider] = sorted(m for m in live if dispatchable(m))
-    ROSTER.write_text(json.dumps(current, indent=1, sort_keys=True))
+    ROSTER.write_text(json.dumps(current, indent=1, sort_keys=True), encoding="utf-8")
     print(f"  approved {sum(len(v) for v in current.values())} models across "
           f"{len(current)} providers")
     print(f"  {ROSTER}")
