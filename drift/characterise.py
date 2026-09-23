@@ -32,6 +32,17 @@ __all__ = ["characterise"]
 LONG = ("Compare six qualitative research platforms in detail: pricing, "
         "methodology and target customer for each. Be thorough.")
 
+# The grounded probe needs a prompt that CANNOT be answered from parametric
+# knowledge. `PROBE` is an arithmetic word problem, and a model offered the
+# search tool alongside it correctly declines to search — which this tool then
+# recorded as `search=False` on a model that searches perfectly well.
+#
+# **Search is a permission, not a condition.** Measured across all three
+# providers: each declines when the prompt does not need retrieval, and on one
+# battery 5 of 80 search-enabled records actually searched. The finding was
+# established here and then not applied here.
+NEEDS_SEARCH = ("What did Anthropic announce this month? Cite your sources.")
+
 
 def characterise(model: str) -> dict:
     """Probe a model and return measured capability values.
@@ -53,15 +64,15 @@ def characterise(model: str) -> dict:
         time.sleep(0.5)
         return status, response
 
-    def base(**extra):
+    def base(prompt=PROBE, **extra):
         if provider == "anthropic":
             b = {"model": short, "max_tokens": 2048,
-                 "messages": [{"role": "user", "content": PROBE}]}
+                 "messages": [{"role": "user", "content": prompt}]}
         elif provider == "openai":
             b = {"model": short, "max_output_tokens": 2048, "store": False,
-                 "input": PROBE}
+                 "input": prompt}
         else:
-            b = {"model": short, "store": False, "input": PROBE,
+            b = {"model": short, "store": False, "input": prompt,
                  "generation_config": {"max_output_tokens": 8192}}
         b.update(extra)
         return b
@@ -108,11 +119,23 @@ def characterise(model: str) -> dict:
     tools = {"anthropic": [{"type": "web_search_20250305", "name": "web_search"}],
              "openai": [{"type": "web_search"}],
              "gemini": [{"type": "google_search"}]}[provider]
-    status, response = send(base(tools=tools))
-    if status == 200:
-        found.update(_read_grounded(response))
-    else:
+    status, response = send(base(tools=tools, prompt=NEEDS_SEARCH))
+    if status != 200:
         notes.append(f"grounded probe UNMEASURED — HTTP {status}")
+    else:
+        grounded = _read_grounded(response)
+        if not grounded.get("search"):
+            # A 200 with no search markers is AMBIGUOUS: the model may be unable
+            # to search, or may simply have decided it did not need to. Reporting
+            # False would be a guessed capability, and a guessed capability
+            # produces an arm whose condition is a fiction.
+            notes.append(
+                "grounded probe returned 200 but the model did not search — "
+                "UNMEASURED rather than unsupported. Re-run, or probe with a "
+                "question that certainly needs current information.")
+            found.update(dict.fromkeys(grounded))
+        else:
+            found.update(grounded)
 
     # ── 4. is the token budget combined with thinking ────────────────────────
     print("  [4/5] token budget …", flush=True)
@@ -230,7 +253,16 @@ def _render(result: dict) -> str:
                      + ("   # UNMEASURED — see notes" if value is None else ""))
     lines.append(f'        measured_on="{datetime.now(timezone.utc).date().isoformat()}",')
     if result["notes"]:
-        lines.append('        notes="' + " ".join(result["notes"])[:200] + '",')
+        # `repr`, not string concatenation. The notes carry the provider's own
+        # error text, which quotes parameter names — `"thinking.type.disabled"
+        # is not supported` — and pasting that inside a double-quoted literal is
+        # a SyntaxError. The whole point of this output is that it pastes.
+        #
+        # And no blind truncation: the previous `[:200]` cut a note mid-word at
+        # `Use "thinking.type.adaptive" and "output_c`, removing the remedy the
+        # note existed to convey. Long notes wrap instead.
+        note = " ".join(result["notes"])
+        lines.append(f"        notes={note!r},")
     lines.append("    ),")
     return "\n".join(lines)
 

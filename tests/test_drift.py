@@ -631,3 +631,64 @@ def test_dispatch_and_dispatch_with_status_share_one_implementation():
     code = " ".join(ast.unparse(n) for n in statements)
     assert "requests.post" not in code, "dispatch has its own POST again"
     assert "dispatch_with_status" in code
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# characterise — found by reading its output on a new model, 2026-09-23
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def test_the_rendered_block_can_actually_be_pasted():
+    """**The entire point of the output is that it pastes into `capabilities.py`.**
+
+    Notes carry the provider's own error text, which quotes parameter names:
+    `"thinking.type.disabled" is not supported`. Concatenated into a
+    double-quoted literal that is a SyntaxError, so the block was unusable
+    exactly when it mattered — characterising a model nobody had measured.
+    """
+    import ast
+
+    from drift.characterise import _render
+
+    block = _render({
+        "model": "anthropic/claude-opus-5-5",
+        "measured": {"reasoning_off": False, "search": None},
+        "notes": [('reasoning cannot be disabled: "thinking.type.disabled" is '
+                   'not supported. Use "thinking.type.adaptive" instead'),
+                  "temperature is rejected outright"]})
+
+    inner = block.split("ModelCaps(", 1)[1].rsplit("),", 1)[0]
+    ast.parse(f"x = dict({inner})")          # raises if the notes are not escaped
+
+
+def test_notes_are_not_truncated_mid_word():
+    """A blind `[:200]` cut a note at `Use "thinking.type.adaptive" and
+    "output_c`, removing the remedy the note existed to convey."""
+    from drift.characterise import _render
+
+    long_note = "remedy: " + "x" * 400
+    block = _render({"model": "m", "measured": {}, "notes": [long_note]})
+    assert long_note in block, "the note was truncated"
+
+
+def test_a_model_that_declines_to_search_is_unmeasured_not_unsupported():
+    """**Search is a permission, not a condition** — established by this project
+    and then not applied here.
+
+    The grounded probe sent an arithmetic word problem with the search tool
+    attached. The model correctly declined to search, and the absence of search
+    markers was recorded as `search=False` on `claude-opus-5-5`, a model that
+    searches perfectly well. Pasting that would have excluded it from every
+    grounded arm of every study.
+    """
+    import drift.characterise as ch
+
+    # The probe prompt must be one that cannot be answered without retrieval.
+    assert "PROBE" not in ch.NEEDS_SEARCH
+    assert ch.NEEDS_SEARCH != ch.PROBE
+
+    # And a 200 with no search markers must not read as a measured absence.
+    out = ch._read_grounded({"content": [{"type": "text", "text": "8"}]})
+    assert out["search"] is False          # what the reader sees
+    source = pathlib.Path(ch.__file__).read_text(encoding="utf-8")
+    assert "UNMEASURED rather than unsupported" in source, (
+        "the caller does not convert an ambiguous result to None")
