@@ -68,6 +68,24 @@ PLAUSIBLE = {
 # A prompt short enough to be cheap and structured enough that thinking has
 # something to do. Arithmetic rather than prose because the reasoning arms must
 # differ in effort, not in verbosity.
+
+def _message(response: dict, limit: int = 600) -> str:
+    """A provider's error message, whole enough to act on.
+
+    Cut at 100 characters, Anthropic's reply to `thinking.type: disabled` read
+    `Use "thinking.type.adaptive" and "output_c` — the remedy severed mid-word,
+    in the one note whose entire value was naming the remedy.
+
+    The limit is now generous rather than absent, and it breaks on a word
+    boundary with an ellipsis so a reader can tell that something was dropped.
+    A silent cut is indistinguishable from a message that simply ended.
+    """
+    text = str((response.get("error") or {}).get("message") or "").strip()
+    if len(text) <= limit:
+        return text
+    return text[:limit].rsplit(" ", 1)[0] + " […]"
+
+
 PROBE = ("A firm bills three clients. A pays 40% of $50,000. B pays 1.5x what C "
          "pays. What does each pay?")
 
@@ -185,7 +203,7 @@ def _probe_enums(provider: str, model: str, report: Report) -> None:
             report.findings.append(Finding(
                 "error", model, parameter,
                 f"rejected, but no valid values named in the message: "
-                f"{str((response.get('error') or {}).get('message'))[:120]}"))
+                f"{_message(response)}"))
             continue
 
         gone = recorded - returned
@@ -241,7 +259,7 @@ def _probe_enums(provider: str, model: str, report: Report) -> None:
                 "unexpected", model, parameter,
                 f"THE PARAMETER DOES NOT EXIST on this model — not a narrowed "
                 f"enum. A spec setting it here is rejected outright: "
-                f"{message[:110]}"))
+                f"{_message(response)}"))
             continue
 
         per_model = set(_values_in_error(response)) - {plausible}

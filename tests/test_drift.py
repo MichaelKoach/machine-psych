@@ -661,13 +661,37 @@ def test_the_rendered_block_can_actually_be_pasted():
 
 
 def test_notes_are_not_truncated_mid_word():
-    """A blind `[:200]` cut a note at `Use "thinking.type.adaptive" and
-    "output_c`, removing the remedy the note existed to convey."""
-    from drift.characterise import _render
+    """A blind cut removed the remedy the note existed to convey.
 
+    **The first fix was in the wrong place.** `_render` truncated at 200
+    characters, so that was fixed — and the note still arrived cut, because the
+    provider's message was already severed at 100 characters where the note was
+    BUILT. A test that only exercised `_render` passed while the bug stood.
+
+    This checks the real path: message in, note out.
+    """
+    from drift.characterise import _render
+    from drift.tier2 import _message
+
+    # the rendering layer
     long_note = "remedy: " + "x" * 400
-    block = _render({"model": "m", "measured": {}, "notes": [long_note]})
-    assert long_note in block, "the note was truncated"
+    assert long_note in _render({"model": "m", "measured": {}, "notes": [long_note]})
+
+    # and the layer that BUILDS the note from a provider's error
+    remedy = ('"thinking.type.disabled" is not supported for this model. '
+              'Use "thinking.type.adaptive" and "output_config.effort" instead.')
+    got = _message({"error": {"message": remedy}})
+    assert "output_config.effort" in got, (
+        "the remedy was cut out of the message before the note was built")
+
+
+def test_a_cut_message_says_that_it_was_cut():
+    """A silent truncation is indistinguishable from a message that ended."""
+    from drift.tier2 import _message
+
+    got = _message({"error": {"message": "word " * 400}})
+    assert got.endswith("[…]")
+    assert not got.endswith("wor […]"), "cut mid-word"
 
 
 def test_a_model_that_declines_to_search_is_unmeasured_not_unsupported():

@@ -24,7 +24,7 @@ import time
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[1]))
 
-from drift.tier2 import PROBE, _body_with, _dispatch, _values_in_error
+from drift.tier2 import PROBE, _body_with, _dispatch, _message, _values_in_error
 from machine_psych import paths
 
 __all__ = ["characterise"]
@@ -92,7 +92,7 @@ def characterise(model: str) -> dict:
     elif status in (400, 422):
         found["reasoning_off"] = False
         notes.append(f"reasoning cannot be disabled: "
-                     f"{str((response.get('error') or {}).get('message'))[:100]}")
+                     f"{_message(response)}")
     else:
         found["reasoning_off"] = None
         notes.append(f"reasoning_off UNMEASURED — HTTP {status}")
@@ -169,6 +169,7 @@ def characterise(model: str) -> dict:
     found["_enums"] = enums
 
     return {"model": model, "measured": found, "notes": notes}
+
 
 
 def _read_grounded(response: dict) -> dict:
