@@ -716,3 +716,33 @@ def test_a_model_that_declines_to_search_is_unmeasured_not_unsupported():
     source = pathlib.Path(ch.__file__).read_text(encoding="utf-8")
     assert "UNMEASURED rather than unsupported" in source, (
         "the caller does not convert an ambiguous result to None")
+
+
+def test_the_rendered_block_declares_what_it_does_not_measure():
+    """**The block looked like a finished entry and was half of one.**
+
+    It measures eleven of twenty-two fields. Pasted over a model that already
+    has an entry, it drops `reasoning_levels`, `tokens_per_query`,
+    `answer_extraction` and eight more, and turns measured values into `None` —
+    which reads as "the provider cannot" rather than "nobody looked".
+
+    That misreading happened in a real session: the output was described as safe
+    to paste for a model whose existing entry it would have broken.
+    """
+    import dataclasses
+
+    from drift.characterise import _render
+    from machine_psych.capabilities import ModelCaps
+
+    block = _render({"model": "anthropic/claude-opus-5-5",
+                     "measured": {"search": True, "page_age": True},
+                     "notes": []})
+
+    assert "PARTIAL" in block
+    produced = {"search", "page_age", "measured_on", "notes"}
+    for field in dataclasses.fields(ModelCaps):
+        if field.name not in produced:
+            assert field.name in block, (
+                f"{field.name} is absent from the block AND unmentioned — a "
+                f"reader cannot tell it is missing")
+    assert "do not paste this over it" in block

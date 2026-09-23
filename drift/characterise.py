@@ -244,9 +244,51 @@ def _answer_text(response: dict, provider: str) -> str:
 
 
 def _render(result: dict) -> str:
-    """A pasteable ModelCaps block. Unmeasured fields are left as None with a note."""
+    """A PARTIAL ModelCaps block, and it says so.
+
+    This measures eleven of the twenty-two fields. The rest need a different
+    probe, a multi-record comparison, or a decision — and nothing in the output
+    used to mention them, so the block looked like a finished entry.
+
+    **That is not a cosmetic problem.** Pasted over a model that already has an
+    entry, it drops every field it does not produce — `reasoning_levels`,
+    `tokens_per_query`, `answer_extraction` among them — and the harness either
+    breaks or quietly misbehaves. It also turns measured values into `None`,
+    which reads as "the provider cannot" rather than "nobody looked".
+
+    So the block now opens with what it leaves out, and says plainly that it is
+    a starting point for a NEW model rather than a replacement for an existing
+    one.
+    """
+    import dataclasses
     from datetime import datetime, timezone
-    lines = [f'    "{result["model"]}": ModelCaps(']
+
+    from machine_psych.capabilities import ModelCaps
+
+    produced = {k for k in result["measured"] if not k.startswith("_")}
+    produced |= {"measured_on", "notes"}
+    absent = [f.name for f in dataclasses.fields(ModelCaps)
+              if f.name not in produced]
+
+    lines = []
+    if absent:
+        lines += [
+            (f"    # PARTIAL — this probe measures {len(produced)} of "
+             f"{len(dataclasses.fields(ModelCaps))} fields."),
+            "    # NOT measured here, and NOT safe to leave out of a real entry:",
+        ]
+        for i in range(0, len(absent), 4):
+            lines.append("    #   " + ", ".join(absent[i:i + 4]))
+        lines += [
+            "    #",
+            "    # For a NEW model: fill these in before use. `reasoning_levels`",
+            "    # comes from the ENUMS printed below; the rest need measuring or",
+            "    # an explicit note that they were inherited from a sibling model.",
+            "    #",
+            "    # For a model that ALREADY has an entry: do not paste this over it.",
+            "    # Take `measured_on` and any field that genuinely changed.",
+        ]
+    lines.append(f'    "{result["model"]}": ModelCaps(')
     for key, value in sorted(result["measured"].items()):
         if key.startswith("_"):
             continue
