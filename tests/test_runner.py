@@ -643,3 +643,219 @@ def test_concurrency_defaults_to_sequential():
     default must keep doing exactly that."""
     import inspect
     assert inspect.signature(R.run_investigation).parameters["concurrency"].default == 1
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Resume — a four-day battery WILL be interrupted
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _two_model_spec(inv, probes=5, reps=2):
+    return {"investigation_id": inv, "studies": [{
+        "study_id": "s",
+        "probes": [{"probe_id": f"p{i}", "prompt_paths": [[f"q{i}"]]}
+                   for i in range(probes)],
+        "providers": {"anthropic/claude-sonnet-5": {"reasoning": "off", "repetitions": reps},
+                      "anthropic/claude-opus-5": {"reasoning": "off", "repetitions": reps}}}]}
+
+
+def test_ledger_key_separates_models_from_one_provider():
+    """`provider` is not enough. Two models from one API are two different
+    logical calls, and leaving the model out is the defect that gave eighty
+    records forty conversation ids."""
+    a = R.ledger_key("anthropic", "anthropic/claude-sonnet-5", "s", "p", 0, 0, 0, None)
+    b = R.ledger_key("anthropic", "anthropic/claude-opus-5", "s", "p", 0, 0, 0, None)
+    assert a != b
+    # and it is derived, not generated — the same inputs give the same key
+    assert a == R.ledger_key("anthropic", "anthropic/claude-sonnet-5",
+                             "s", "p", 0, 0, 0, None)
+
+
+def test_resume_skips_what_is_on_disk_and_returns_the_whole_corpus(tmp_path):
+    """Without this, the attempt after an interruption starts a NEW directory and
+    re-sends everything — paying a second time for records already collected.
+
+    The returned frame must be the whole corpus rather than the increment, or
+    every analysis after a resume is silently partial.
+    """
+    R.set_base(tmp_path)
+    sent = {"n": 0}
+
+    def die_after_8(cfg):
+        sent["n"] += 1
+        if sent["n"] > 8:
+            raise KeyboardInterrupt
+        return _ok_body(cfg, 0)
+
+    with contextlib.redirect_stdout(io.StringIO()):
+        run = R.load_investigation(_two_model_spec("res"))
+        first, _ = R.run_investigation(run, dispatch=die_after_8, backoff=0,
+                                       verbose=False, export=False)
+    assert 0 < len(first) < 20
+
+    sent["n"] = 0
+    with contextlib.redirect_stdout(io.StringIO()):
+        run = R.load_investigation(_two_model_spec("res"))
+        second, _ = R.run_investigation(run, dispatch=lambda c: _ok_body(c, 0),
+                                        backoff=0, verbose=False, export=False,
+                                        resume=True)
+
+    assert len(second) == 20, f"resumed run returned {len(second)} of 20"
+    assert sent["n"] < 20, f"re-sent {sent['n']} calls — the ledger did nothing"
+    assert second.conversation_status.notna().all()
+    dirs = [d for d in (tmp_path / "Output Log" / "res").glob("*") if d.is_dir()]
+    assert len(dirs) == 1, f"resume wrote a second directory: {[d.name for d in dirs]}"
+
+
+def test_an_in_flight_record_is_redone_rather_than_trusted(tmp_path):
+    """A record without `conversation_status` was mid-conversation when the run
+    stopped. It may have been billed, but there is no answer in it — so it is
+    redone, and the possible double charge is accepted rather than leaving a hole
+    in the corpus."""
+    R.set_base(tmp_path)
+    with contextlib.redirect_stdout(io.StringIO()):
+        run = R.load_investigation(_two_model_spec("inflight", probes=2, reps=1))
+        R.run_investigation(run, dispatch=lambda c: _ok_body(c, 0), backoff=0,
+                            verbose=False, export=False)
+
+    run_dir = next(d for d in (tmp_path / "Output Log" / "inflight").glob("*")
+                   if d.is_dir())
+    victim = min(run_dir.glob("[0-9]*.json"))
+    rec = json.loads(victim.read_text())
+    rec["conversation_status"] = None
+    victim.write_text(json.dumps(rec))
+
+    assert R.ledger_key(rec["provider"], rec["model"], rec["study"], rec["probe"],
+                        rec["path"], rec["rep"], rec["turn"],
+                        rec["condition"]) not in R.completed_keys(run_dir)
+
+
+def test_resume_on_a_missing_run_says_so(tmp_path):
+    R.set_base(tmp_path)
+    with contextlib.redirect_stdout(io.StringIO()):
+        run = R.load_investigation(_two_model_spec("nope", probes=1, reps=1))
+        try:
+            R.run_investigation(run, dispatch=lambda c: _ok_body(c, 0),
+                                verbose=False, export=False, resume="not-a-run")
+        except FileNotFoundError as e:
+            assert "no run to resume" in str(e)
+        else:
+            raise AssertionError("resuming a run that does not exist must raise")
+
+
+def test_idempotency_is_claimed_only_where_confirmed():
+    """Sending the header to a provider that ignores it is worse than not
+    sending it: the retry LOOKS protected and quietly pays twice."""
+    from machine_psych.providers import get_provider
+
+    assert get_provider("openai", api_key="k").supports_idempotency is True
+    assert get_provider("anthropic", api_key="k").supports_idempotency is False
+    assert get_provider("gemini", api_key="k").supports_idempotency is False
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Per-provider concurrency — limits differ by an order of magnitude
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _peak_watcher():
+    """A dispatcher that records the PEAK simultaneous calls per provider."""
+    live, peak, lock = {}, {}, threading.Lock()
+
+    def watch(cfg):
+        who = ("gemini" if "generation_config" in cfg
+               else "openai" if "store" in cfg else "anthropic")
+        with lock:
+            live[who] = live.get(who, 0) + 1
+            peak[who] = max(peak.get(who, 0), live[who])
+        time.sleep(0.05)
+        with lock:
+            live[who] -= 1
+        return _ok_body(cfg, 0)
+
+    return watch, peak
+
+
+def _cap_spec(inv, probes=10, reps=1):
+    return {"investigation_id": inv, "studies": [{"study_id": "s",
+            "probes": [{"probe_id": f"p{i}", "prompt_paths": [[f"q{i}"]]}
+                       for i in range(probes)],
+            "providers": {"anthropic/claude-sonnet-5": {"reasoning": "off", "repetitions": reps},
+                          "anthropic/claude-opus-5": {"reasoning": "off", "repetitions": reps}}}]}
+
+
+@pytest.mark.parametrize("concurrency,cap", [
+    (1, 1), (4, 4), (8, 8),
+    ({"anthropic": 3}, 3),
+    ({"openai": 9}, 1),           # unnamed provider falls back to 1
+    ({"anthropic": 1}, 1),        # a dict of ones is still sequential in effect
+])
+def test_the_per_provider_cap_is_actually_enforced(tmp_path, concurrency, cap):
+    """**A shared pool caps nothing per provider.**
+
+    Workers were sized `concurrency * n_providers` and drawn from one queue, so
+    every worker could be running the same provider — and a rep holding twenty
+    Gemini conversations against four Anthropic would put them all on Gemini,
+    the account with the tightest limit. The comment claimed a per-provider cap
+    the code did not enforce; a semaphore per provider does.
+    """
+    R.set_base(tmp_path)
+    watch, peak = _peak_watcher()
+    with contextlib.redirect_stdout(io.StringIO()):
+        run = R.load_investigation(_cap_spec("cap"))
+        res, _ = R.run_investigation(run, dispatch=watch, backoff=0, verbose=False,
+                                     export=False, concurrency=concurrency)
+
+    assert len(res) == 20
+    assert peak.get("anthropic", 0) <= cap, (
+        f"{peak.get('anthropic')} calls in flight against a cap of {cap}")
+
+
+def test_providers_hold_different_caps_at_the_same_time(tmp_path):
+    """The case that motivated this. Gemini's free tier runs about 10 requests
+    per minute against Anthropic's hundreds, so one number for all three is
+    either too slow for Anthropic or a 429 storm on Gemini."""
+    R.set_base(tmp_path)
+    watch, peak = _peak_watcher()
+    caps = {"anthropic": 8, "openai": 4, "gemini": 2}
+    spec = {"investigation_id": "mixed", "studies": [{"study_id": "s",
+            "probes": [{"probe_id": f"p{i}", "prompt_paths": [[f"q{i}"]]}
+                       for i in range(8)],
+            "providers": {"anthropic/claude-sonnet-5": {"reasoning": "off", "repetitions": 2},
+                          "openai/gpt-5.6-sol": {"reasoning": "low", "repetitions": 2},
+                          "gemini/gemini-3.7-flash": {"reasoning": "low", "repetitions": 2}}}]}
+    with contextlib.redirect_stdout(io.StringIO()):
+        run = R.load_investigation(spec)
+        res, _ = R.run_investigation(run, dispatch=watch, backoff=0, verbose=False,
+                                     export=False, concurrency=caps)
+
+    assert len(res) == 48
+    for provider, cap in caps.items():
+        assert peak.get(provider, 0) <= cap, (
+            f"{provider}: {peak.get(provider)} in flight against a cap of {cap}")
+    assert res.conversation.nunique() == 48
+
+
+def test_the_repetition_barrier_survives_per_provider_gating(tmp_path):
+    """Semaphores add a second place a worker can block. The barrier must still
+    hold: retrieval drift has to spread across conditions rather than confound
+    with them, which is the property speed must not buy."""
+    R.set_base(tmp_path)
+    seen, lock = [], threading.Lock()
+
+    def watch(cfg):
+        with lock:
+            seen.append(time.perf_counter())
+        time.sleep(0.05)
+        return _ok_body(cfg, 0)
+
+    with contextlib.redirect_stdout(io.StringIO()):
+        run = R.load_investigation(_cap_spec("barrier", probes=4, reps=3))
+        res, _ = R.run_investigation(run, dispatch=watch, backoff=0, verbose=False,
+                                     export=False, concurrency={"anthropic": 4})
+
+    by_rep = {}
+    for i, rep in enumerate(res.rep):
+        if i < len(seen):
+            by_rep.setdefault(rep, []).append(seen[i])
+    for a, b in itertools.pairwise(sorted(by_rep)):
+        assert min(by_rep[b]) > max(by_rep[a]), (
+            f"rep {b} began before rep {a} finished")

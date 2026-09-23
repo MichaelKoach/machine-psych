@@ -36,12 +36,13 @@ import pandas as pd
 
 from . import paths
 from .capabilities import caps_for, provider_of
-from .integrity import check_record
 
 # Re-exported so `runner.set_base(...)` keeps working for callers, while the
 # STATE lives in `paths`. A facade over one source of truth, not a copy of it —
 # an earlier version held the paths here and `corpus` reached back into this
 # module to read them, which made a low-level module depend on a high-level one.
+from .governor import Governor, pool_key
+from .integrity import check_record
 from .outage import OutageGaveUp, OutageLatch
 from .paths import set_api_key, set_base
 from .providers import get_provider
@@ -365,7 +366,8 @@ def completed_keys(run_dir: pathlib.Path) -> set[str]:
 
 def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backoff,
                       persist, run_dir, inv, verbose, failures, raw_out,
-                      conv_rows, print_lock=None, latch=None):
+                      conv_rows, print_lock=None, latch=None,
+                      governor=None):
     """Run one conversation — every turn of one row of the plan — and return its
     records.
 
@@ -430,8 +432,34 @@ def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backof
             if latch is not None:
                 latch.wait(r.provider)
 
+            # (4d) PACE AGAINST THE PROVIDER'S STATED LIMIT. Blocks only when
+            #      this call would push past the margin; returns instantly
+            #      otherwise. Estimated before sending because a header arrives
+            #      one round trip too late to prevent anything.
+            if governor is not None:
+                # Keyed on the POOL, not the provider: Anthropic pools by model
+                # family, so Sonnet and Opus draw on separate budgets and
+                # tracking them as one throttles both to whichever is busier.
+                #
+                # The estimate is LEARNED from what calls on this pool actually
+                # cost. An earlier version used `tokens_per_query x 2` whenever
+                # `search` was allowed, which assumed a search-enabled call would
+                # search — the assumption this project disproved, and one that
+                # over-reserved 12x on the 94% of calls that never search.
+                _pool = pool_key(r.provider, r.model)
+                governor.acquire(
+                    _pool,
+                    governor.estimate_in(_pool, bool(r.params.get("search"))),
+                    r.params.get("max_tokens", 4096))
+
             t0 = time.perf_counter()
             try:
+                # (4e) RELEASE IN A `finally`, paired with the acquire above.
+                #      Releasing only on the paths that LEAVE the retry loop
+                #      leaked a slot per retry: a run with five retries narrowed
+                #      itself permanently, and the narrowing grew with every
+                #      transient failure — worst exactly when throughput matters
+                #      most.
                 # (4b) THE FULL PATH WHERE THERE IS ONE, so rate-limit headers
                 #      survive. `send` is the provider's own bound `dispatch`
                 #      in a real run and a plain function in a test, and only
@@ -456,7 +484,10 @@ def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backof
             #     the outer handler rather than being caught here.
             except Exception as e:
                 body, exc = None, e
-            latency = time.perf_counter() - t0
+            finally:
+                latency = time.perf_counter() - t0
+                if governor is not None:
+                    governor.release(pool_key(r.provider, r.model))
 
             if exc is not None:
                 # (6) A TIMEOUT IS TRANSIENT. An earlier draft broke on
@@ -473,6 +504,8 @@ def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backof
                                          _rq.exceptions.Timeout)))
             else:
                 status, error = provider.status(body)
+                if governor is not None:
+                    governor.observe(pool_key(r.provider, r.model), limits)
                 if latch is not None:
                     # A call got through. Without clearing, three failures spread
                     # across a whole battery would eventually latch a healthy run.
@@ -544,6 +577,12 @@ def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backof
             "path_on_disk": None,
         }
 
+        if governor is not None:
+            # What the call ACTUALLY cost, so the estimate converges instead of
+            # resting on an assumption about whether search would happen.
+            governor.record_cost(pool_key(r.provider, r.model),
+                                 parsed.in_tok_processed or parsed.in_tok_billed)
+
         if persist:
             # MODEL in the name. Two models from one provider produced files
             # distinguished only by their sequence prefix, so a human reading the
@@ -607,7 +646,8 @@ def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backof
 def run_investigation(run: pd.DataFrame, persist: bool = True,
                       export: bool = True, verbose: bool = True,
                       retries: int = 5, backoff: int = 4,
-                      concurrency: int = 1, resume: str | bool | None = None,
+                      concurrency: int | dict[str, int] | str = 1,
+                      resume: str | bool | None = None,
                       outage_ceiling: float = 12 * 3600, latch=None,
                       dispatch=None) -> tuple[pd.DataFrame, list]:
     """Execute a loaded investigation. Returns (results, raw).
@@ -615,10 +655,30 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
     `dispatch` overrides the provider's own, for tests. Everything else follows
     §6b; the numbered comments mark orderings, not preferences.
 
-    **`concurrency` is per provider, not global.** Rate limits are per provider,
-    so three providers at concurrency 4 means twelve calls in flight and four
-    against each account. Default 1 — sequential, the behaviour every earlier
-    battery had.
+    **`concurrency` is per provider, not global**, and a dict sets it per
+    provider by name: `{"anthropic": 8, "gemini": 2}`. Anything unnamed falls
+    back to 1. An int applies the same cap to every provider, so
+    `concurrency=4` across three providers is twelve calls in flight and four
+    against each account.
+
+    Per provider because rate limits are, and because they differ by an order of
+    magnitude: Gemini's free tier runs about 10 requests per minute against
+    Anthropic's hundreds. One number for all three is therefore either too slow
+    for Anthropic or a 429 storm on Gemini.
+
+    **`concurrency="auto"` paces against the limits each provider reports**,
+    instead of a number chosen by hand. Every response states remaining requests
+    and tokens; the governor keeps a token bucket per counter and holds a call
+    that would push past 80% of any of them. It starts at two in flight and opens
+    up once a provider has stated its limits.
+
+    Preferred over a fixed number, because a fixed number is a guess. This
+    project tried to measure one and could not: batteries at 8, 16 and 32
+    returned identical throughput because the battery held six conversations per
+    repetition, so the extra workers were idle. That was the design ceiling, not
+    a rate limit.
+
+    Default 1 — sequential, the behaviour every earlier battery had.
 
     Conversations run in parallel WITHIN a repetition and the run waits at each
     repetition boundary. That is what keeps the ordering guarantee: retrieval
@@ -748,12 +808,24 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
     #      `outage_ceiling` and `latch` are parameters because the latch SLEEPS
     #      in real time — a test that triggers an outage would otherwise wait
     #      hours, and a caller with a flakier connection may want a longer wall.
+    governor = Governor() if concurrency == "auto" else None
+
     if latch is None:
         latch = OutageLatch(
             providers={r.provider for r in plan},
             ceiling=outage_ceiling,
             probe=lambda name: providers[name].reachable(
                 next(row.model for row in plan if row.provider == name)))
+
+    def _gated(i, r, gates):
+        """Hold this provider's slot for the whole conversation.
+
+        Acquired around the conversation rather than around each call, because a
+        multi-turn conversation that released between turns could have more of
+        one provider in flight than the cap allows.
+        """
+        with gates[r.provider]:
+            return _one(i, r)
 
     def _one(i, r):
         mine: list[dict] = []
@@ -764,11 +836,19 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
             seq_base=bases[i], n_records=n_records, retries=retries,
             backoff=backoff, persist=persist, run_dir=run_dir, inv=inv,
             verbose=verbose, failures=failures, raw_out=raw,
-            conv_rows=mine, print_lock=print_lock, latch=latch)
+            conv_rows=mine, print_lock=print_lock, latch=latch,
+            governor=governor)
         return mine
 
     try:
-        if concurrency <= 1:
+        # A dict always takes the concurrent path, even if every value is 1:
+        # the semaphores are what enforce the caps, and the sequential branch has
+        # none. `max()` over an empty dict would also raise, hence the default.
+        _auto = concurrency == "auto"
+        _max_conc = (max(concurrency.values(), default=1)
+                     if isinstance(concurrency, dict)
+                     else 1 if _auto else concurrency)
+        if _max_conc <= 1 and not isinstance(concurrency, dict) and not _auto:
             for i, r in plan_idx:
                 conv_rows = []
                 in_flight.append(conv_rows)
@@ -778,7 +858,8 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
                     seq_base=bases[i], n_records=n_records, retries=retries,
                     backoff=backoff, persist=persist, run_dir=run_dir, inv=inv,
                     verbose=verbose, failures=failures, raw_out=raw,
-                    conv_rows=conv_rows, print_lock=print_lock, latch=latch)
+                    conv_rows=conv_rows, print_lock=print_lock, latch=latch,
+                    governor=governor)
                 rows.extend(conv_rows)
                 in_flight.remove(conv_rows)
                 conv_rows = []
@@ -793,12 +874,29 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
             for i, r in plan_idx:
                 by_rep.setdefault(r.rep, []).append((i, r))
 
+            # (1g) A SEMAPHORE PER PROVIDER, because a shared pool does not cap
+            #      anything per provider. Sized at `concurrency * n_providers`,
+            #      every worker in it could be running the same provider — so
+            #      a rep holding twenty Gemini conversations and four Anthropic
+            #      would put all its workers on Gemini, which is exactly the
+            #      account with the tightest limit. The comment here claimed a
+            #      per-provider cap that the code did not enforce.
+            # Under "auto" the governor paces, so the semaphore is only a sanity
+            # ceiling rather than the control — sized at the governor's own cap.
+            caps = {p: (governor._max if _auto else
+                        concurrency.get(p, 1) if isinstance(concurrency, dict)
+                        else concurrency)
+                    for p in {r.provider for _, r in plan_idx}}
+            gates = {p: threading.Semaphore(max(1, n)) for p, n in caps.items()}
+
             for rep in sorted(by_rep):
                 group = by_rep[rep]
-                n_providers = len({r.provider for _, r in group})
-                workers = max(1, concurrency * n_providers)
+                # Enough threads that every provider can reach its own cap at
+                # once; the semaphores, not the pool size, do the limiting.
+                workers = max(1, sum(caps.get(p, 1)
+                                     for p in {r.provider for _, r in group}))
                 with ThreadPoolExecutor(max_workers=workers) as pool:
-                    futures = [pool.submit(_one, i, r) for i, r in group]
+                    futures = [pool.submit(_gated, i, r, gates) for i, r in group]
                     try:
                         for f in as_completed(futures):
                             done = f.result()

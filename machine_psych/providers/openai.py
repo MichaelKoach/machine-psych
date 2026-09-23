@@ -43,6 +43,16 @@ SEARCH_TOOL = {"type": "web_search"}
 
 
 class OpenAI(Provider):
+
+    # Confirmed: OpenAI honours `Idempotency-Key` and caches the result for 24
+    # hours, so a retry after a lost response returns the original rather than
+    # regenerating and billing again.
+    #
+    # Anthropic and Gemini are left False because their support was NOT
+    # confirmed. Claiming protection that does not exist is worse than having
+    # none: the retry looks safe and quietly pays twice.
+    supports_idempotency = True
+
     name = "openai"
     CAPABILITIES = {k: v for k, v in CAPABILITIES.items()
                     if k.startswith("openai/")}

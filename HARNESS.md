@@ -229,6 +229,9 @@ from machine_psych import paths
 
 # Secret names and the output path are per-person. These are the ones in use;
 # substitute whatever the Colab secrets panel actually holds.
+# Or set ANTHROPIC_API_KEY / OPENAI_API_KEY / GEMINI_API_KEY in the environment
+# and skip these three lines entirely — useful for a script left running for
+# days, where a pasted key is a key that gets committed.
 paths.set_api_key("anthropic", userdata.get('Claude_AI_Research_API_Key'))
 paths.set_api_key("openai",    userdata.get('ChatGPT_AI_Research_API_Key'))
 paths.set_api_key("gemini",    userdata.get('Gemini-AI-Research-API-Key'))
@@ -247,9 +250,52 @@ Then, in separate cells:
 ```python
 mp.save_investigation(spec)                # optional: persist the spec itself
 run = mp.load_investigation(spec)          # validates, prints the plan + cost. SENDS NOTHING.
-results, _ = mp.run_investigation(run)     # the battery. writes to Drive as it goes.
+results, _ = mp.run_investigation(run)     # the battery. writes to disk as it goes.
 corpus = mp.load_corpus("liftoff_visibility")
 ```
+
+**For anything longer than a few minutes, three parameters matter.**
+
+```python
+results, _ = mp.run_investigation(
+    run,
+    concurrency="auto",        # or {"anthropic": 8, "gemini": 2} to fix it
+    resume=True,               # continue a run that stopped
+)
+```
+
+**`concurrency="auto"` is the one to use.** It paces against the limits each
+provider reports on every response, keeping a token bucket per counter and
+holding a call that would push past 80% of any of them. It starts at two in
+flight and opens up once a provider states its limits. Preferred over a number,
+because a number is a guess — this project tried to measure a ceiling and could
+not: 8, 16 and 32 gave identical throughput because the battery held six
+conversations per repetition and the extra workers were idle.
+
+**A fixed `concurrency` is per provider**, and a dict sets each one by name;
+anything unnamed falls back to 1. Rate limits differ by an order of magnitude — Gemini's
+free tier runs about 10 requests per minute against Anthropic's hundreds — so one
+number for all three is either too slow for Anthropic or a 429 storm on Gemini.
+An int applies the same cap to every provider. Default 1, which is sequential.
+
+Conversations run in parallel WITHIN a repetition and the run waits at each
+repetition boundary. **That is not a tuning choice.** Retrieval drift must spread
+across conditions rather than confound with them, which requires that no arm
+FINISHES before another STARTS.
+
+Measured: ~40s per record sequential, so 8,000 records is about four days. Start
+at 4 per provider and raise it while watching `attempts > 1` — a retry means the
+API pushed back and the harness absorbed it.
+
+**`resume=True` continues a run that stopped**, skipping records already on disk
+and writing into the same directory. `True` takes the most recent run of that
+investigation; a timestamp string names one. A four-day battery will be
+interrupted, and without this the next attempt re-sends everything.
+
+**Interruptions are handled in three layers**, none of which needs configuring:
+retries absorb blips of seconds; an outage latch holds every worker while the
+network or one provider is unreachable, for up to 12 hours, distinguishing the
+two by probing; and `resume` covers anything longer, including power loss.
 
 **The package owns its own directory structure — do not invent one.** Under the
 base it creates and uses exactly two folders:
@@ -299,6 +345,11 @@ mp.thoughts(corpus)               # readable reasoning, where the provider expos
 mp.read(corpus, record_id=0)      # print a record in full
 mp.normalize(corpus)              # → (comparable view, report of what was set aside)
 ```
+
+**Rate-limit headers are on every record** as `ratelimit_*` — remaining requests
+and tokens as of that response. Tier 3, because Gemini sends none and the two
+that do use incompatible shapes. Useful for finding real headroom before a large
+battery; not comparable across providers.
 
 **Useful columns:** `answer_text`, `answer_chars`, `status`, `provider`, `model`,
 `probe`, `condition`, `rep`, `turn`, `conversation`, `n_queries`, `n_citations`,
