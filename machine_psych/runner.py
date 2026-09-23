@@ -42,6 +42,7 @@ from .integrity import check_record
 # STATE lives in `paths`. A facade over one source of truth, not a copy of it —
 # an earlier version held the paths here and `corpus` reached back into this
 # module to read them, which made a low-level module depend on a high-level one.
+from .outage import OutageGaveUp, OutageLatch
 from .paths import set_api_key, set_base
 from .providers import get_provider
 from .ratelimit import RateLimits
@@ -311,9 +312,60 @@ def _write_record(path: pathlib.Path, record: dict) -> None:
                                default=str))
 
 
+def ledger_key(provider, model, study, probe, path, rep, turn, condition) -> str:
+    """The identity of one logical API call, stable across restarts.
+
+    **This is an idempotency key in the ordinary engineering sense: it names the
+    ACTION, not the network attempt.** The standard failure it prevents is a
+    request that reached the provider, was billed, generated an answer, and lost
+    its response on the way back — retried blindly, that pays twice for one
+    record.
+
+    Derived from content rather than generated, because a key that changes
+    between attempts is not a key. A random UUID per retry is the documented way
+    people lose idempotency and get charged repeatedly.
+
+    `model` is in here and `provider` is not enough: two models from one provider
+    are two different actions, and leaving it out is the same defect that made
+    eighty records share forty conversation ids.
+    """
+    return "|".join(str(x) for x in
+                    (provider, model, study, probe, path, rep, turn,
+                     condition or "base"))
+
+
+def completed_keys(run_dir: pathlib.Path) -> set[str]:
+    """Which logical calls a run directory already holds.
+
+    **The ledger is the records themselves.** An in-memory set dies with the
+    process, and a 72-hour battery that loses power at hour 60 would re-send
+    everything — paying twice for work already on disk. Reading the directory
+    makes the ledger survive anything the machine survives.
+
+    A record without `conversation_status` was in flight when the run stopped and
+    is NOT counted complete: it may have been billed, but there is no answer in
+    it, so it has to be redone.
+    """
+    done: set[str] = set()
+    if not run_dir.exists():
+        return done
+    for f in sorted(run_dir.glob("[0-9]*.json")):
+        try:
+            rec = json.loads(f.read_text())
+        except (OSError, json.JSONDecodeError):
+            continue          # a torn write from a power cut; redo it
+        if rec.get("conversation_status") is None:
+            continue
+        done.add(ledger_key(rec.get("provider"), rec.get("model"),
+                            rec.get("study"), rec.get("probe"),
+                            rec.get("path"), rec.get("rep"),
+                            rec.get("turn"), rec.get("condition")))
+    return done
+
+
 def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backoff,
                       persist, run_dir, inv, verbose, failures, raw_out,
-                      conv_rows, print_lock=None):
+                      conv_rows, print_lock=None, latch=None):
     """Run one conversation — every turn of one row of the plan — and return its
     records.
 
@@ -372,6 +424,12 @@ def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backof
         # its first attempt would otherwise leave this unbound.
         limits = RateLimits(source=r.provider)
         for attempt in range(1, retries + 1):
+            # (4c) HOLD IF THE WORLD IS DOWN. Returns instantly when it is not.
+            #      Placed before the clock so an outage does not inflate
+            #      `latency`, which measures one call rather than one wait.
+            if latch is not None:
+                latch.wait(r.provider)
+
             t0 = time.perf_counter()
             try:
                 # (4b) THE FULL PATH WHERE THERE IS ONE, so rate-limit headers
@@ -381,7 +439,16 @@ def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backof
                 #      all-None `RateLimits` set above.
                 bound = getattr(send, "__self__", None)
                 if bound is not None and hasattr(bound, "dispatch_full"):
-                    _http, body, limits = bound.dispatch_full(config)
+                    # The same key on every attempt of this turn, so a retry
+                    # after a LOST RESPONSE returns the original answer rather
+                    # than regenerating and billing again. Derived from the
+                    # record's identity, never generated, because a key that
+                    # changes between attempts is not a key.
+                    _http, body, limits = bound.dispatch_full(
+                        config,
+                        idempotency_key=ledger_key(
+                            r.provider, r.model, r.study, r.probe, r.path,
+                            r.rep, turn_i, r.condition))
                 else:
                     body = send(config)
                 exc = None
@@ -396,8 +463,20 @@ def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backof
                 #     any exception, losing records a retry recovers.
                 status = provider.classify_exception(exc)
                 error = repr(exc)
+                if latch is not None:
+                    # Only CONNECTION errors are evidence about the network. An
+                    # HTTP error means the network carried the request fine.
+                    import requests as _rq
+                    latch.record_failure(
+                        r.provider, conversation,
+                        isinstance(exc, (_rq.exceptions.ConnectionError,
+                                         _rq.exceptions.Timeout)))
             else:
                 status, error = provider.status(body)
+                if latch is not None:
+                    # A call got through. Without clearing, three failures spread
+                    # across a whole battery would eventually latch a healthy run.
+                    latch.record_success(r.provider)
 
             # (7) ONLY `unavailable` retries. A 400 five times wastes a
             #     minute per record and never succeeds.
@@ -466,8 +545,13 @@ def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backof
         }
 
         if persist:
-            name = (f"{seq_base + turn_i:04d}_{r.provider}_{r.study}_{r.probe}"
-                    f"_p{r.path}_r{r.rep}_t{turn_i}.json")
+            # MODEL in the name. Two models from one provider produced files
+            # distinguished only by their sequence prefix, so a human reading the
+            # directory could not tell the arms apart — and a resume keyed on the
+            # name would have merged them.
+            _m = str(r.model).split("/", 1)[-1]
+            name = (f"{seq_base + turn_i:04d}_{r.provider}_{_m}_{r.study}"
+                    f"_{r.probe}_p{r.path}_r{r.rep}_t{turn_i}.json")
             safe = "".join(c if c.isalnum() or c in "-_." else "_"
                            for c in name)
             fp = run_dir / safe
@@ -523,7 +607,8 @@ def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backof
 def run_investigation(run: pd.DataFrame, persist: bool = True,
                       export: bool = True, verbose: bool = True,
                       retries: int = 5, backoff: int = 4,
-                      concurrency: int = 1,
+                      concurrency: int = 1, resume: str | bool | None = None,
+                      outage_ceiling: float = 12 * 3600, latch=None,
                       dispatch=None) -> tuple[pd.DataFrame, list]:
     """Execute a loaded investigation. Returns (results, raw).
 
@@ -543,15 +628,52 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
     does not — and so does not become acceptable just because it is faster.
 
     Measured sequentially: ~40s per record, so 8,000 records is about four days.
+
+    **`resume` continues a run that stopped.** `True` picks the most recent run
+    of this investigation; a timestamp string names one. Records already on disk
+    are skipped, and everything else is dispatched into the SAME directory.
+
+    A four-day battery will be interrupted — power, wifi, a reboot, a laptop
+    lid. Without this, the next attempt starts a new directory and re-sends
+    everything, which pays a second time for records already collected. **The
+    records ARE the ledger**: an in-memory set dies with the process, and a file
+    on disk does not.
+
+    A record still missing `conversation_status` was in flight when the run
+    stopped and is redone. It may have been billed with no answer returned, which
+    is the ambiguous case no client can resolve — so the cost is accepted rather
+    than a hole left in the corpus.
     """
     inv = run.attrs.get("investigation_id", "unnamed")
     stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d_%H-%M-%S")
     run_dir = paths.RECORDS_DIR / inv / stamp
+    already: set[str] = set()
+
+    if resume:
+        # Continue INTO the existing directory rather than beside it. A resume
+        # that writes somewhere new leaves the corpus split across two places
+        # and `load_corpus` reads one of them.
+        prior = sorted((paths.RECORDS_DIR / inv).glob("*"),
+                       key=lambda d: d.name) if (paths.RECORDS_DIR / inv).exists() else []
+        prior = [d for d in prior if d.is_dir()]
+        if resume is not True:
+            prior = [d for d in prior if d.name == str(resume)]
+        if not prior:
+            raise FileNotFoundError(
+                f"no run to resume for {inv!r}"
+                + (f" named {resume!r}" if resume is not True else "")
+                + f". Runs present: {[d.name for d in prior] or 'none'}")
+        run_dir = prior[-1]
+        already = completed_keys(run_dir)
+        print(f"  resuming {run_dir.name} — {len(already)} records already on "
+              f"disk, not re-sent")
+
     if persist:
-        n = 2
-        while run_dir.exists():
-            run_dir = paths.RECORDS_DIR / inv / f"{stamp}_{n}"
-            n += 1
+        if not resume:
+            n = 2
+            while run_dir.exists():
+                run_dir = paths.RECORDS_DIR / inv / f"{stamp}_{n}"
+                n += 1
         run_dir.mkdir(parents=True, exist_ok=True)
         (run_dir / "_spec.json").write_text(
             json.dumps(run.attrs.get("spec", {}), indent=2, ensure_ascii=False))
@@ -595,11 +717,43 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
         bases[i] = _n
         _n += len(r.turns)
 
+    # (1b2) SKIP WHAT IS ALREADY ON DISK, but keep the sequence numbers computed
+    #       over the WHOLE plan. Renumbering after the skip would give a resumed
+    #       record a different filename from the one it would have had, and the
+    #       directory would no longer read in plan order.
+    if already:
+        keep = []
+        for i, r in enumerate(plan):
+            keys = [ledger_key(r.provider, r.model, r.study, r.probe, r.path,
+                               r.rep, t, r.condition) for t in range(len(r.turns))]
+            if all(k in already for k in keys):
+                continue          # every turn of this conversation is recorded
+            keep.append((i, r))
+        skipped = len(plan) - len(keep)
+        plan_idx = keep
+        print(f"  {skipped} conversations already complete, "
+              f"{len(keep)} to run")
+    else:
+        plan_idx = list(enumerate(plan))
+
     # (1c) IN FLIGHT, so the interrupt handler can still see partial work.
     #      Every worker appends to its own list; the handler walks all of them.
     #      `conv_rows` alone was enough while this was sequential and is not now.
     in_flight: list[list[dict]] = []
     print_lock = threading.Lock()
+
+    # (1f) ONE LATCH PER RUN, shared by every worker. Before this, an outage
+    #      longer than the ~40s retry budget failed the conversation, then the
+    #      next, then the next — as fast as the network could refuse them.
+    #      `outage_ceiling` and `latch` are parameters because the latch SLEEPS
+    #      in real time — a test that triggers an outage would otherwise wait
+    #      hours, and a caller with a flakier connection may want a longer wall.
+    if latch is None:
+        latch = OutageLatch(
+            providers={r.provider for r in plan},
+            ceiling=outage_ceiling,
+            probe=lambda name: providers[name].reachable(
+                next(row.model for row in plan if row.provider == name)))
 
     def _one(i, r):
         mine: list[dict] = []
@@ -610,12 +764,12 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
             seq_base=bases[i], n_records=n_records, retries=retries,
             backoff=backoff, persist=persist, run_dir=run_dir, inv=inv,
             verbose=verbose, failures=failures, raw_out=raw,
-            conv_rows=mine, print_lock=print_lock)
+            conv_rows=mine, print_lock=print_lock, latch=latch)
         return mine
 
     try:
         if concurrency <= 1:
-            for i, r in enumerate(plan):
+            for i, r in plan_idx:
                 conv_rows = []
                 in_flight.append(conv_rows)
                 _run_conversation(
@@ -624,7 +778,7 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
                     seq_base=bases[i], n_records=n_records, retries=retries,
                     backoff=backoff, persist=persist, run_dir=run_dir, inv=inv,
                     verbose=verbose, failures=failures, raw_out=raw,
-                    conv_rows=conv_rows, print_lock=print_lock)
+                    conv_rows=conv_rows, print_lock=print_lock, latch=latch)
                 rows.extend(conv_rows)
                 in_flight.remove(conv_rows)
                 conv_rows = []
@@ -636,7 +790,7 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
             #
             #      Workers are capped PER PROVIDER because rate limits are.
             by_rep: dict = {}
-            for i, r in enumerate(plan):
+            for i, r in plan_idx:
                 by_rep.setdefault(r.rep, []).append((i, r))
 
             for rep in sorted(by_rep):
@@ -685,8 +839,31 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
         #
         # The records are already on disk by this point, so re-raising loses
         # nothing and surfaces the traceback that names the actual fault.
-        if not isinstance(e, (KeyboardInterrupt, SystemExit)):
+        # OutageGaveUp joins them. It is not a bug: it means the network stayed
+        # down past the ceiling, which is a STOP rather than a fault. Re-raising
+        # it would discard the records collected in memory and print a traceback
+        # for a condition the run handled correctly. The message already points
+        # at `resume=True`.
+        if not isinstance(e, (KeyboardInterrupt, SystemExit, OutageGaveUp)):
             raise
+
+    # (13b) A RESUMED RUN RETURNS THE WHOLE CORPUS, not only what this attempt
+    #       collected. Returning the increment would make every analysis after a
+    #       resume silently partial, which is worse than the interruption.
+    if already:
+        for f in sorted(run_dir.glob("[0-9]*.json")):
+            try:
+                rec = json.loads(f.read_text())
+            except (OSError, json.JSONDecodeError):
+                continue
+            if rec.get("conversation_status") is None:
+                continue
+            k = ledger_key(rec.get("provider"), rec.get("model"), rec.get("study"),
+                           rec.get("probe"), rec.get("path"), rec.get("rep"),
+                           rec.get("turn"), rec.get("condition"))
+            if k in already:
+                rec["path_on_disk"] = str(f)
+                rows.append(rec)
 
     # (13c) SORT BY PLAN POSITION. Under concurrency rows arrive in COMPLETION
     #       order, which varies run to run — so a corpus would not be

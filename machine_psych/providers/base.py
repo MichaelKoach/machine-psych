@@ -161,6 +161,43 @@ class Provider(ABC):
         belonging to the provider's other endpoint.
         """
 
+    def reachable(self, model: str, timeout: int = 20) -> bool:
+        """The cheapest call that proves this provider is answering.
+
+        One token in, one token out — a few thousandths of a cent, and a probe
+        that runs every few seconds during an outage must cost effectively
+        nothing.
+
+        **Any HTTP answer counts as reachable, including 401 and 429.** The
+        question is whether the network carries a request and the provider
+        responds, not whether that response is useful. A rate limit is emphatic
+        proof the provider is up, and treating it as an outage would hold the
+        run for exactly the reason it should not.
+        """
+        try:
+            body = self.build("hi", {"model": model, "max_tokens": 1,
+                                     "reasoning": "off"})
+        except Exception:
+            body = self.build("hi", {"model": model, "max_tokens": 1})
+        try:
+            status, _, _ = self.dispatch_full(body, timeout=timeout)
+        except Exception:
+            return False            # connection refused, DNS, timeout
+        return status is not None
+
+    supports_idempotency: bool = False
+    """Whether this provider honours an `Idempotency-Key` header.
+
+    **Only where confirmed.** Sending the header to a provider that ignores it is
+    harmless but misleading: the retry would look protected and would not be, and
+    a silent double-charge is exactly what this exists to prevent.
+
+    The window matters too. OpenAI caches a key for 24 hours; a battery running
+    longer than that outlives the protection, which is why the disk ledger
+    (`completed_keys`) is the primary mechanism and this is an optimisation on
+    top of it.
+    """
+
     def dispatch(self, body: dict, timeout: int = 1800) -> dict:
         """POST the body, return the response unchanged.
 
@@ -191,8 +228,9 @@ class Provider(ABC):
         status, parsed, _ = self.dispatch_full(body, timeout)
         return status, parsed
 
-    def dispatch_full(self, body: dict,
-                      timeout: int = 1800) -> tuple[int, dict, RateLimits]:
+    def dispatch_full(self, body: dict, timeout: int = 1800,
+                      idempotency_key: str | None = None
+                      ) -> tuple[int, dict, RateLimits]:
         """The same POST, keeping the status AND the rate-limit headers.
 
         Every provider reports remaining capacity on every response and this
@@ -205,7 +243,14 @@ class Provider(ABC):
         all-None `RateLimits`, because failing here would turn a reporting
         nicety into a dispatch error.
         """
-        r = requests.post(self.url_for(body), headers=self.headers(),
+        head = dict(self.headers())
+        if idempotency_key and self.supports_idempotency:
+            # The SAME key on every retry of the SAME logical call. A fresh key
+            # per attempt is the documented way people lose idempotency and get
+            # billed repeatedly — the key names the ACTION, not the attempt.
+            head["Idempotency-Key"] = idempotency_key
+
+        r = requests.post(self.url_for(body), headers=head,
                           json=body, timeout=timeout)
         limits = parse_headers(self.name, r.headers)
         try:
