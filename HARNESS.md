@@ -37,7 +37,7 @@ Part B is the reference. **This part is the order of operations**, because every
 mistake made with this harness so far came not from missing information but from
 having to work out what to do first.
 
-## A1. Five rules that silently invalidate an analysis
+## A1. Rules that silently invalidate an analysis
 
 None of these raises an error. Each produces a corpus that looks fine and says
 something false.
@@ -53,6 +53,12 @@ something false.
    on `model` directly. Merging identity back in creates `model_x` / `model_y`.
 5. **Extract mechanically before reading closely.** Reading a few records and
    inferring a pattern is how three findings in this project died at n=7.
+6. **Do not compare grounded against ungrounded records as if search caused the
+   difference.** Within a `search: True` arm the model CHOSE which records to
+   ground, so the two groups differ in whatever made it choose. Only the
+   `search: False` versus `search: True` arms are assigned; compare those.
+7. **Do not switch models partway through a programme.** A study run on
+   different models is not comparable with one run before it.
 
 ## A2. Three states a model can be in
 
@@ -60,17 +66,25 @@ something false.
 |---|---|---|
 | **provider-available** | the API lists it | `tier1.run()` shows it |
 | **harness-qualified** | a complete `CAPABILITIES` entry exists | A4 below |
-| **study-ready** | qualified, AND grounding has been seen to work | A4, step 6 |
+| **study-ready** | qualified, AND the capabilities THIS study uses have been seen to work | A4 |
 
 **Available is not qualified.** `load_investigation` refuses any model without a
 capability entry, however many providers list it — correctly, because an
 unmeasured model produces arms whose conditions are guesses.
 
+**Study-ready is scoped to the study, not to the model.** It does not require all
+22 fields re-measured. Verify what the study depends on — the exact model id,
+generation, the reasoning configuration you will use, search off, search
+permitted, real grounding, source and citation extraction, a safe token budget,
+correct corpus identity — and leave the rest marked `inherited` until a study
+needs them. Qualification should be short and hard to misuse, not exhaustive.
+
 ## A3. Running a study, in order
 
 1. **Choose models that are already qualified**, or qualify new ones first (A4).
-   Do not switch models partway through a programme; results stop being
-   comparable with what ran before.
+   **Freeze the exact ids** — `gemini-3.8-flash`, not `gemini-flash-latest`. An
+   alias resolves to whatever the provider ships next, and Google has shipped a
+   Flash model every three weeks.
 2. **Choose the reasoning configuration deliberately** (A6).
 3. **Write the spec.** A5 lists what will reject it.
 4. **Preflight:** `run = mp.load_investigation(spec)` — validates and prints the
@@ -87,11 +101,13 @@ unmeasured model produces arms whose conditions are guesses.
 For any model not already in `CAPABILITIES`:
 
 1. **Confirm it is available:** `tier1.run([...])`.
+   Then check it is not already qualified: `'provider/model' in mp.known_models()`.
 2. **Measure what can be measured:** `python drift/characterise.py provider/model`.
    The block it prints is **PARTIAL** — 11 of 22 fields — and says so.
 3. **Complete the rest.** Take `reasoning_levels` from the ENUMS it prints. For
    every other field, measure it or copy it from a sibling model **and mark it
-   `"inherited"` in `evidence`**. An inherited value is a measurement of a
+   `"inherited:<sibling>"` in `evidence`** — `"inherited:claude-opus-5"`, naming
+   the model it came from. An inherited value is a measurement of a
    different model — weaker than a single observation of this one, and
    `mp.provisional(model)` reports it.
 4. **Register it for this session:**
@@ -99,25 +115,28 @@ For any model not already in `CAPABILITIES`:
    ```python
    import dataclasses
    from machine_psych.capabilities import caps_for, register_model
-   sibling = caps_for('gemini/gemini-3.7-flash')
-   new = dataclasses.replace(sibling, measured_on='2026-09-24',
-                             evidence={**sibling.evidence, 'reasoning_levels': 'swept',
-                                       'tokens_per_query': 'inherited'},
-                             notes='inherited from gemini-3.7-flash except as marked')
-   register_model('gemini/gemini-3.8-flash', new)
+   sibling = caps_for('gemini/gemini-3.8-flash')
+   new = dataclasses.replace(
+       sibling, measured_on='2026-10-15',
+       evidence={**sibling.evidence, 'reasoning_levels': 'single',
+                 'tokens_per_query': 'inherited:gemini-3.8-flash'},
+       notes='inherited from gemini-3.8-flash except as marked')
+   register_model('gemini/gemini-3.9-flash', new)   # a hypothetical next release
    ```
 
    `register_model` runs the same checks as import and lasts until the kernel
    restarts. **To keep it, paste the `ModelCaps(...)` into `CAPABILITIES` in
    `machine_psych/capabilities.py`** and restart — a running kernel caches the
    old module.
-5. **Smoke-test generation:** a one-record spec, search off.
+5. **Smoke-test generation**, with `search: False` and then `search: True`.
 6. **Smoke-test grounding — twice.** `search: True` on an ordinary prompt proves
    the configuration is *accepted*. It does not prove grounding works: the model
    may simply decline. Then send a prompt that plainly needs current information
    ("What did [company] announce this month?") and inspect a record that
    actually grounded — `mp.queries`, `mp.sources`, `mp.citations` all populated.
-7. **Only then build the paid study.**
+   Check `served_model` matches the id you asked for, and `status` is `ok`.
+7. **Only then build the paid study.** Fields you did not verify stay marked
+   `inherited`; that is expected, and `mp.provisional(model)` lists them.
 
 ## A5. What `load_investigation` refuses
 
@@ -149,8 +168,8 @@ tokens on hard ones.
 
 ## A7. A current-model battery
 
-Three providers, native reasoning, search crossed as a factor, run at capacity.
-Verified to load: 96 records.
+The three models qualified on 2026-09-24, native reasoning, search crossed as a
+factor, run at capacity. Verified to load: 96 records.
 
 ```python
 spec = {
@@ -167,9 +186,9 @@ spec = {
        "prompt_paths": [["We are a US consumer brand launching in Japan. ..."]]},
     ],
     "providers": {
-      "anthropic/claude-sonnet-5": {"search": [False, True], "max_tokens": 8192,  "repetitions": 8},
+      "anthropic/claude-opus-5-5": {"search": [False, True], "max_tokens": 8192,  "repetitions": 8},
       "openai/gpt-5.6-sol":        {"search": [False, True], "max_tokens": 16384, "repetitions": 8},
-      "gemini/gemini-3.7-flash":   {"search": [False, True], "max_tokens": 16384, "repetitions": 8},
+      "gemini/gemini-3.8-flash":   {"search": [False, True], "max_tokens": 16384, "repetitions": 8},
     }}]}
 
 LIMITS = {"gemini": {"rpm": 1000, "input_tpm": 2_000_000,
@@ -219,7 +238,7 @@ These words carry a specific meaning here that differs from their ordinary one.
 | **grounded** | search actually ran on this record. Distinct from `search: True`, which only permits it. |
 | **truncated** | a status: the answer was cut off by the token limit but **the partial answer is real and usable**. Not a failure. |
 | **provider-available / harness-qualified / study-ready** | three states of a model — listed by the API; has a complete capability entry; qualified AND grounding seen to work. See A2. |
-| **provisional / swept / structural / inherited** | how a capability was measured. `swept` = varied across cases. `structural` = read from response shape, so one observation suffices. `provisional` = ONE observation, treat as unverified. `inherited` = copied from a sibling model, not measured on this one. |
+| **provisional / swept / structural / inherited** | how a capability was measured. `swept` = varied across cases. `structural` = read from response shape, so one observation suffices. `provisional` = ONE observation, treat as unverified. `inherited:<sibling>` = copied from the named sibling model, not measured on this one — e.g. `inherited:claude-opus-5`. |
 
 ---
 
@@ -510,8 +529,17 @@ provider and raise it while watching `attempts > 1` — a retry means the API
 pushed back and the harness absorbed it, which is the ceiling announcing itself
 one level early.
 
-**`resume=True` continues a run that stopped**, skipping records already on disk
-and writing into the same directory. `True` takes the most recent run of that
+**`resume=True` continues a run that stopped** — it is NOT "resume if possible."
+It requires an existing run and raises `FileNotFoundError` when there is none:
+
+```python
+mp.run_investigation(run, concurrency="auto")               # first attempt
+mp.run_investigation(run, concurrency="auto", resume=True)  # only after that
+```
+
+Strict on purpose: a typo in the investigation id would otherwise start a fresh
+battery silently and pay for everything again. It skips records already on disk
+and writes into the same directory. `True` takes the most recent run of that
 investigation; a timestamp string names one. A four-day battery will be
 interrupted, and without this the next attempt re-sends everything.
 

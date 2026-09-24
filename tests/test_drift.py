@@ -308,7 +308,11 @@ def roster_at(tmp_path, monkeypatch):
     return setup
 
 
-BASE = ["claude-fable-5", "claude-opus-4-6", "claude-opus-5", "claude-sonnet-5"]
+# Every Anthropic model in CAPABILITIES must be in this simulated roster, or
+# tier1 correctly reports it BROKEN — in use, but not offered. Adding
+# claude-opus-5-5 to the table on 2026-09-24 made exactly that happen here.
+BASE = ["claude-fable-5", "claude-opus-4-6", "claude-opus-5", "claude-opus-5-5",
+        "claude-sonnet-5"]
 
 
 def test_the_catalogue_is_filtered_to_dispatchable_models():

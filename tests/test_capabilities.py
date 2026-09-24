@@ -9,6 +9,7 @@ to review — there is nothing on the page to look at.
 
 from __future__ import annotations
 
+import dataclasses
 import pathlib
 import re
 from dataclasses import fields
@@ -538,7 +539,11 @@ def test_measured_on_reflects_actual_measurement():
     remeasured = {
         # `thinking.type: enabled` is valid and requires budget_tokens
         "anthropic/claude-sonnet-5": "2026-09-05",
-        "openai/gpt-5.6-sol": "2026-09-05",
+        # qualified 2026-09-24 for the Adaptation Systems study: fresh
+        # characterisation, smoke tests, and forced grounding on each
+        "openai/gpt-5.6-sol": "2026-09-24",
+        "anthropic/claude-opus-5-5": "2026-09-24",
+        "gemini/gemini-3.8-flash": "2026-09-24",
         # per-model probe: `max` is NOT supported here, though the shared block
         # claimed it
         "openai/gpt-5.5": "2026-09-05",
@@ -840,3 +845,52 @@ def test_inherited_fields_are_reported_as_provisional():
         assert "reasoning_levels" in provisional("gemini/gemini-inh-flash")
     finally:
         C.CAPABILITIES.pop("gemini/gemini-inh-flash", None)
+
+
+def test_the_2026_09_24_entries_differ_from_their_siblings_only_where_measured():
+    """Each new entry must differ from its sibling ONLY on fields qualification
+    actually measured as different. A difference anywhere else is a value that
+    was changed without evidence — the guessed-capability failure."""
+    measured_diffs = {
+        "anthropic/claude-opus-5-5": ("anthropic/claude-opus-5",
+                                      {"reasoning_off", "reasoning_levels"}),
+        "gemini/gemini-3.8-flash": ("gemini/gemini-3.7-flash", {"reasoning_levels"}),
+    }
+    skip = {"measured_on", "notes", "evidence"}
+    for model, (sibling, allowed) in measured_diffs.items():
+        new, sib = caps_for(model), caps_for(sibling)
+        changed = {f.name for f in dataclasses.fields(ModelCaps)
+                   if f.name not in skip and getattr(new, f.name) != getattr(sib, f.name)}
+        assert changed <= allowed, (
+            f"{model} differs from {sibling} on {sorted(changed - allowed)}, "
+            f"which qualification did not measure")
+
+
+def test_opus_5_5_has_no_off_level():
+    """Measured: `thinking.type.disabled` is rejected. Opus 5 CAN disable
+    thinking; an off-versus-on arm works on one and not the other."""
+    c = caps_for("anthropic/claude-opus-5-5")
+    assert c.reasoning_off is False
+    assert "off" not in c.reasoning_levels
+
+
+def test_gemini_3_8_accepts_minimal_where_3_7_does_not():
+    """A generational change in the reasoning vocabulary, found by measuring
+    rather than read from the schema — which lists `minimal` for both."""
+    assert "minimal" in caps_for("gemini/gemini-3.8-flash").reasoning_levels
+    assert "minimal" not in caps_for("gemini/gemini-3.7-flash").reasoning_levels
+
+
+def test_inherited_evidence_names_its_sibling_and_is_provisional():
+    """`inherited:claude-opus-5` rather than bare `inherited`, so an audit can
+    see which model a value really describes."""
+    from machine_psych.capabilities import provisional
+
+    for model, sibling in (("anthropic/claude-opus-5-5", "claude-opus-5"),
+                           ("gemini/gemini-3.8-flash", "gemini-3.7-flash")):
+        ev = caps_for(model).evidence
+        inherited = {f for f, v in ev.items() if str(v).startswith("inherited")}
+        assert inherited, f"{model} marks nothing as inherited"
+        assert all(ev[f] == f"inherited:{sibling}" for f in inherited)
+        assert inherited <= set(provisional(model)), (
+            "an inherited field is not reported as provisional")

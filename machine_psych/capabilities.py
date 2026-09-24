@@ -526,6 +526,38 @@ CAPABILITIES: dict[str, ModelCaps] = {
               "`thinking: {type: disabled}` still works, so an off arm exists; "
               "`thinking: {type: enabled, budget_tokens: N}` is rejected."),
     "anthropic/claude-opus-5": ModelCaps(reasoning_off=True, **_ANTHROPIC_COMMON),
+
+    # Qualified 2026-09-24. Differs from Opus 5 on exactly the two fields that
+    # were measured as different: reasoning cannot be disabled, so there is no
+    # `off` level. Every other value matches Opus 5, and the evidence below says
+    # which were re-observed on THIS model and which were copied from it.
+    "anthropic/claude-opus-5-5": ModelCaps(
+        reasoning_off=False,
+        reasoning_levels=("low", "medium", "high", "xhigh", "max"),
+        readable_reasoning=False, verbosity=False, combined_token_budget=False,
+        search=True, search_conditional=True, domain_filter="param",
+        max_tool_calls=False, page_age=True, retrieval_set=True,
+        citation_offsets="quoted", answer_extraction="heuristic",
+        cross_turn="question_dependent", sampling_meaningful=False,
+        sampling_silently_ignored=False, in_tok_processed_field="input_tokens",
+        thinking_in_output_tokens=True, tokens_per_query=11600,
+        measured_on="2026-09-24",
+        evidence={
+            # observed on this model
+            "reasoning_off": "single", "reasoning_levels": "single",
+            "search": "single", "sampling_meaningful": "single",
+            "sampling_silently_ignored": "single",
+            "page_age": "structural", "citation_offsets": "structural",
+            "retrieval_set": "structural", "answer_extraction": "structural",
+            "readable_reasoning": "structural",
+            # copied from the sibling — a measurement of a DIFFERENT model
+            **dict.fromkeys(("search_conditional", "verbosity", "combined_token_budget", "domain_filter", "max_tool_calls", "cross_turn", "in_tok_processed_field", "thinking_in_output_tokens", "tokens_per_query"), "inherited:claude-opus-5"),
+        },
+        notes="thinking.type.disabled is rejected; use thinking.type.adaptive "
+              "and output_config.effort. Temperature rejected outright. Forced "
+              "grounding 2/2; each grounded record exposed 9 retrieved sources "
+              "while citing a subset, which is what retrieval_set=True means. "
+              "Zero readable thought rows despite thinking-token telemetry."),
     "anthropic/claude-fable-5": ModelCaps(
         reasoning_off=False, **_ANTHROPIC_COMMON,
         notes="Adaptive thinking always on and `thinking: disabled` returns 400 — "
@@ -539,8 +571,15 @@ CAPABILITIES: dict[str, ModelCaps] = {
     # resemble one vendor, they named substantially different sets and only one
     # company appeared in all of them. Pinning is required, not preferred.
     "openai/gpt-5.6-sol": ModelCaps(
-        reasoning_off=True, **{**_OPENAI_COMMON, "measured_on": "2026-09-05"},
-        notes="2026-09-05, FIRST LIVE RUN: this provider DOES truncate with a "
+        reasoning_off=True, **{**_OPENAI_COMMON, "measured_on": "2026-09-24"},
+        notes="2026-09-24 QUALIFICATION re-confirmed the recorded values without "
+              "changing any: served model exactly gpt-5.6-sol; temperature "
+              "rejected outright; 2/2 ordinary and 2/2 forced-grounding calls "
+              "succeeded; citation offsets character-based; sources cited-only, "
+              "not a full retrieval set. Zero readable thought rows appeared, but "
+              "that run omitted `reasoning`, so no summary was REQUESTED — which "
+              "is not evidence against readable_reasoning. "
+              "2026-09-05, FIRST LIVE RUN: this provider DOES truncate with a "
               "PARTIAL answer — 1,071 and 1,169 characters on a two-turn "
               "ladder at max_output_tokens 200. That contradicts a five-budget "
               "fixture sweep which found zero message items on every incomplete "
@@ -568,6 +607,36 @@ CAPABILITIES: dict[str, ModelCaps] = {
               "records the resolution."),
 
     # ── Gemini ───────────────────────────────────────────────────────────────
+    # Qualified 2026-09-24. Differs from 3.7 Flash on exactly one measured
+    # field: it ACCEPTS `minimal`, which 3.7 rejects. A generational change in
+    # the reasoning vocabulary, found by characterisation rather than assumed
+    # from the schema.
+    "gemini/gemini-3.8-flash": ModelCaps(
+        reasoning_off=False,
+        reasoning_levels=("minimal", "low", "medium", "high"),
+        readable_reasoning=True, verbosity=False, combined_token_budget=True,
+        search=True, search_conditional=True, domain_filter="prompt",
+        max_tool_calls=False, page_age=False, retrieval_set=False,
+        citation_offsets="byte", answer_extraction="structural",
+        cross_turn="question_dependent", sampling_meaningful=False,
+        sampling_silently_ignored=True, in_tok_processed_field="raw_prompt_token",
+        thinking_in_output_tokens=False, tokens_per_query=4100,
+        measured_on="2026-09-24",
+        evidence={
+            # observed on this model
+            "reasoning_off": "single", "reasoning_levels": "single",
+            "search": "single",
+            # a business prompt declined to ground with search allowed, and a
+            # current-information prompt grounded 2/2 — two prompts, one each way
+            "search_conditional": "single",
+            "citation_offsets": "structural", "readable_reasoning": "structural",
+            "retrieval_set": "structural",
+            **dict.fromkeys(("verbosity", "combined_token_budget", "domain_filter", "max_tool_calls", "page_age", "answer_extraction", "cross_turn", "sampling_meaningful", "sampling_silently_ignored", "in_tok_processed_field", "thinking_in_output_tokens", "tokens_per_query"), "inherited:gemini-3.7-flash"),
+        },
+        notes="Forced grounding 2/2: 9 search queries, 13 citation spans. Byte "
+              "citation offsets and readable thought rows observed directly. "
+              "Accepts `minimal`; 3.7 Flash rejects it."),
+
     "gemini/gemini-3.7-flash": ModelCaps(
         **{**_GEMINI_COMMON, "measured_on": "2026-09-05",
            # MEASURED, and the schema disagrees. "'minimal' is not a supported
@@ -738,7 +807,8 @@ def provisional(model: str) -> list[str]:
     ev = getattr(caps, "evidence", {}) or {}
     return sorted(f.name for f in _fields(caps)
                   if f.name not in ("evidence", "measured_on", "notes")
-                  and ev.get(f.name, "single") in ("single", "inherited"))
+                  and str(ev.get(f.name, "single")).split(":")[0]
+                  in ("single", "inherited"))
 
 
 def known_providers() -> set[str]:
