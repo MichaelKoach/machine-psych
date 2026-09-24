@@ -41,7 +41,7 @@ from .capabilities import caps_for, provider_of
 # STATE lives in `paths`. A facade over one source of truth, not a copy of it —
 # an earlier version held the paths here and `corpus` reached back into this
 # module to read them, which made a low-level module depend on a high-level one.
-from .governor import Governor, pool_key
+from .governor import DailyCapReached, Governor, pool_key
 from .integrity import check_record
 from .outage import OutageGaveUp, OutageLatch
 from .paths import set_api_key, set_base
@@ -447,6 +447,7 @@ def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backof
                 # search — the assumption this project disproved, and one that
                 # over-reserved 12x on the 94% of calls that never search.
                 _pool = pool_key(r.provider, r.model)
+                governor.count_day(_pool)
                 governor.acquire(
                     _pool,
                     governor.estimate_in(_pool, bool(r.params.get("search"))),
@@ -578,10 +579,16 @@ def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backof
         }
 
         if governor is not None:
+            _pool = pool_key(r.provider, r.model)
             # What the call ACTUALLY cost, so the estimate converges instead of
             # resting on an assumption about whether search would happen.
-            governor.record_cost(pool_key(r.provider, r.model),
-                                 parsed.in_tok_processed or parsed.in_tok_billed)
+            governor.record_cost(_pool, parsed.in_tok_processed or parsed.in_tok_billed)
+            warning = governor.queue.record(_pool, latency)
+            if warning and print_lock is not None:
+                with print_lock:
+                    print(f"\n  QUEUEING — {warning}\n")
+            if parsed.grounded:
+                governor.count_grounded(_pool)
 
         if persist:
             # MODEL in the name. Two models from one provider produced files
@@ -649,6 +656,7 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
                       concurrency: int | dict[str, int] | str = 1,
                       resume: str | bool | None = None,
                       outage_ceiling: float = 12 * 3600, latch=None,
+                      silent_ceiling: int = 64, limits: dict | None = None,
                       dispatch=None) -> tuple[pd.DataFrame, list]:
     """Execute a loaded investigation. Returns (results, raw).
 
@@ -808,7 +816,20 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
     #      `outage_ceiling` and `latch` are parameters because the latch SLEEPS
     #      in real time — a test that triggers an outage would otherwise wait
     #      hours, and a caller with a flakier connection may want a longer wall.
-    governor = Governor() if concurrency == "auto" else None
+    # `silent_ceiling` is the concurrency for a provider that answers but reports
+    # no limits — Gemini, today. Without it such a provider never leaves cold
+    # start and runs two at a time for the whole battery, and every repetition
+    # waits for it.
+    # `limits` declares what a console shows, for providers that do not report
+    # it: {"gemini": {"rpm": 1000, "input_tpm": 2_000_000, "rpd": 10_000,
+    #                 "grounding_rpd": 1_500}}. Keyed by POOL, so an Anthropic
+    #  family is "anthropic:sonnet" rather than "anthropic".
+    governor = (Governor(silent_ceiling=silent_ceiling, declared=limits)
+                if concurrency == "auto" else None)
+    if governor is not None and resume:
+        # Today's calls already spent today's quota. A fresh governor would
+        # count from zero and allow a second full day of it.
+        governor.seed_today(run_dir)
 
     if latch is None:
         latch = OutageLatch(
@@ -942,7 +963,12 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
         # it would discard the records collected in memory and print a traceback
         # for a condition the run handled correctly. The message already points
         # at `resume=True`.
-        if not isinstance(e, (KeyboardInterrupt, SystemExit, OutageGaveUp)):
+        # DailyCapReached joins them for the same reason: a quota spent is a
+        # handoff to `resume=True`, not a bug. Grouping it with bugs would discard
+        # everything collected in memory and print a traceback for a condition
+        # the run handled correctly — the mistake first made with OutageGaveUp.
+        if not isinstance(e, (KeyboardInterrupt, SystemExit, OutageGaveUp,
+                              DailyCapReached)):
             raise
 
     # (13b) A RESUMED RUN RETURNS THE WHOLE CORPUS, not only what this attempt

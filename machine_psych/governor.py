@@ -76,9 +76,117 @@ DEFAULT_MARGIN = 0.8
 # Enough to get a header back quickly, small enough that being wrong is cheap.
 COLD_START = 2
 
+# For a provider that has ANSWERED but reports no limits at all. Gemini sends no
+# rate-limit headers, so without this it never leaves cold start and runs two
+# at a time for an entire battery — against a real limit of 1,000 RPM. And
+# because every repetition waits for its slowest provider, one arm stuck at two
+# throttles the whole study. Found by an audit of the briefing, not by a test.
+#
+# 64 — the same as the hard cap, because at the observed paid-tier limits
+# (1,000 RPM) sixty-four in flight is ~128 requests a minute and nowhere near the
+# ceiling. An overshoot is also cheap now: a 429 retries on `retry-after`, and
+# the outage latch does not fire on HTTP errors.
+#
+# Lower it for a free-tier project. And note the caveat that has nothing to do
+# with rate limits: gemini-3.7-flash was measured QUEUEING rather than rejecting
+# under concurrency on the free tier, latency climbing from 27s to 354s with
+# queue depth. If that holds on a paid tier, concurrency buys waiting rather than
+# throughput — and no limit ever fires to say so. `QueueWatch` below reports it.
+SILENT_CEILING = 64
+
 # A hard ceiling regardless of what the limits allow. Guards against a provider
 # reporting something implausible and the governor opening a thousand sockets.
 MAX_IN_FLIGHT = 64
+
+
+def _pacific_now():
+    """Now, in the timezone that Gemini's daily quotas reset in.
+
+    RPD resets at midnight PACIFIC, not local midnight. A battery that reasons in
+    its own timezone gets the reset wrong by up to a day.
+
+    `zoneinfo` needs the `tzdata` package on Windows and silently has no zones
+    without it. The fallback is a fixed UTC-8, which is wrong by an hour during
+    daylight time — acceptable, because it errs toward stopping EARLY: a cap
+    hit an hour too soon costs an hour; a cap missed costs a wall of 429s.
+    """
+    from datetime import datetime, timedelta, timezone
+    try:
+        from zoneinfo import ZoneInfo
+        return datetime.now(ZoneInfo("America/Los_Angeles"))
+    except Exception:
+        return datetime.now(timezone(timedelta(hours=-8)))
+
+
+class DailyCapReached(RuntimeError):
+    """A per-day limit was reached. A STOP, not a fault.
+
+    Raised so the run ends cleanly with every record on disk. Nothing inside a
+    run can wait out a daily reset — it can be twenty hours away — so this hands
+    off to `resume=True` the way the outage latch does.
+    """
+
+
+class DailyCap:
+    """A fixed window that resets at midnight Pacific.
+
+    **Not a token bucket.** Per-minute limits refill continuously and a bucket
+    models them; a per-day quota resets on a clock edge, and a continuously
+    refilling model of it would claim capacity that does not exist until
+    midnight.
+    """
+
+    def __init__(self, limit: int, margin: float = 0.95, label: str = "", now=_pacific_now):
+        self.limit = max(1, int(limit * margin))
+        self.label = label
+        self._now = now
+        self._day = now().date()
+        self.used = 0
+
+    def take(self, n: int = 1) -> None:
+        today = self._now().date()
+        if today != self._day:
+            self._day, self.used = today, 0
+        if self.used + n > self.limit:
+            raise DailyCapReached(
+                f"{self.label} daily limit reached ({self.used} of {self.limit} "
+                f"usable). Records already collected are on disk — rerun with "
+                f"resume=True after midnight Pacific.")
+        self.used += n
+
+
+class QueueWatch:
+    """Reports when a provider queues requests rather than rejecting them.
+
+    A rate limit announces itself with a 429. Queueing does not: latency just
+    climbs, and concurrency buys waiting instead of throughput. Measured on
+    gemini-3.7-flash's free tier, latency rose from 27s to 354s with queue depth
+    and one request exceeded 500s. No limit ever fired.
+
+    Watches, never controls. Pacing on latency is a different design with its own
+    failure modes, and a warning is enough to tell someone to lower concurrency.
+    """
+
+    def __init__(self, baseline_n: int = 8, ratio: float = 3.0):
+        self._n = baseline_n
+        self._ratio = ratio
+        self._seen: dict[str, list[float]] = {}
+        self.warned: set[str] = set()
+
+    def record(self, pool: str, latency: float) -> str | None:
+        xs = self._seen.setdefault(pool, [])
+        xs.append(latency)
+        if pool in self.warned or len(xs) < self._n * 2:
+            return None
+        base = sorted(xs[:self._n])[self._n // 2]
+        recent = sorted(xs[-self._n:])[self._n // 2]
+        if base > 0 and recent > base * self._ratio:
+            self.warned.add(pool)
+            return (f"{pool}: median latency rose from {base:.0f}s to "
+                    f"{recent:.0f}s — the provider may be QUEUEING rather than "
+                    f"rate limiting, and no 429 will say so. Lower concurrency "
+                    f"for it; more in flight is buying waiting, not throughput.")
+        return None
 
 
 class Bucket:
@@ -138,17 +246,123 @@ class Governor:
     """
 
     def __init__(self, margin: float = DEFAULT_MARGIN, clock=time.monotonic,
-                 sleep=time.sleep, max_in_flight: int = MAX_IN_FLIGHT):
+                 sleep=time.sleep, max_in_flight: int = MAX_IN_FLIGHT,
+                 silent_ceiling: int = SILENT_CEILING,
+                 declared: dict | None = None):
         self.margin = margin
         self._clock = clock
         self._sleep = sleep
         self._max = max_in_flight
+        self._silent_ceiling = silent_ceiling
+        # Pools that have ANSWERED with no limits — distinct from pools not yet
+        # heard from. The first get `silent_ceiling`, the second cold start.
+        self._silent: set[str] = set()
+        self._daily: dict[str, DailyCap] = {}
+        self._grounding: dict[str, DailyCap] = {}
+        self.queue = QueueWatch()
         self._lock = threading.Lock()
         self._buckets: dict[str, dict[str, Bucket]] = {}
         self._in_flight: dict[str, int] = {}
         self._known: set[str] = set()
         self._observed: dict[str, tuple[float, int]] = {}
         self.waited: dict[str, float] = {}
+        # LAST, so every structure `declare` touches already exists. It ran
+        # before `_lock` was created in the first draft and raised on
+        # construction.
+        for pool, lim in (declared or {}).items():
+            self.declare(pool, **lim)
+
+    def declare(self, pool: str, rpm=None, input_tpm=None, output_tpm=None,
+                tpm=None, rpd=None, grounding_rpd=None) -> None:
+        """Limits read off a console, for a provider that does not report them.
+
+        Builds the SAME buckets a header would. Gemini sends no rate-limit
+        headers, so without this the governor could not learn its limits at all
+        and fell back to a fixed ceiling — 125x under the real 1,000 RPM.
+
+        `rpd` and `grounding_rpd` become daily caps, which headers never carry
+        for any provider. **The grounding cap is the one that bites:** Gemini 3
+        models allow 1,500 grounded requests a day, and that did not rise at
+        Tier 2.
+
+        A declared limit is a claim about someone's account on some day. Headers,
+        where a provider sends them, override it on the first response.
+        """
+        from .ratelimit import RateLimits
+        limits = RateLimits(rpm_limit=rpm, rpm_remaining=rpm,
+                            input_tpm_limit=input_tpm, input_tpm_remaining=input_tpm,
+                            output_tpm_limit=output_tpm,
+                            output_tpm_remaining=output_tpm,
+                            tpm_limit=tpm, tpm_remaining=tpm)
+        if not limits.empty:
+            self.observe(pool, limits)
+        with self._lock:
+            if rpd:
+                self._daily[pool] = DailyCap(rpd, label=f"{pool} requests/day")
+            if grounding_rpd:
+                self._grounding[pool] = DailyCap(
+                    grounding_rpd, label=f"{pool} search grounding")
+
+    def count_day(self, pool: str) -> None:
+        """One request against the daily cap. Raises before the cap, not after."""
+        cap = self._daily.get(pool)
+        if cap is not None:
+            with self._lock:
+                cap.take()
+
+    def count_grounded(self, pool: str) -> None:
+        """One GROUNDED request, counted after the fact.
+
+        Only after, because whether a call grounds is the model's decision —
+        measured, 5 of 80 search-enabled calls actually searched. So this cannot
+        reserve in advance; it stops the run once the day's allowance is spent,
+        before the next grounded call is refused.
+        """
+        cap = self._grounding.get(pool)
+        if cap is not None:
+            with self._lock:
+                cap.take()
+
+    def seed_today(self, run_dir) -> dict[str, int]:
+        """Count calls already made TODAY toward the daily caps.
+
+        **Without this a same-day resume grants a second day's quota.** A battery
+        that stops on a wifi drop at 2pm and resumes at 3pm starts a fresh
+        governor, whose daily counters read zero — measured: 18 calls sent
+        against a real cap of 10.
+
+        Each record's file is written when its call completes, so its
+        modification time, read in Pacific, says which quota day it spent.
+        Calls from an earlier day are ignored: that quota has already reset.
+        """
+        import json
+        import pathlib
+        from datetime import datetime
+
+        today = _pacific_now()
+        tz = today.tzinfo
+        spent: dict[str, int] = {}
+        grounded: dict[str, int] = {}
+        for f in pathlib.Path(run_dir).glob("[0-9]*.json"):
+            try:
+                when = datetime.fromtimestamp(f.stat().st_mtime, tz).date()
+                if when != today.date():
+                    continue
+                rec = json.loads(f.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            pool = pool_key(rec.get("provider", ""), rec.get("model", ""))
+            spent[pool] = spent.get(pool, 0) + 1
+            if rec.get("grounded"):
+                grounded[pool] = grounded.get(pool, 0) + 1
+        with self._lock:
+            for pool, n in spent.items():
+                if pool in self._daily:
+                    self._daily[pool].used += n
+            for pool, n in grounded.items():
+                if pool in self._grounding:
+                    self._grounding[pool].used += n
+        return spent
 
     # ── what a worker calls ────────────────────────────────────────────────
 
@@ -219,6 +433,9 @@ class Governor:
         if limits is None:
             return
         with self._lock:
+            if getattr(limits, "empty", False):
+                self._silent.add(pool)
+                return
             b = self._buckets.setdefault(pool, {})
 
             def declare(name, limit, remaining):
@@ -250,6 +467,8 @@ class Governor:
         that, whatever the tightest bucket's capacity allows, capped.
         """
         if pool not in self._known:
+            if pool in self._silent:
+                return self._silent_ceiling
             return COLD_START
         b = self._buckets.get(pool, {})
         rpm = b.get("rpm")

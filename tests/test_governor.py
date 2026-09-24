@@ -332,3 +332,192 @@ def test_no_slot_leaks_across_retries(tmp_path):
     assert len(res) == 32
     leaked = {k: v for k, v in made["g"]._in_flight.items() if v != 0}
     assert not leaked, f"slots never released: {leaked}"
+
+
+def test_a_provider_that_reports_nothing_is_not_stuck_at_cold_start(gov):
+    """**Found by auditing the briefing, not by any test.**
+
+    Gemini sends no rate-limit headers. The governor only learned a provider's
+    limits from headers, so Gemini never left cold start and ran two at a time
+    for an entire battery — against a real limit of 1,000 RPM. And because every
+    repetition waits for its slowest provider, one arm stuck at two throttled
+    the whole study under `concurrency="auto"`.
+
+    "Not heard from yet" and "answered, reports nothing" are different states.
+    """
+    from machine_psych.ratelimit import parse_headers
+
+    assert gov._ceiling("gemini") == COLD_START          # not heard from
+    gov.observe("gemini", parse_headers("gemini", {}))   # answered, silent
+    assert gov._ceiling("gemini") > COLD_START, (
+        "a provider that reports no limits is stranded at cold start")
+
+
+def test_the_silent_ceiling_is_tunable():
+    """Eight is a guess, because the provider will not say. It must be raisable
+    once the console shows the real number."""
+    from machine_psych.ratelimit import parse_headers
+
+    g = Governor(silent_ceiling=32)
+    g.observe("gemini", parse_headers("gemini", {}))
+    assert g._ceiling("gemini") == 32
+
+
+def test_a_provider_that_does_report_is_unaffected(gov):
+    gov.observe("anthropic:sonnet", RateLimits(rpm_limit=5000, rpm_remaining=5000))
+    assert "anthropic:sonnet" not in gov._silent
+    assert gov._ceiling("anthropic:sonnet") > 8
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Declared limits and daily caps
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def test_declared_limits_build_the_same_buckets_headers_would():
+    """Gemini sends no rate-limit headers, so without a declaration the governor
+    could not learn its limits at all — and fell back to a fixed ceiling 125x
+    under the real 1,000 RPM."""
+    g = Governor(declared={"gemini": {"rpm": 1000, "input_tpm": 2_000_000}})
+    assert sorted(g._buckets["gemini"]) == ["in_tpm", "rpm"]
+    assert g._ceiling("gemini") > COLD_START
+
+
+def test_the_silent_ceiling_defaults_to_the_hard_cap():
+    """At paid-tier limits, 64 in flight is ~128 requests a minute against 1,000.
+    An overshoot is cheap now — 429s retry on `retry-after`."""
+    from machine_psych.governor import MAX_IN_FLIGHT, SILENT_CEILING
+    assert SILENT_CEILING == MAX_IN_FLIGHT == 64
+
+
+def test_a_daily_cap_resets_at_midnight_pacific_not_locally():
+    """Gemini's RPD resets at midnight PACIFIC. Reasoning in local time gets the
+    reset wrong by up to a day."""
+    from datetime import datetime, timedelta, timezone
+
+    from machine_psych.governor import DailyCap, DailyCapReached
+
+    t = {"now": datetime(2026, 9, 23, 22, 0, tzinfo=timezone(timedelta(hours=-7)))}
+    cap = DailyCap(10, margin=1.0, now=lambda: t["now"])
+    for _ in range(10):
+        cap.take()
+    with pytest.raises(DailyCapReached):
+        cap.take()
+    t["now"] += timedelta(hours=3)          # past midnight Pacific
+    cap.take()
+    assert cap.used == 1
+
+
+def test_a_daily_cap_is_a_window_not_a_bucket():
+    """A continuously refilling model of a per-day quota claims capacity that does
+    not exist until midnight. Waiting an hour must not buy anything back."""
+    from datetime import datetime, timedelta, timezone
+
+    from machine_psych.governor import DailyCap, DailyCapReached
+
+    t = {"now": datetime(2026, 9, 23, 9, 0, tzinfo=timezone(timedelta(hours=-7)))}
+    cap = DailyCap(5, margin=1.0, now=lambda: t["now"])
+    for _ in range(5):
+        cap.take()
+    t["now"] += timedelta(hours=6)          # same day
+    with pytest.raises(DailyCapReached):
+        cap.take()
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# In a real battery
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _gemini_run(tmp_path, inv, limits, body_for=None, resume=None, reps=2):
+    import contextlib
+    import io
+    import json
+    import pathlib
+
+    import requests
+
+    import machine_psych as mp
+    from machine_psych import paths
+
+    paths.set_api_key("gemini", "k")
+    fx = pathlib.Path(__file__).parent / "fixtures" / "gemini"
+    ok = json.loads((fx / "ungrounded_ok.json").read_text(encoding="utf-8"))["response"]
+    grd = json.loads((fx / "grounded_ok.json").read_text(encoding="utf-8"))["response"]
+    n = {"c": 0}
+
+    class Resp:
+        def __init__(self, body):
+            self.status_code, self.headers, self._b = 200, {}, body
+        def json(self):
+            return self._b
+
+    def post(*a, **k):
+        n["c"] += 1
+        return Resp(body_for(n["c"], ok, grd) if body_for else ok)
+
+    real = requests.post
+    requests.post = post
+    try:
+        mp.set_base(tmp_path)
+        spec = {"investigation_id": inv, "studies": [{"study_id": "s",
+                "probes": [{"probe_id": f"p{i}", "prompt_paths": [[f"q{i}"]]}
+                           for i in range(10)],
+                "providers": {"gemini/gemini-3.7-flash":
+                              {"reasoning": "low", "repetitions": reps}}}]}
+        with contextlib.redirect_stdout(io.StringIO()):
+            run = mp.load_investigation(spec)
+            res, _ = mp.run_investigation(run, verbose=False, export=False,
+                                          concurrency="auto", limits=limits,
+                                          resume=resume)
+    finally:
+        requests.post = real
+    return res, n["c"]
+
+
+def test_the_daily_cap_is_a_clean_stop_that_resume_continues(tmp_path):
+    """A quota spent is a handoff to `resume=True`, not a fault — the mistake
+    first made with OutageGaveUp, where the exception discarded everything in
+    memory and printed a traceback for a condition the run handled correctly."""
+    first, _ = _gemini_run(tmp_path, "cap", {"gemini": {"rpd": 10}})
+    assert 0 < len(first) < 20
+    assert first.attrs.get("interrupted")
+
+    second, _ = _gemini_run(tmp_path, "cap", None, resume=True)
+    assert len(second) == 20
+
+
+def test_a_same_day_resume_does_not_grant_a_second_day_of_quota(tmp_path):
+    """**Measured before the fix: 18 calls sent against a real cap of 10.**
+
+    A battery stopped by a wifi drop and resumed an hour later built a fresh
+    governor whose daily counters read zero. Today's calls are now counted from
+    the records already on disk.
+    """
+    _gemini_run(tmp_path, "same", {"gemini": {"rpd": 10}}, reps=3)
+    res, sent = _gemini_run(tmp_path, "same", {"gemini": {"rpd": 10}},
+                            resume=True, reps=3)
+    assert len(res) <= 10, f"{len(res)} records against a cap of 10"
+    assert sent == 0, f"resume sent {sent} more calls on a spent quota"
+
+
+def test_the_grounding_cap_counts_only_calls_that_grounded(tmp_path):
+    """Whether a call grounds is the model's decision — 5 of 80 search-enabled
+    calls actually searched on one battery. Counting every search-enabled call
+    against a grounding cap would stop a run that had barely used it."""
+    res, _ = _gemini_run(
+        tmp_path, "grd", {"gemini": {"grounding_rpd": 4}},
+        body_for=lambda i, ok, grd: grd if i % 4 == 0 else ok)
+    grounded = int(res.grounded.fillna(False).sum())
+    assert len(res) > grounded, "ungrounded calls were counted against the cap"
+    assert res.attrs.get("interrupted")
+
+
+def test_queueing_is_reported_even_though_no_limit_fires():
+    """Measured on gemini-3.7-flash's free tier: latency rose from 27s to 354s
+    with queue depth, and one request passed 500s. No 429 ever said so."""
+    from machine_psych.governor import QueueWatch
+
+    q = QueueWatch()
+    warnings = [q.record("gemini", x) for x in [30] * 8 + [35] * 4 + [120] * 8]
+    fired = [w for w in warnings if w]
+    assert len(fired) == 1, "queueing not reported, or reported repeatedly"
+    assert "QUEUEING" in fired[0]

@@ -207,9 +207,12 @@ is not yours to set.** An ungrounded call is a fraction of a cent; a grounded on
 ran 20–50K input tokens in an earlier battery, roughly $0.10–0.30. Read the
 estimate, then expect the floor.
 
-**Budget time, not just money.** Dispatch is sequential: ~40 seconds per record
-in that battery, and Opus averaged 52s against Sonnet's 29s. A 1,000-record
-battery is most of a day.
+**Budget time, not just money.** A single call ran ~40 seconds in that battery —
+Opus averaged 52s, Sonnet 29s. Sequentially, a 1,000-record battery is most of a
+day. With `concurrency="auto"` (§4) calls run in parallel within each
+repetition, and on a 12-record calibration it ran 4.3x faster than sequential
+with identical output. The gain is larger on grounded calls, where waiting is
+nearly all of the time.
 
 ---
 
@@ -261,6 +264,7 @@ results, _ = mp.run_investigation(
     run,
     concurrency="auto",        # or {"anthropic": 8, "gemini": 2} to fix it
     resume=True,               # continue a run that stopped
+    limits={"gemini": {"rpm": 1000, "rpd": 10_000, "grounding_rpd": 1_500}},
 )
 ```
 
@@ -271,6 +275,56 @@ flight and opens up once a provider states its limits. Preferred over a number,
 because a number is a guess — this project tried to measure a ceiling and could
 not: 8, 16 and 32 gave identical throughput because the battery held six
 conversations per repetition and the extra workers were idle.
+
+**What `auto` actually does, and where it cannot see.**
+
+- **Paces per model FAMILY, not per provider.** Anthropic pools its limits by
+  family: Opus models share one budget, Sonnet another. Tracked as one provider, a
+  Sonnet-versus-Opus study would pace both to whichever was busier. OpenAI and
+  Gemini stay one pool each, because their pooling is unconfirmed.
+- **Learns what a call costs** rather than assuming. It does not reserve for a
+  web search just because `search` is allowed — measured, most search-enabled
+  calls never search.
+- **Gemini reports no limits**, so `auto` cannot learn them — **declare them**
+  from the console instead (below). Undeclared, a provider that answers without
+  headers runs at `silent_ceiling` (default 64).
+- **Hard cap of 64 in flight** per pool regardless of what a provider allows.
+
+**Limits seen on this account, 2026-09-23** *(one account, one day — check your
+own console)*: Anthropic reported **5,000 RPM and 5M input tokens/minute**, so it
+is not the constraint; the 64 cap binds first. Gemini's console showed **1,000
+RPM, 2M input tokens/minute, 10,000 requests/day**, and a **separate 1,500/day cap
+on search grounding** that no pacing routes around.
+
+**Declaring limits a provider will not report:**
+
+```python
+results, _ = mp.run_investigation(
+    run, concurrency="auto",
+    limits={"gemini": {"rpm": 1000, "input_tpm": 2_000_000,
+                       "rpd": 10_000, "grounding_rpd": 1_500}},
+)
+```
+
+Builds the same buckets a header would. Keys are **pools**, so an Anthropic
+family is `"anthropic:sonnet"` rather than `"anthropic"`. Headers, where a
+provider sends them, override a declaration on the first response.
+
+**`rpd` and `grounding_rpd` are daily caps**, which no provider reports in
+headers. Reaching one is a **clean stop**, not an error: records stay on disk
+and `resume=True` continues after the reset. They reset at **midnight Pacific**,
+not local midnight, and a same-day resume counts what today already spent — it
+does not grant a second day's quota.
+
+**The grounding cap is the one that bites.** Gemini 3 models allow 1,500
+grounded requests a day, and a Tier 2 account reported the same figure — it does
+not rise with tier. Only calls that actually grounded count against it.
+
+**Queueing is reported, not handled.** A provider can queue requests rather than
+reject them: measured on `gemini-3.7-flash`'s free tier, latency rose from 27s to
+354s with queue depth and no 429 ever fired. If median latency on a pool climbs
+past 3x its early baseline, the run prints `QUEUEING` once. Lower concurrency for
+that provider — more in flight is buying waiting, not throughput.
 
 **A fixed `concurrency` is per provider**, and a dict sets each one by name;
 anything unnamed falls back to 1. Rate limits differ by an order of magnitude — Gemini's
@@ -283,9 +337,11 @@ repetition boundary. **That is not a tuning choice.** Retrieval drift must sprea
 across conditions rather than confound with them, which requires that no arm
 FINISHES before another STARTS.
 
-Measured: ~40s per record sequential, so 8,000 records is about four days. Start
-at 4 per provider and raise it while watching `attempts > 1` — a retry means the
-API pushed back and the harness absorbed it.
+Measured: ~40s per record sequential, so 8,000 records is about four days. Use
+`auto` rather than picking a number. **If you fix one instead**, start at 4 per
+provider and raise it while watching `attempts > 1` — a retry means the API
+pushed back and the harness absorbed it, which is the ceiling announcing itself
+one level early.
 
 **`resume=True` continues a run that stopped**, skipping records already on disk
 and writing into the same directory. `True` takes the most recent run of that
@@ -294,8 +350,16 @@ interrupted, and without this the next attempt re-sends everything.
 
 **Interruptions are handled in three layers**, none of which needs configuring:
 retries absorb blips of seconds; an outage latch holds every worker while the
-network or one provider is unreachable, for up to 12 hours, distinguishing the
-two by probing; and `resume` covers anything longer, including power loss.
+network or one provider is unreachable, distinguishing the two by probing; and
+`resume` covers anything longer, including power loss.
+
+The latch waits up to 12 hours, set by `outage_ceiling=` in seconds. Past that
+the run stops cleanly with everything on disk, and `resume=True` continues it.
+
+**Retries honour the provider's own `retry-after`**, and on OpenAI a retry after a
+lost response carries the same `Idempotency-Key`, so it returns the original
+answer rather than billing twice. Anthropic and Gemini support for that is
+unconfirmed, so it is not sent there.
 
 **The package owns its own directory structure — do not invent one.** Under the
 base it creates and uses exactly two folders:
@@ -464,7 +528,73 @@ is usually "less than you would think."
 
 ---
 
-## 7. What this cannot do
+## 7. When a provider changes something
+
+Model rosters move faster than a study does. Google shipped three Flash models in
+six weeks; OpenAI released a whole `gpt-6-*` generation. **Two scripts answer
+"what changed", and neither is part of the pip install** — `pyproject.toml`
+packages `machine_psych*` only, deliberately, because these make live calls. They
+run from a clone.
+
+```python
+import sys; sys.path.insert(0, '/content/mp')   # wherever the clone is
+```
+
+### Which models exist — free
+
+```python
+from drift import tier1
+tier1.run(['anthropic', 'openai', 'gemini'])     # diff against the approved roster
+tier1.approve(['anthropic', 'openai', 'gemini']) # record today's as the baseline
+```
+
+Three states, and the third is the one that matters. **NEW** — offered, not in
+your roster. **GONE** — in your roster, no longer offered. **BROKEN** — a model
+the capability table uses that the provider no longer serves, which is a battery
+that fails at dispatch.
+
+With no roster approved it lists everything and says `INCOMPLETE`, because there
+is nothing to diff against. Approve once, then it is four lines.
+
+### Whether the parameters still work — ~40 calls
+
+```python
+from drift import tier2
+tier2.run(['anthropic'])
+```
+
+Probes each declared enum against the live API. This is how `thinking.type:
+enabled` was found to need a companion field, and how `reasoning: minimal` turned
+out to be in OpenAI's schema and rejected by every model.
+
+### Measuring a new model — 5 calls
+
+```python
+from drift import characterise
+outcome = characterise.characterise('anthropic/claude-opus-5-5')
+print(characterise._render(outcome))
+```
+
+Or as the script it is: `python drift/characterise.py anthropic/claude-opus-5-5`.
+
+**The block it prints is PARTIAL — 11 of 22 fields — and says so at the top.**
+`reasoning_levels`, `tokens_per_query`, `answer_extraction` and eight others are
+not measured here.
+
+- **A new model:** the block is a starting point. Fill in the rest before using
+  it in a study, or note explicitly that they were inherited from a sibling.
+- **A model that already has an entry:** do NOT paste over it. Take
+  `measured_on` and anything that genuinely changed. Pasting drops the eleven
+  fields it does not produce and turns measured values into `None` — which reads
+  as "the provider cannot" rather than "nobody looked".
+
+### Do not switch models mid-programme
+
+A study run on different models is not comparable with one run before it. Adding
+`claude-opus-5-5` or `gpt-6-sol` is its own piece of work, not a change to a
+battery about to run.
+
+## 8. What this cannot do
 
 State these rather than designing around them.
 
@@ -487,7 +617,7 @@ State these rather than designing around them.
 
 ---
 
-## 8. Interpreting output
+## 9. Interpreting output
 
 Not a style preference — a property of the instrument. **A battery costs money and
 its failures are quiet.** A wrong condition label, a misread `None`, a column that
