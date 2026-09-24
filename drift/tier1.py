@@ -136,7 +136,7 @@ def run(providers: list[str] | None = None, verbose: bool = False) -> int:
     print("TIER 1 — which models exist\n")
     if approved is None:
         print("  NO APPROVED ROSTER — so there is nothing to diff against, and")
-        print("  the full dispatchable roster is listed below. Read it, then")
+        print("  the full provider-available roster is listed below. Read it, then")
         print("  --approve. Later runs report only what CHANGED.\n")
         incomplete = True
 
@@ -161,7 +161,7 @@ def run(providers: list[str] | None = None, verbose: bool = False) -> int:
         new = sorted(set(relevant) - was) if approved else []
         gone = sorted(was - set(relevant) - set(broken)) if approved else []
 
-        print(f"  {provider}   {len(relevant)} dispatchable "
+        print(f"  {provider}   {len(relevant)} provider-available "
               f"({len(live) - len(relevant)} filtered), {len(recorded)} in use")
 
         if approved is None:
@@ -202,6 +202,12 @@ def run(providers: list[str] | None = None, verbose: bool = False) -> int:
     if current:
         ROSTER.with_suffix(".current.json").write_text(
             json.dumps(current, indent=1, sort_keys=True), encoding="utf-8")
+
+    print("  PROVIDER-AVAILABLE is not HARNESS-QUALIFIED. A model listed here")
+
+    print("  but absent from CAPABILITIES is refused by load_investigation — see")
+
+    print("  HARNESS.md, 'Qualifying a new model'.\n")
 
     print("  measured_on — when each model in use was last CHECKED, which is not")
     print("  the same as whether checking again would find something different:")

@@ -556,21 +556,28 @@ def test_measured_on_reflects_actual_measurement():
 
 
 def test_error_does_not_name_an_unbuilt_script():
-    """The message told you to run `tests/characterise.py`, which does not exist.
+    """The error must not name a script that does not exist.
 
-    That is the unread-constant pattern applied to a procedure: a table
-    documenting how to add a model by naming an imaginary file. It now describes
-    the four probes and points at the spec, and this test fails if the script is
-    named again before it is written.
+    **This test kept the message stale for weeks.** It checked
+    `tests/characterise.py` — a path that never existed — and failed whenever the
+    error named the script. The real one shipped at `drift/characterise.py`, so
+    the guard written to stop the error pointing at a missing file instead
+    forbade pointing at the one that was there. The error kept saying "planned,
+    not built" because fixing it failed this test.
+
+    It now checks the path the script actually lives at.
     """
     try:
         caps_for("openai/gpt-99")
     except UnknownModelError as e:
         text = str(e)
-    script = PKG.parent / "tests" / "characterise.py"
-    if not script.exists():
-        assert "characterise.py" not in text, (
-            "the error names a script that has not been built")
+    script = PKG.parent / "drift" / "characterise.py"
+    if "characterise" in text:
+        assert script.exists(), (
+            f"the error names characterise, but {script} does not exist")
+    else:
+        assert not script.exists(), (
+            "drift/characterise.py exists and the error does not mention it")
 
 
 def test_reasoning_levels_are_per_model_not_inherited_blindly():
@@ -768,3 +775,68 @@ def test_evidence_marks_which_fields_rest_on_one_observation():
     assert single, "nothing marked provisional — the field is decorative"
     assert "search_conditional" not in single
     assert "tokens_per_query" in single
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Qualifying a new model — from a live session, 2026-09-24
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def test_the_unknown_model_error_points_at_the_tool_that_exists():
+    """It said "the script that automates this is planned, not built" long after
+    `drift/characterise.py` shipped — contradicting the briefing at the exact
+    moment someone needed guidance."""
+    try:
+        caps_for("gemini/gemini-99-flash")
+    except UnknownModelError as e:
+        msg = str(e)
+    assert "planned, not built" not in msg
+    assert "characterise" in msg
+
+
+def test_register_model_adds_a_validated_session_entry():
+    """`load_investigation` refuses a model absent from CAPABILITIES. Writing to
+    the dict by hand skipped the import-time checks; this is the supported path,
+    and it lasts only until the kernel restarts."""
+    import dataclasses
+
+    from machine_psych import capabilities as C
+
+    base = caps_for("gemini/gemini-3.7-flash")
+    new = dataclasses.replace(base, measured_on="2026-09-24")
+    try:
+        C.register_model("gemini/gemini-test-flash", new, persist_hint=False)
+        assert "gemini/gemini-test-flash" in known_models()
+        assert caps_for("gemini/gemini-test-flash").reasoning_levels == base.reasoning_levels
+    finally:
+        C.CAPABILITIES.pop("gemini/gemini-test-flash", None)
+
+
+def test_a_malformed_registration_does_not_linger():
+    import dataclasses
+
+    from machine_psych import capabilities as C
+
+    new = dataclasses.replace(caps_for("gemini/gemini-3.7-flash"))
+    with pytest.raises(ValueError):
+        C.register_model("no-provider-prefix", new, persist_hint=False)
+    assert "no-provider-prefix" not in C.CAPABILITIES
+
+
+def test_inherited_fields_are_reported_as_provisional():
+    """A value copied from a sibling is a measurement of a DIFFERENT model —
+    weaker than one observation of this one, not stronger. New models routinely
+    arrive before all 22 fields have been re-measured, so this is the common case
+    for anything recently released."""
+    import dataclasses
+
+    from machine_psych import capabilities as C
+    from machine_psych.capabilities import provisional
+
+    base = caps_for("gemini/gemini-3.7-flash")
+    ev = {**base.evidence, "reasoning_levels": "inherited"}
+    new = dataclasses.replace(base, evidence=ev)
+    try:
+        C.register_model("gemini/gemini-inh-flash", new, persist_hint=False)
+        assert "reasoning_levels" in provisional("gemini/gemini-inh-flash")
+    finally:
+        C.CAPABILITIES.pop("gemini/gemini-inh-flash", None)

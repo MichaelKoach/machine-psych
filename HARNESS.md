@@ -31,7 +31,163 @@ code, the code is right. If a study design seems to need something not described
 here, say so rather than inventing it — §7 lists the known gaps, and it is not
 exhaustive either.
 
+# PART A — OPERATING PROTOCOL
+
+Part B is the reference. **This part is the order of operations**, because every
+mistake made with this harness so far came not from missing information but from
+having to work out what to do first.
+
+## A1. Five rules that silently invalidate an analysis
+
+None of these raises an error. Each produces a corpus that looks fine and says
+something false.
+
+1. **Group on `model`, not `provider`, when comparing models.** Two Anthropic
+   models share `provider="anthropic"`, so grouping on it averages the arms
+   together.
+2. **`search: True` is not `grounded`.** It permits search; the model decides
+   whether to use it. Read `grounded` per record.
+3. **`None` is not zero.** `None` means the provider *cannot* report it; `0` means
+   it did not happen. Never fill a column to make it tidy.
+4. **Side tables already carry identity columns.** Group `mp.citations(corpus)`
+   on `model` directly. Merging identity back in creates `model_x` / `model_y`.
+5. **Extract mechanically before reading closely.** Reading a few records and
+   inferring a pattern is how three findings in this project died at n=7.
+
+## A2. Three states a model can be in
+
+| state | means | how you get there |
+|---|---|---|
+| **provider-available** | the API lists it | `tier1.run()` shows it |
+| **harness-qualified** | a complete `CAPABILITIES` entry exists | A4 below |
+| **study-ready** | qualified, AND grounding has been seen to work | A4, step 6 |
+
+**Available is not qualified.** `load_investigation` refuses any model without a
+capability entry, however many providers list it — correctly, because an
+unmeasured model produces arms whose conditions are guesses.
+
+## A3. Running a study, in order
+
+1. **Choose models that are already qualified**, or qualify new ones first (A4).
+   Do not switch models partway through a programme; results stop being
+   comparable with what ran before.
+2. **Choose the reasoning configuration deliberately** (A6).
+3. **Write the spec.** A5 lists what will reject it.
+4. **Preflight:** `run = mp.load_investigation(spec)` — validates and prints the
+   plan and cost. Sends nothing.
+5. **Preregister:** `mp.save_investigation(spec)`.
+6. **Run:** `mp.run_investigation(run, concurrency="auto", limits=LIMITS)`.
+   Interrupted? Run it again with `resume=True`.
+7. **Validate before interpreting** — counts per model × probe × rep, statuses,
+   `served_model`, grounding rate, unique conversation ids. §4 has the list.
+8. **Only then analyse**, starting with A1.
+
+## A4. Qualifying a new model
+
+For any model not already in `CAPABILITIES`:
+
+1. **Confirm it is available:** `tier1.run([...])`.
+2. **Measure what can be measured:** `python drift/characterise.py provider/model`.
+   The block it prints is **PARTIAL** — 11 of 22 fields — and says so.
+3. **Complete the rest.** Take `reasoning_levels` from the ENUMS it prints. For
+   every other field, measure it or copy it from a sibling model **and mark it
+   `"inherited"` in `evidence`**. An inherited value is a measurement of a
+   different model — weaker than a single observation of this one, and
+   `mp.provisional(model)` reports it.
+4. **Register it for this session:**
+
+   ```python
+   import dataclasses
+   from machine_psych.capabilities import caps_for, register_model
+   sibling = caps_for('gemini/gemini-3.7-flash')
+   new = dataclasses.replace(sibling, measured_on='2026-09-24',
+                             evidence={**sibling.evidence, 'reasoning_levels': 'swept',
+                                       'tokens_per_query': 'inherited'},
+                             notes='inherited from gemini-3.7-flash except as marked')
+   register_model('gemini/gemini-3.8-flash', new)
+   ```
+
+   `register_model` runs the same checks as import and lasts until the kernel
+   restarts. **To keep it, paste the `ModelCaps(...)` into `CAPABILITIES` in
+   `machine_psych/capabilities.py`** and restart — a running kernel caches the
+   old module.
+5. **Smoke-test generation:** a one-record spec, search off.
+6. **Smoke-test grounding — twice.** `search: True` on an ordinary prompt proves
+   the configuration is *accepted*. It does not prove grounding works: the model
+   may simply decline. Then send a prompt that plainly needs current information
+   ("What did [company] announce this month?") and inspect a record that
+   actually grounded — `mp.queries`, `mp.sources`, `mp.citations` all populated.
+7. **Only then build the paid study.**
+
+## A5. What `load_investigation` refuses
+
+A spec can be well-formed and still be refused. Each of these is deliberate.
+
+| refused | because |
+|---|---|
+| a model absent from `CAPABILITIES` | an unmeasured model's arms are guesses |
+| an intent the model cannot honour — e.g. `reasoning: "off"` on a model with no off level, or a level not in its `reasoning_levels` | set `on_unmet: "exclude"` on the study to drop those cells instead of failing |
+| **`max_tokens` under 8192 on a combined-budget model** (Gemini) | the budget covers thinking AND output, and thinking has measured ~96% of it — the answer truncates and reads as a model failure |
+| `temperature` / `top_p` / `top_k` on a model where sampling is inert | Gemini accepts them and discards them: `temperature: 0.0` gave six different answers in six runs |
+| prompts inside a provider block | every provider must be asked the same questions |
+| an `include` cell that does not pin every swept factor | its place in the design is undefined |
+| an `exclude` that removes every cell, or names an unknown factor | the study would run nothing, or run a grid you did not intend |
+| `on_unmet` other than `"error"` or `"exclude"` | a third option — run anyway — was rejected deliberately |
+
+## A6. Choosing a reasoning configuration
+
+| research goal | configuration |
+|---|---|
+| observe native, user-facing behaviour | **omit `reasoning`** — the model's default applies, usually adaptive |
+| experiment on reasoning level | sweep explicit levels, per model, from `reasoning_levels` |
+| hold reasoning as constant as possible | set an explicit per-model level — but the same word is **not** the same effort across providers |
+| test genuinely no reasoning | only models with `reasoning_off=True`; Gemini's `low` is a gate, not off |
+
+**Omitting `reasoning` is itself a configuration**, not "no reasoning." Effort
+becomes a function of the prompt: zero thinking on easy records, thousands of
+tokens on hard ones.
+
+## A7. A current-model battery
+
+Three providers, native reasoning, search crossed as a factor, run at capacity.
+Verified to load: 96 records.
+
+```python
+spec = {
+  "investigation_id": "demand_routing_battery",
+  "metadata": {"name": "Demand routing across three providers",
+               "rationale": ["native behaviour: reasoning omitted on purpose"]},
+  "studies": [{
+    "study_id": "routing",
+    "rationale": ["does search availability change the recommendation"],
+    "probes": [
+      {"probe_id": "b2b_pipeline",
+       "prompt_paths": [["We are a $300M B2B software company. ..."]]},
+      {"probe_id": "japan_launch",
+       "prompt_paths": [["We are a US consumer brand launching in Japan. ..."]]},
+    ],
+    "providers": {
+      "anthropic/claude-sonnet-5": {"search": [False, True], "max_tokens": 8192,  "repetitions": 8},
+      "openai/gpt-5.6-sol":        {"search": [False, True], "max_tokens": 16384, "repetitions": 8},
+      "gemini/gemini-3.7-flash":   {"search": [False, True], "max_tokens": 16384, "repetitions": 8},
+    }}]}
+
+LIMITS = {"gemini": {"rpm": 1000, "input_tpm": 2_000_000,
+                     "rpd": 10_000, "grounding_rpd": 1_500}}
+
+run = mp.load_investigation(spec)            # preflight: validates, costs, sends nothing
+mp.save_investigation(spec)                  # preregister
+results, _ = mp.run_investigation(run, concurrency="auto", limits=LIMITS)
+```
+
+**Reasoning is omitted on every provider.** Gemini needs `max_tokens` of at least
+8192 (A5). `search: [False, True]` makes search a condition — but the `True` arm
+still contains records that did not ground, so compare on `grounded`, not on the
+condition label.
+
 ---
+
+# PART B — REFERENCE
 
 ## 0. Vocabulary
 
@@ -62,7 +218,8 @@ These words carry a specific meaning here that differs from their ordinary one.
 | **escape hatch** | a provider-named key in a spec whose contents are sent raw, bypassing the intent layer. |
 | **grounded** | search actually ran on this record. Distinct from `search: True`, which only permits it. |
 | **truncated** | a status: the answer was cut off by the token limit but **the partial answer is real and usable**. Not a failure. |
-| **provisional / swept / structural** | how a capability was measured. `swept` = varied across cases. `structural` = read from response shape, so one observation suffices. `provisional` = ONE observation, treat as unverified. |
+| **provider-available / harness-qualified / study-ready** | three states of a model — listed by the API; has a complete capability entry; qualified AND grounding seen to work. See A2. |
+| **provisional / swept / structural / inherited** | how a capability was measured. `swept` = varied across cases. `structural` = read from response shape, so one observation suffices. `provisional` = ONE observation, treat as unverified. `inherited` = copied from a sibling model, not measured on this one. |
 
 ---
 
@@ -197,10 +354,20 @@ the low end unless the prompts plainly need current information.
 | **realised cost** | **$5.37, or $0.067/record** |
 | wall clock | 54 minutes, sequential |
 
-**Grounding is rare unless the prompt needs it.** These prompts described a
-business situation and asked for a recommendation — answerable from parametric
-knowledge, so the models mostly declined to search. A prompt asking what a company
-announced this year grounds nearly every time.
+**How often a model grounds depends heavily on the PROVIDER, not only the
+prompt.** The battery above used two Claude models, which mostly declined to
+search — these prompts are answerable from parametric knowledge. A later battery
+of the same kind of prompt, across all three providers:
+
+| provider | grounded |
+|---|---|
+| `openai/gpt-5.6-sol` | **14 of 20** |
+| `anthropic/claude-sonnet-5` | 2 of 20 |
+| `gemini/gemini-3.7-flash` | 0 of 20 |
+
+*(one battery each, 2026-09-24.)* So "grounding is rare" held for Claude and was
+wrong for OpenAI, which searched on 70% of the same prompts. A prompt asking what
+a company announced this year grounds nearly every time, on any provider.
 
 The durable point: **grounded records dominate cost, and whether a record grounds
 is not yours to set.** An ungrounded call is a fraction of a cent; a grounded one
@@ -495,9 +662,10 @@ difference between arms must exceed it before it means anything.
 - **Classifiers and embeddings** — operate on `answer_text` directly. A derived
   column survives on the frame and the side tables keep working.
 
-**Grounding is an OUTCOME, not a setting — analyse it as one.** Measured on one
-battery: 5 of 80 search-permitted records actually searched, and the same prompt
-searched on 2 of 5 repetitions and declined on 3. Report grounding rate by model
+**Grounding is an OUTCOME, not a setting — analyse it as one.** On a Claude
+battery 5 of 80 search-permitted records searched; on a three-provider battery
+OpenAI searched on 14 of 20 and Gemini on none. The same prompt searched on 2 of 5
+repetitions and declined on 3. Report grounding rate by model
 and probe, and its variability across reps, before anything else.
 
 **Everything retrieval-related must then be conditional on grounding.** Averaging

@@ -292,11 +292,17 @@ def _print_plan(spec: dict, summary: list, rows: list[dict]) -> None:
     if any(e["search_permitted"] for e in est.values()):
         # "(80 searched)" said PERMITTED and read as EXECUTED. On a real battery
         # 5 of 80 searched, and the estimate overstated input by 6x at its floor.
+        # "Expect the low end" was advice drawn from a Claude-only battery (5 of
+        # 80 searched). On the same kind of prompt OpenAI searched on 14 of 20 —
+        # the grounding rate is a property of the PROVIDER as much as the prompt,
+        # so the advice has to say which is which.
         print("  `may search` counts records where search is PERMITTED, not where "
-              "it will\n  RUN — that is the model's decision, made per prompt. "
-              "Measured: 5 of 80\n  on one battery. The floor below assumes none "
-              "search; the ceiling assumes\n  all of them do, heavily. Expect the "
-              "low end unless the prompts plainly\n  need current information.")
+              "it will\n  RUN — that is the model's decision, and it varies by "
+              "PROVIDER. On one\n  battery of business-advice prompts: OpenAI "
+              "searched 14 of 20, Claude 2,\n  Gemini 0. The floor assumes none "
+              "search; the ceiling assumes all do.\n  Expect OpenAI nearer the "
+              "ceiling, and every provider there if the prompts\n  need current "
+              "information.")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

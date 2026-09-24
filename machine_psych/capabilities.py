@@ -292,7 +292,14 @@ class ModelCaps:
 
     Values: `"swept"` — varied across prompts or models; `"single"` — one
     observation, treat as provisional; `"structural"` — read from response shape,
-    not behaviour, so one observation suffices; `"unmeasured"`.
+    not behaviour, so one observation suffices; `"inherited"` — copied from a
+    SIBLING model rather than measured on this one; `"unmeasured"`.
+
+    **`inherited` is its own state because it fails differently.** A single
+    observation is a real measurement of this model that might not generalise.
+    An inherited value is a measurement of a different model that might not
+    transfer — and new models routinely arrive before all twenty-two fields have
+    been re-measured, so it is the common case for anything recently released.
 
     **A field absent from this dict is `"single"` by default**, because that is the
     honest assumption about anything nobody recorded evidence for.
@@ -717,7 +724,10 @@ def model_of(model: str) -> str:
 
 
 def provisional(model: str) -> list[str]:
-    """Fields on this model resting on ONE observation.
+    """Fields on this model resting on ONE observation, or on none of its own.
+
+    Includes `inherited` fields, which were measured on a sibling and copied —
+    weaker than a single observation of this model, not stronger.
 
     Read before designing a study around any of them. A `"single"` field is not
     wrong — it is unverified, and six of them turned out wrong when someone
@@ -728,7 +738,7 @@ def provisional(model: str) -> list[str]:
     ev = getattr(caps, "evidence", {}) or {}
     return sorted(f.name for f in _fields(caps)
                   if f.name not in ("evidence", "measured_on", "notes")
-                  and ev.get(f.name, "single") == "single")
+                  and ev.get(f.name, "single") in ("single", "inherited"))
 
 
 def known_providers() -> set[str]:
@@ -782,7 +792,8 @@ def caps_for(model: str) -> ModelCaps:
               "an entry: reasoning off, a sampling parameter, a grounded call, "
               "and a small max_tokens on a long prompt — plus a bogus value per "
               "enumerated parameter to record the enums. See drift/README.md; "
-              "the script that automates this is planned, not built.\n"
+              "measure it with `python drift/characterise.py provider/model`, which\n"
+              "prints a PARTIAL entry — see HARNESS.md, 'Qualifying a new model'.\n"
               "  A defaulted capability would produce an arm whose condition is "
               "a guess, which is worse than this error because it looks like "
               "data."
@@ -790,6 +801,39 @@ def caps_for(model: str) -> ModelCaps:
 
 
 REQUIRED_FIELDS = tuple(f.name for f in fields(ModelCaps) if f.name != "notes")
+
+
+def register_model(model: str, caps: ModelCaps, *, persist_hint: bool = True) -> None:
+    """Add or replace a capability entry for this session, validated.
+
+    **The supported way to use a model before its entry is in the repo.**
+    `load_investigation` refuses any model absent from `CAPABILITIES`, which is
+    correct — an unmeasured model produces arms whose conditions are guesses. But
+    writing to the dict directly skips the import-time checks, so a malformed
+    entry fails later and less clearly.
+
+    This runs the same checks and then inserts it. It lasts until the kernel
+    restarts; nothing is written to disk. To make it permanent, paste the same
+    `ModelCaps(...)` into `CAPABILITIES` in `machine_psych/capabilities.py`.
+
+    Mark every field not measured on THIS model as `"inherited"` in `evidence`,
+    so `provisional(model)` reports it.
+    """
+    if "/" not in model:
+        raise ValueError(f"{model!r} is not 'provider/model'")
+    previous = CAPABILITIES.get(model)
+    CAPABILITIES[model] = caps
+    try:
+        _validate_capabilities()
+    except Exception:
+        if previous is None:
+            CAPABILITIES.pop(model, None)
+        else:
+            CAPABILITIES[model] = previous
+        raise
+    if persist_hint:
+        print(f"  registered {model} for this session only — paste it into "
+              f"CAPABILITIES in machine_psych/capabilities.py to keep it.")
 
 
 def _validate_capabilities() -> None:
