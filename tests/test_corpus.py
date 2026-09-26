@@ -386,3 +386,54 @@ def test_an_empty_side_table_keeps_its_columns(corpus):
         assert "record_id" in table.columns, (
             f"{fn.__name__} returned an empty frame with no columns — every "
             f"filter and groupby downstream of it raises")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# attrs must be comparable — found in a live 1,536-record run, 2026-09-26
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def test_a_wide_corpus_can_be_displayed(corpus):
+    """**It crashed on `display(corpus.head())`.** pandas rebuilds a frame too wide
+    to show whole with `concat`, and concat compares `attrs` with `==`. DataFrames
+    stored there made that comparison ambiguous, so the display raised."""
+    import pandas as pd
+
+    with pd.option_context("display.max_columns", 6):
+        repr(corpus.head())
+        corpus.head()._repr_html_()
+
+
+def test_concat_of_one_corpus_keeps_its_side_tables(corpus):
+    """The comment in `load_corpus` claimed side tables survived concat. It was
+    measured on a case that never compared two frames each carrying tables — the
+    case that fails."""
+    import pandas as pd
+
+    rejoined = pd.concat([corpus.iloc[:1], corpus.iloc[1:]])
+    assert len(rejoined) == len(corpus)
+    assert len(sources(rejoined)) == len(sources(corpus))
+
+
+def test_concat_of_different_corpora_does_not_raise(corpus):
+    """Different corpora compare unequal, so pandas drops the attrs rather than
+    raising. The accessors then say plainly the frame must be reloaded."""
+    import copy
+
+    import pandas as pd
+
+    other = corpus.copy()
+    other.attrs = copy.deepcopy(corpus.attrs)
+    other.attrs["side_tables"].token = "a-different-run"
+    combined = pd.concat([corpus, other])
+    assert len(combined) == 2 * len(corpus)
+
+
+def test_side_table_token_survives_a_deep_copy(corpus):
+    """pandas deep-copies attrs on most operations. Losing the token would make
+    every slice stop comparing equal to the corpus it came from."""
+    import copy
+
+    before = corpus.attrs["side_tables"]
+    after = copy.deepcopy(corpus.attrs)["side_tables"]
+    assert after.token == before.token
+    assert after == before

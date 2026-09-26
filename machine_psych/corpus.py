@@ -57,6 +57,43 @@ def load_record(path) -> dict:
     return json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
 
 
+
+class _SideTables(dict):
+    """The side tables, in a form pandas can compare.
+
+    **Why this exists.** pandas decides whether combined frames keep their
+    `attrs` by testing `a.attrs == b.attrs`. With DataFrames stored directly,
+    that comparison returns a DataFrame rather than True or False, and pandas
+    raises "The truth value of a DataFrame is ambiguous". It surfaced in a live
+    run as a crash displaying `corpus.head()` — a frame wide enough to truncate
+    is rebuilt with `concat` — and it breaks `pd.concat` on corpus data outright.
+
+    Equality is by a TOKEN fixed at load, not by content: two slices of the same
+    corpus compare equal, so concatenating them keeps the side tables; two
+    different corpora compare unequal, so pandas drops the attrs instead of
+    raising, and the accessors then say plainly that the frame must be reloaded.
+    Content equality would mean comparing every row of every table on every
+    concat.
+    """
+
+    def __init__(self, tables, token):
+        super().__init__(tables)
+        self.token = token
+
+    def __eq__(self, other):
+        return isinstance(other, _SideTables) and self.token == other.token
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    __hash__ = None
+
+    def __reduce__(self):
+        # pandas deep-copies attrs on most operations; the token must survive it,
+        # or every slice would stop comparing equal to its parent.
+        return (_SideTables, (dict(self), self.token))
+
+
 def load_corpus(investigation: str, run: str | None = None,
                 provider: str | None = None, base=None) -> pd.DataFrame:
     """Load a run into a DataFrame. Defaults to the most recent run.
@@ -146,16 +183,22 @@ def load_corpus(investigation: str, run: str | None = None,
     # KEY here, on the stated grounds that "the tables themselves would be lost
     # by the first filter". That is false, and the comment contradicted itself —
     # the key and the tables live in the same dict, so either both survive or
-    # neither does. Measured: `attrs` carries DataFrames through boolean
-    # filtering, column selection, head, copy, sort_values, groupby and concat.
+    # neither does. `attrs` carries them through boolean filtering, column
+    # selection, head, copy, sort_values and groupby.
+    #
+    # **But not through concat, as first claimed.** That claim was measured on a
+    # case that never compared two frames each carrying tables. pandas tests
+    # `a.attrs == b.attrs`, which is ambiguous for DataFrames — the old key-only
+    # design avoided this without anyone noting it. `_SideTables` restores a
+    # comparable value while keeping the tables where filtering needs them.
     #
     # Removing the cache removed the LRU eviction, the key indirection, and a
     # "reload with load_corpus()" error path — all of them guarding against
     # something that does not happen.
-    corpus.attrs["side_tables"] = {
-        "citations": _frame(cites), "sources": _frame(srcs),
-        "queries": _frame(qs), "thoughts": _frame(ths), "units": _frame(uns),
-    }
+    corpus.attrs["side_tables"] = _SideTables(
+        {"citations": _frame(cites), "sources": _frame(srcs),
+         "queries": _frame(qs), "thoughts": _frame(ths), "units": _frame(uns)},
+        token=str(run_dir))
     corpus.attrs["models"] = (sorted(corpus.model.dropna().unique())
                               if len(corpus) else [])
     corpus.attrs["investigation"] = investigation

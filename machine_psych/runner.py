@@ -292,17 +292,20 @@ def _print_plan(spec: dict, summary: list, rows: list[dict]) -> None:
     if any(e["search_permitted"] for e in est.values()):
         # "(80 searched)" said PERMITTED and read as EXECUTED. On a real battery
         # 5 of 80 searched, and the estimate overstated input by 6x at its floor.
-        # "Expect the low end" was advice drawn from a Claude-only battery (5 of
-        # 80 searched). On the same kind of prompt OpenAI searched on 14 of 20 —
-        # the grounding rate is a property of the PROVIDER as much as the prompt,
-        # so the advice has to say which is which.
+        # Grounding rate is a JOINT property of prompt and provider, and no single
+        # battery predicts it. Two consecutive batteries each supported a
+        # generalisation the next one broke: Claude-only data suggested "rare";
+        # a short-question battery (OpenAI 14/20) suggested "provider-dependent,
+        # expect OpenAI high"; detailed internal-situation vignettes then had
+        # OpenAI ground 15 of 256. So the message states the range and the
+        # evidence, and does not predict.
         print("  `may search` counts records where search is PERMITTED, not where "
-              "it will\n  RUN — that is the model's decision, and it varies by "
-              "PROVIDER. On one\n  battery of business-advice prompts: OpenAI "
-              "searched 14 of 20, Claude 2,\n  Gemini 0. The floor assumes none "
-              "search; the ceiling assumes all do.\n  Expect OpenAI nearer the "
-              "ceiling, and every provider there if the prompts\n  need current "
-              "information.")
+              "it will\n  RUN — that is the model's decision, and it depends on "
+              "the PROMPT and the\n  PROVIDER together. Measured: OpenAI grounded "
+              "14 of 20 short business\n  questions but 15 of 256 detailed "
+              "situation vignettes. The floor assumes\n  none search; the ceiling "
+              "assumes all do. Prompts that need current\n  information push "
+              "every provider toward the ceiling.")
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

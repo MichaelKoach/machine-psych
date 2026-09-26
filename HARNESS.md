@@ -373,20 +373,20 @@ the low end unless the prompts plainly need current information.
 | **realised cost** | **$5.37, or $0.067/record** |
 | wall clock | 54 minutes, sequential |
 
-**How often a model grounds depends heavily on the PROVIDER, not only the
-prompt.** The battery above used two Claude models, which mostly declined to
-search — these prompts are answerable from parametric knowledge. A later battery
-of the same kind of prompt, across all three providers:
+**How often a model grounds depends on the PROMPT and the PROVIDER together —
+and no single battery predicts it.** Three batteries, each of which suggested a
+rule the next one broke:
 
-| provider | grounded |
-|---|---|
-| `openai/gpt-5.6-sol` | **14 of 20** |
-| `anthropic/claude-sonnet-5` | 2 of 20 |
-| `gemini/gemini-3.7-flash` | 0 of 20 |
+| battery | OpenAI | Claude | Gemini |
+|---|---|---|---|
+| short business questions, 2026-09-24 | **14 of 20** | 2 of 20 | 0 of 20 |
+| detailed situation vignettes, 2026-09-26 (search arm) | **15 of 256** | 0 of 256 | 25 of 256 |
 
-*(one battery each, 2026-09-24.)* So "grounding is rare" held for Claude and was
-wrong for OpenAI, which searched on 70% of the same prompts. A prompt asking what
-a company announced this year grounds nearly every time, on any provider.
+The same provider went from 70% to 6%. The vignettes described an internal
+situation in detail and left nothing to look up; the short questions invited it.
+**Measure grounding on every battery rather than carrying a rate forward.** A
+prompt asking what a company announced this year grounds nearly every time, on
+any provider.
 
 The durable point: **grounded records dominate cost, and whether a record grounds
 is not yours to set.** An ungrounded call is a fraction of a cent; a grounded one
@@ -691,8 +691,8 @@ difference between arms must exceed it before it means anything.
   column survives on the frame and the side tables keep working.
 
 **Grounding is an OUTCOME, not a setting — analyse it as one.** On a Claude
-battery 5 of 80 search-permitted records searched; on a three-provider battery
-OpenAI searched on 14 of 20 and Gemini on none. The same prompt searched on 2 of 5
+battery 5 of 80 search-permitted records searched; OpenAI searched 14 of 20 short
+questions and 15 of 256 situation vignettes. The same prompt searched on 2 of 5
 repetitions and declined on 3. Report grounding rate by model
 and probe, and its variability across reps, before anything else.
 
