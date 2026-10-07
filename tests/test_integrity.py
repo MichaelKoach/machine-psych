@@ -344,3 +344,108 @@ def test_a_grounded_record_missing_its_query_count_still_warns():
     assert parsed.grounded is True
     assert "n_queries_absent" in codes(
         check_record(parsed, status, {"model": ANTH, "search": True}, caps_for(ANTH)))
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# A shared token budget can bind a response that still finishes
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _gemini_parsed(thinking, output):
+    import dataclasses
+
+    from machine_psych.providers import get_provider
+
+    body = json.loads((pathlib.Path(__file__).parent / "fixtures" / "gemini" /
+                       "ungrounded_ok.json").read_text(encoding="utf-8"))["response"]
+    base = get_provider("gemini", api_key="k").parse(body)
+    return dataclasses.replace(base, thinking_tok=thinking,
+                               out_tok_reported=output, answer_chars=900)
+
+
+def _codes(parsed, status, model, budget):
+    from machine_psych.capabilities import caps_for
+    from machine_psych.integrity import check_record
+
+    return [i.code for i in check_record(
+        parsed, status, {"model": model, "max_tokens": budget}, caps_for(model))]
+
+
+def test_a_finished_call_with_its_thinking_cut_short_is_flagged():
+    """**Status `ok` did not mean the budget was harmless.**
+
+    Measured on gemini-3.8-flash at 16,384: six calls came back `ok` with thinking
+    of 15,623-15,729 — the cap minus ~660 for the answer. The model thought until
+    the budget ran low, then wrote a short answer. Run again at 65,536 those six
+    thought 16K-35K. Status flagged none of them.
+    """
+    codes = _codes(_gemini_parsed(15_725, 659), "ok",
+                   "gemini/gemini-3.8-flash", 16_384)
+    assert "budget_exhausted" in codes
+
+
+def test_an_unconstrained_call_is_not_flagged():
+    for thinking, output, budget in ((7_240, 1_000, 16_384),     # P2 S1-12 at 16K
+                                     (35_425, 2_000, 65_536),    # largest at 65K
+                                     (3_000, 1_615, 16_384)):    # study-corpus shape
+        assert "budget_exhausted" not in _codes(
+            _gemini_parsed(thinking, output), "ok", "gemini/gemini-3.8-flash", budget)
+
+
+def test_unreported_thinking_is_not_treated_as_zero():
+    """A missing count means the provider did not say. Summing it as zero would
+    understate the total and miss a bound call — or, the other way round, invent
+    one. Either way the answer must be: not checkable, so not flagged."""
+    assert "budget_exhausted" not in _codes(
+        _gemini_parsed(None, 16_000), "ok", "gemini/gemini-3.8-flash", 16_384)
+
+
+def test_a_separate_budget_model_is_never_flagged():
+    """Where thinking has its own allowance, the output cap cannot be eaten by it."""
+    assert "budget_exhausted" not in _codes(
+        _gemini_parsed(15_725, 659), "ok", "anthropic/claude-opus-5-5", 8_192)
+
+
+def test_text_split_off_by_the_heuristic_is_surfaced():
+    """Only text written BETWEEN searches is flagged — not a preamble.
+
+    The heuristic files text before the last tool block as process. A first draft
+    flagged any of it and fired on a healthy fixture whose only process text was
+    "I'll research this for you..." — a preamble, the common case. A flag on the
+    common case trains readers to ignore the integrity report. Text between
+    searches was written mid-research and may be part of the answer.
+    """
+    import dataclasses
+
+    from machine_psych.capabilities import caps_for
+    from machine_psych.integrity import check_record
+    from machine_psych.providers import get_provider
+
+    body = json.loads((pathlib.Path(__file__).parent / "fixtures" / "anthropic" /
+                       "grounded_ok.json").read_text(encoding="utf-8"))["response"]
+    base = get_provider("anthropic", api_key="k").parse(body)
+
+    # the real fixture: a preamble before the first search, nothing between them
+    assert base.n_process_blocks == 1
+    assert base.extra["interleaved_text_blocks"] == 0
+
+    def codes(model, interleaved):
+        p = dataclasses.replace(base, extra={**base.extra,
+                                             "interleaved_text_blocks": interleaved})
+        return [i.code for i in check_record(
+            p, "ok", {"model": model, "max_tokens": 8192}, caps_for(model))]
+
+    assert "answer_split_heuristically" not in codes("anthropic/claude-opus-5-5", 0), (
+        "a preamble was flagged")
+    assert "answer_split_heuristically" in codes("anthropic/claude-opus-5-5", 2)
+    assert "answer_split_heuristically" not in codes("openai/gpt-5.6-sol", 2)
+
+
+def test_interleaved_counts_only_text_between_searches():
+    from machine_psych.providers.anthropic import Anthropic
+
+    t = {"type": "text", "text": "x"}
+    tool = {"type": "server_tool_use"}
+    assert Anthropic._interleaved([t, tool, tool, t]) == 0          # preamble + answer
+    assert Anthropic._interleaved([t, tool, t, tool, t]) == 1       # one mid-research block
+    assert Anthropic._interleaved([tool, t, t, tool]) == 2
+    assert Anthropic._interleaved([t, t]) == 0                      # never searched

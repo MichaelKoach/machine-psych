@@ -125,6 +125,58 @@ def check_record(parsed, status: str, intent: dict, caps) -> list[Issue]:
             "back — the only provider answering 'what did it see but not "
             "cite' may have stopped reporting it"))
 
+    # ── the answer was separated from process text by a heuristic ────────────
+    #
+    # One provider (`answer_extraction="heuristic"`) returns blocks that interleave
+    # process with answer. The parser takes text AFTER the last tool block as the
+    # answer and text before it as process. On an ungrounded record there is no
+    # tool block, so all text is answer and nothing can be cut. On a grounded one,
+    # text written before the last search lands in process.
+    #
+    # **Only text written BETWEEN searches is flagged.** A first draft flagged any
+    # process text, and fired on a healthy fixture whose only process text was a
+    # preamble ("I'll research this for you..."). Preambles are the common case,
+    # and a flag that fires on the common case trains readers to ignore the
+    # integrity report. Text before the first search is a preamble; text between
+    # searches was written mid-research and may be part of the answer.
+    interleaved = (parsed.extra or {}).get("interleaved_text_blocks") or 0
+    if caps.answer_extraction == "heuristic" and interleaved > 0:
+        issues.append(Issue(
+            "info", "answer_split_heuristically",
+            f"{interleaved} text block(s) were written between searches and filed "
+            f"as process, not answer — they may be part of the answer. Read the "
+            f"record"))
+
+    # ── the token budget bound the response, even though it finished ─────────
+    #
+    # On a combined-budget model `max_tokens` caps thinking AND output together.
+    # **A call can come back `ok` with its thinking cut short:** the model thinks
+    # until the budget runs low, then writes a short answer in what is left. The
+    # answer completes, so status is `ok`, and nothing else says so.
+    #
+    # Measured on gemini-3.8-flash at 16,384: six calls that came back `ok`
+    # reported thinking of 15,623-15,729 — the cap minus ~660 for the answer. Run
+    # again at 65,536 those six thought 16K-35K. Alongside 13 outright
+    # truncations, 19 of 24 calls on that battery were bound by the budget, and
+    # status flagged only 13 of them.
+    #
+    # Only meaningful where the budget is shared, and only when both counts exist:
+    # a missing count is "not reported", not zero, and summing it as zero would
+    # understate the total.
+    budget = intent.get("max_tokens")
+    if (caps.combined_token_budget and isinstance(budget, int) and budget > 0
+            and parsed.out_tok_reported is not None):
+        thinking = 0 if caps.thinking_in_output_tokens else parsed.thinking_tok
+        if thinking is not None:
+            used = parsed.out_tok_reported + thinking
+            if used >= 0.97 * budget:
+                issues.append(Issue(
+                    "warning", "budget_exhausted",
+                    f"used {used:,} of a {budget:,} token budget shared by thinking "
+                    f"and output — the cap shaped this response"
+                    + (" even though it finished" if status == "ok" else "")
+                    + ". Raise max_tokens toward the model's maximum"))
+
     # ── status and content disagree ──────────────────────────────────────────
     #
     # These are contradictions rather than absences: a record cannot be `ok` and

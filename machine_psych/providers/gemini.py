@@ -195,10 +195,12 @@ class Gemini(Provider):
         if state == "completed" and answer:
             return "ok", None
         if answer:
-            # Partial text with a non-completed status. Never observed here, and
-            # checked for rather than assumed absent — the state is real on one
-            # provider and absent on another, so it is a measured property and
-            # not a family trait.
+            # Partial text with a non-completed status — the answer was cut off
+            # by `max_tokens`. First observed 2026-10-05: 13 of 24
+            # gemini-3.8-flash calls at 16,384 on a long structured-output task.
+            # A call can ALSO finish with its thinking cut short and still return
+            # `completed`; `integrity.budget_exhausted` catches that case, which
+            # status cannot.
             return "truncated", f"status={state}, partial answer"
         if not any(s.get("type") == "model_output" for s in steps):
             return "incomplete", f"no model_output step (status={state})"

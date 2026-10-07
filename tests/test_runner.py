@@ -859,3 +859,117 @@ def test_the_repetition_barrier_survives_per_provider_gating(tmp_path):
     for a, b in itertools.pairwise(sorted(by_rep)):
         assert min(by_rep[b]) > max(by_rep[a]), (
             f"rep {b} began before rep {a} finished")
+
+
+def test_conversation_ids_do_not_collide_across_studies(tmp_path):
+    """**The same defect, a second time.**
+
+    `conversation` once omitted the MODEL, and 80 records collapsed into 40
+    conversations. Model was added; the STUDY still was not. Two studies in one
+    investigation that reused probe ids then produced identical conversation ids,
+    so turns from different conversations grouped together and a uniqueness check
+    in a live analysis failed.
+
+    The rule: a conversation is every identity field except the turn.
+    """
+    R.set_base(tmp_path)
+    turns = [["turn one", "turn two"]]
+    spec = {"investigation_id": "collide", "studies": [
+        {"study_id": "alpha", "probes": [{"probe_id": "p0", "prompt_paths": turns}],
+         "providers": {"anthropic/claude-opus-5-5": {"max_tokens": 8192, "repetitions": 2}}},
+        {"study_id": "beta", "probes": [{"probe_id": "p0", "prompt_paths": turns}],
+         "providers": {"anthropic/claude-opus-5-5": {"max_tokens": 8192, "repetitions": 2}}}]}
+    with contextlib.redirect_stdout(io.StringIO()):
+        run = R.load_investigation(spec)
+        res, _ = R.run_investigation(run, dispatch=lambda c: _ok_body(c, 0), backoff=0,
+                                     verbose=False, export=False)
+
+    identity = ["provider", "model", "study", "probe", "path", "rep", "condition"]
+    assert res.conversation.nunique() == res.groupby(identity, dropna=False).ngroups
+    assert (res.groupby("conversation").size() == 2).all(), (
+        "a conversation should hold exactly its own two turns")
+    assert res.groupby("study").conversation.nunique().sum() == res.conversation.nunique(), (
+        "a conversation id appears under more than one study")
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Output a notebook can scroll — found in a live run, 2026-10-07
+# ═══════════════════════════════════════════════════════════════════════════════
+
+def _sized_run(tmp_path, n, verbose, fail_every=0):
+    R.set_base(tmp_path)
+    spec = {"investigation_id": f"out{n}", "studies": [{"study_id": "s",
+            "probes": [{"probe_id": f"p{i}", "prompt_paths": [["q"]]} for i in range(n)],
+            "providers": {"anthropic/claude-sonnet-5": {"reasoning": "off", "repetitions": 1}}}]}
+    k = {"c": 0}
+
+    def send(cfg):
+        k["c"] += 1
+        if fail_every and k["c"] % fail_every == 0:
+            return {"type": "error", "error": {"type": "invalid_request_error",
+                                               "message": "bad request"}}
+        return _ok_body(cfg, 0)
+
+    with contextlib.redirect_stdout(io.StringIO()):
+        run = R.load_investigation(spec)
+    buf = io.StringIO()
+    with contextlib.redirect_stdout(buf):
+        out = R.run_investigation(run, dispatch=send, backoff=0, retries=1,
+                                  verbose=verbose, export=False)
+    return out, [l for l in buf.getvalue().split("\n") if l.strip()]
+
+
+def test_a_clean_run_prints_milestones_not_every_record(tmp_path):
+    """**One line per record printed 1,536 lines on a real battery**, burying the
+    summary and making the notebook unscrollable. A clean run now prints about
+    ten progress lines plus the summary, whatever its size."""
+    _, lines = _sized_run(tmp_path, 200, True)
+    assert len(lines) < 30, f"{len(lines)} lines for a clean 200-record run"
+
+
+def test_a_record_that_needs_attention_is_still_shown(tmp_path):
+    """Quieter must not mean blind: a record that failed, was cut off, or needed a
+    retry still gets its own line."""
+    _, clean = _sized_run(tmp_path / "a", 200, True)
+    _, failing = _sized_run(tmp_path / "b", 200, True, fail_every=25)
+    assert len(failing) > len(clean), "failures were not printed"
+
+
+def test_every_record_can_still_be_printed_on_request(tmp_path):
+    _, lines = _sized_run(tmp_path, 50, "records")
+    assert len(lines) >= 50
+
+
+def test_a_run_displays_as_one_line(tmp_path):
+    """**175,594 characters for a 48-record run.** A cell ending on a run displays
+    what the run returns; a plain tuple rendered as text — the results frame, then
+    every raw API response body on one enormous line. A 1,536-record battery would
+    have printed several million characters."""
+    out, _ = _sized_run(tmp_path, 48, False)
+    shown = repr(out)
+    assert "\n" not in shown and len(shown) < 300, f"{len(shown):,} characters"
+
+    # Notebooks display through IPython's pretty-printer, which would print a
+    # tuple subclass as a tuple unless the class supplies `_repr_pretty_`. Checked
+    # with a stand-in printer so the suite does not depend on IPython.
+    class Printer:
+        def __init__(self):
+            self.out = ""
+
+        def text(self, t):
+            self.out += t
+
+    printer = Printer()
+    out._repr_pretty_(printer, False)
+    assert printer.out == shown
+
+
+def test_the_run_result_is_still_the_tuple_it_was(tmp_path):
+    """Only how it displays changed. Every existing `results, raw = ...` works."""
+    import copy
+
+    out, _ = _sized_run(tmp_path, 10, False)
+    results, raw = out
+    assert isinstance(out, tuple) and len(out) == 2
+    assert out[0] is results and out.results is results and out.raw is raw
+    assert len(copy.deepcopy(out)[0]) == len(results)

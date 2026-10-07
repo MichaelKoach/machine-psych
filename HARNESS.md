@@ -89,12 +89,19 @@ needs them. Qualification should be short and hard to misuse, not exhaustive.
 3. **Write the spec.** A5 lists what will reject it.
 4. **Preflight:** `run = mp.load_investigation(spec)` — validates and prints the
    plan and cost. Sends nothing.
-5. **Preregister:** `mp.save_investigation(spec)`.
-6. **Run:** `mp.run_investigation(run, concurrency="auto", limits=LIMITS)`.
-   Interrupted? Run it again with `resume=True`.
+5. **Preregister:** `mp.save_investigation(spec)`. Freeze any manifest or
+   preregistration material in `Design/<investigation_id>/` — not in
+   `Investigations/`, which holds specs only (A8).
+6. **Run:** `results, _ = mp.run_investigation(run, concurrency="auto", limits=LIMITS)`.
+   Interrupted? Run it again with `resume=True`. The cell prints progress and a
+   summary, not results — save those to files (A9).
 7. **Validate before interpreting** — counts per model × probe × rep, statuses,
-   `served_model`, grounding rate, unique conversation ids. §4 has the list.
-8. **Only then analyse**, starting with A1.
+   `served_model`, grounding rate, unique conversation ids, **and any
+   `budget_exhausted` in the integrity report**. A call can finish `ok` with its
+   thinking cut short, so status alone does not show it (A6). §4 has the list.
+8. **Only then analyse**, starting with A1. Load with a pinned run timestamp, and
+   filter through `Measurement/<protocol>/exclusions.csv` if any run was
+   superseded (A8).
 
 ## A4. Qualifying a new model
 
@@ -146,7 +153,7 @@ A spec can be well-formed and still be refused. Each of these is deliberate.
 |---|---|
 | a model absent from `CAPABILITIES` | an unmeasured model's arms are guesses |
 | an intent the model cannot honour — e.g. `reasoning: "off"` on a model with no off level, or a level not in its `reasoning_levels` | set `on_unmet: "exclude"` on the study to drop those cells instead of failing |
-| **`max_tokens` under 8192 on a combined-budget model** (Gemini) | the budget covers thinking AND output, and thinking has measured ~96% of it — the answer truncates and reads as a model failure |
+| **`max_tokens` under 8192 on a combined-budget model** (Gemini) | the budget covers thinking AND output. **8192 is a floor, not a safe value**: on long output, calls at 16,384 still ran out. Use the model's maximum — see A6 |
 | `temperature` / `top_p` / `top_k` on a model where sampling is inert | Gemini accepts them and discards them: `temperature: 0.0` gave six different answers in six runs |
 | prompts inside a provider block | every provider must be asked the same questions |
 | an `include` cell that does not pin every swept factor | its place in the design is undefined |
@@ -165,6 +172,46 @@ A spec can be well-formed and still be refused. Each of these is deliberate.
 **Omitting `reasoning` is itself a configuration**, not "no reasoning." Effort
 becomes a function of the prompt: zero thinking on easy records, thousands of
 tokens on hard ones.
+
+**Study calls and measurement calls need different settings.**
+
+| | study call | measurement call |
+|---|---|---|
+| what it is | the response IS the data | the model is a coder or classifier |
+| `reasoning` | omit — native behaviour is what you study | set explicitly — an instrument should be steady |
+| `max_tokens` on Gemini | the model's maximum | the model's maximum |
+
+A coder whose effort varies item to item adds variance to the measurement itself,
+and makes running out of budget a lottery. Setting reasoning steadies it, though
+it does not cap thinking exactly, so the cap still matters.
+
+**On a shared budget, set `max_tokens` to the model's maximum.** You pay for the
+tokens used, not the cap, so a high cap costs nothing. A low one costs a lot, and
+silently: Gemini thinks until the budget runs low, then writes a short answer, and
+the call still comes back `ok`.
+
+*Measured on `gemini-3.8-flash`, a long coding task, 2026-10-05:* at 16,384, **19
+of 24 calls were bound by the budget, and status flagged only 13.** The other six
+finished `ok` with thinking pinned at 15,623-15,729 — the cap minus room for the
+answer. At 65,536, which the model accepted, the heaviest call used 35,425. On five
+calls that were not constrained at 16,384, raising the cap changed thinking in no
+consistent direction — suggestive rather than proven, but it points to the cap
+removing a ceiling rather than inflating effort.
+
+**The harness flags this as `budget_exhausted`** in the integrity report: a call
+that used 97% or more of a shared budget, whether or not it finished.
+
+**When a coder's answers decide its next questions** (a gated, multi-round design):
+
+- **Never route on a missing answer.** A parse failure or truncation is not a "no".
+  Treated as one, it silently closes every question beneath it, and the two coders
+  then look as though they disagreed when one simply did not answer. Re-ask it, or
+  stop and flag it.
+- **Agreement below the first level is conditional.** Each coder only reaches the
+  questions its own earlier answers opened, so deeper agreement is measured only on
+  items both chose to open — which inflates it. Label it as conditional, do not set
+  it beside first-level agreement as if comparable, and count paths that diverged
+  as part of the disagreement.
 
 ## A7. A current-model battery
 
@@ -188,7 +235,7 @@ spec = {
     "providers": {
       "anthropic/claude-opus-5-5": {"search": [False, True], "max_tokens": 8192,  "repetitions": 8},
       "openai/gpt-5.6-sol":        {"search": [False, True], "max_tokens": 16384, "repetitions": 8},
-      "gemini/gemini-3.8-flash":   {"search": [False, True], "max_tokens": 16384, "repetitions": 8},
+      "gemini/gemini-3.8-flash":   {"search": [False, True], "max_tokens": 65536, "repetitions": 8},
     }}]}
 
 LIMITS = {"gemini": {"rpm": 1000, "input_tpm": 2_000_000,
@@ -199,10 +246,115 @@ mp.save_investigation(spec)                  # preregister
 results, _ = mp.run_investigation(run, concurrency="auto", limits=LIMITS)
 ```
 
-**Reasoning is omitted on every provider.** Gemini needs `max_tokens` of at least
-8192 (A5). `search: [False, True]` makes search a condition — but the `True` arm
+**Reasoning is omitted on every provider**, so Gemini's `max_tokens` is its
+maximum: the budget is shared with thinking, and a lower cap can bind a call that
+still finishes `ok` (A6). `search: [False, True]` makes search a condition — but the `True` arm
 still contains records that did not ground, so compare on `grounded`, not on the
 condition label.
+
+## A8. Where files go — and who may change that
+
+**This structure is fixed. Sessions do not change it.** Read this before creating,
+moving or renaming any file under the project base.
+
+```
+<project base>/                      ← mp.set_base(...)
+├── Investigations/                  HARNESS — specs only, one JSON per investigation
+├── Output Log/                      HARNESS — raw records, never edited
+│   └── <investigation_id>/<run timestamp>/
+├── Design/                          OURS — frozen BEFORE a run
+│   └── <investigation_id>/
+│       ├── stimulus manifest, preregistration, pretest material
+└── Measurement/                     OURS — derived AFTER runs
+    └── <protocol>/
+        ├── exclusions.csv           superseded runs and records, with reasons
+        ├── draws, record maps, blinded exports, keys
+        └── batch<N>/                working files, one folder per batch
+```
+
+### The four folders
+
+| folder | owner | holds | rule |
+|---|---|---|---|
+| `Investigations/` | harness | specs | Written only by `save_investigation`. Nothing else goes here. |
+| `Output Log/` | harness | raw records | Written only by `run_investigation`. Never edited, never deleted. |
+| `Design/` | us | anything frozen before dispatch | Written before the run. Not edited once the run starts. |
+| `Measurement/` | us | anything computed from runs | Never overwritten — see versioning. |
+
+**Why the split.** Raw records are the study's evidence, and `load_corpus` reads
+only the harness folders, so writing into them risks both. Our files live beside
+them, never inside them.
+
+### Two kinds of file in `Measurement/`
+
+- **Deterministic** — a seeded draw, a record map, a blinded export. Regenerable from
+  raw records plus a notebook plus a seed. A mistake can be fixed by regenerating.
+- **Judged** — anything a model or a person produced: screening flags, codes,
+  ratings. **Not regenerable.** A model asked again answers differently. These are
+  data, not working files. Each must record which model and prompt version produced
+  it, and when.
+
+### Naming and versioning
+
+- **Never overwrite. Version instead:** `flags.csv`, then `flags_v2.csv`. Keep the
+  old one — the methods record shows what changed.
+- **Seeds and dates go in names**, so every draw and run can be traced:
+  `heldout_batches_seed20261005.csv`.
+- **Blinded exports and their keys are separate files.** A model only ever receives
+  the blinded file. The key never leaves the project.
+
+### Superseded runs
+
+**Never delete a raw run, even a superseded one.** Record it instead, in
+`Measurement/<protocol>/exclusions.csv`: the investigation, the run timestamp,
+what is excluded (a provider, a model, or record ids), why, and what replaced it.
+
+Every notebook that loads a corpus filters through that file. **A note in a chat
+or a comment is not an exclusion** — `load_corpus` will return the superseded
+records alongside the rest, and nothing will say so.
+
+Pin run timestamps when loading. `load_corpus` defaults to the newest run, which
+silently changes the moment a rerun lands.
+
+### Who may change this structure
+
+**Sessions do not create, rename, move or delete folders here, and do not change
+where any kind of file goes.** The structure encodes decisions whose reasons are not
+visible in the files themselves, and a session reorganising it cannot see them.
+
+**If a genuine need is unmet**, propose the change and wait for approval. Say:
+
+1. what the need is, and why the current structure does not meet it;
+2. the exact change — folder names and what goes in each;
+3. every existing file and path it would affect.
+
+**Do not "tidy up" files that do not match this layout.** Some predate it. Moving a
+file breaks every notebook and methods-record path that refers to it. Report what
+you find, and leave it where it is.
+
+## A9. Notebooks that stay readable
+
+**Run cells do not print results.** Save them to files where A8 says, and print
+only where they were saved. A notebook that prints its results cannot be
+scrolled, and the person reading it uploads the files when they need them.
+
+- **A run prints progress, not records.** By default `run_investigation` prints a
+  line at every tenth of the run, a full line for any record that failed, was cut
+  off or needed a retry, and the summary — about 15 lines for a clean battery of
+  any size. `verbose="records"` prints every record, for small debugging runs;
+  `verbose=False` prints nothing.
+- **A run displays as one line.** It returns `(results, raw)` as before, but a
+  cell ending on it shows a one-line summary rather than every raw response —
+  which was 175,594 characters for 48 records. Still unpack it:
+  `results, _ = mp.run_investigation(...)`.
+- **Never end a cell on a bare DataFrame.** Jupyter displays whatever the last
+  line returns, and pandas prints every row of a frame under 60 rows — so a
+  48-row frame prints all 48, wrapped across 54 columns. Assign it; look with
+  `.head()` or a summary.
+- **Set this in the setup cell:** `pd.set_option("display.max_rows", 20)`. Any
+  longer frame then prints about 14 lines.
+- **Analysis results go to files too.** A table that is only printed is lost when
+  the runtime ends — save it to `Measurement/`, then print where.
 
 ---
 
@@ -566,7 +718,8 @@ base it creates and uses exactly two folders:
 
 `mp.where()` returns those three paths. **Writing spec or record files anywhere
 else breaks `load_corpus` and `list_investigations`**, which look only in these
-locations.
+locations. Your own files go in `Design/` and `Measurement/` beside them — see A8,
+which also says who may change any of this.
 
 **`save_investigation(spec)` is the only thing needed to persist a spec.** It
 validates first, writes to `Investigations/` under the `investigation_id`, and
@@ -624,8 +777,32 @@ cits.merge(labels, on="record_id").groupby("model")   #      model_x / model_y
 ```
 
 **A record's identity is provider / MODEL / study / probe / path / rep / turn.**
-`conversation` groups the turns of one exchange and includes the model, so two
-models from one provider do not collide.
+`conversation` groups the turns of one exchange: **every identity field except the
+turn**, so two models, two studies, or two conditions never share one.
+
+**Runs written before 2026-10-06 have no study in `conversation`.** Two studies in
+one investigation that reused probe ids got identical conversation ids, and their
+turns grouped together. The id is written at run time, so older records keep the
+old form. **For uniqueness on an older run, group on the identity columns
+themselves**, not on `conversation`.
+
+**`answer_extraction` says how `answer_text` was found.** `structural` (OpenAI,
+Gemini) means it was read from a dedicated answer field. `heuristic` (Claude)
+means it was inferred: Claude returns text and tool calls interleaved, and the
+parser takes **text after the last tool call as the answer** and text before it
+as process.
+
+When that matters:
+
+- **An ungrounded record cannot be affected.** With no tool call, all text is the
+  answer and nothing is cut.
+- **On a grounded record, text before the FIRST search is a preamble** — "I'll
+  research this for you..." — and filing it as process is correct.
+- **Text written BETWEEN searches is the risky case.** It was written mid-research
+  and may be part of the answer, now missing from `answer_text`. The integrity
+  report flags these records as `answer_split_heuristically`; read them.
+
+So a Claude corpus with no grounded records needs no extraction check at all.
 
 **`prompt_hash` joins the same prompt across providers** with no shared
 identifier. That is how cross-provider comparison works.

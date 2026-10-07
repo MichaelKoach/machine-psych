@@ -23,6 +23,7 @@ has a usable turn 0.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
 import json
 import pathlib
@@ -376,7 +377,7 @@ def completed_keys(run_dir: pathlib.Path) -> set[str]:
 def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backoff,
                       persist, run_dir, inv, verbose, failures, raw_out,
                       conv_rows, print_lock=None, latch=None,
-                      governor=None):
+                      governor=None, progress=None):
     """Run one conversation — every turn of one row of the plan — and return its
     records.
 
@@ -411,8 +412,19 @@ def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backof
     #
     # The condition is included too: a sweep runs the same probe at
     # several settings, and those are separate conversations.
+    #
+    # And the STUDY — the same defect a second time. Two studies in one
+    # investigation that reused probe ids produced identical conversation ids,
+    # so turns from different conversations grouped together and a uniqueness
+    # check failed. `ledger_key` and the record filenames always included the
+    # study; `conversation` was the one identity string that did not.
+    #
+    # The rule now: a conversation is every identity field EXCEPT the turn.
+    # `ledger_key` is that plus the turn. (`ledger_key`'s own format is left
+    # exactly as it was — resume matches records on disk by it, and changing it
+    # would make every run started under an older harness look unfinished.)
     _model = r.model.split("/", 1)[-1]
-    conversation = (f"{r.provider}/{_model}/{r.probe}"
+    conversation = (f"{r.provider}/{_model}/{r.study}/{r.probe}"
                     f"/p{r.path}/r{r.rep}"
                     + (f"/{r.condition}" if r.condition else ""))
     input_items: list = []
@@ -618,15 +630,27 @@ def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backof
         raw_out.append(body)
 
         if verbose:
-            # One line at a time. Sixteen workers writing to stdout interleave
-            # mid-line and the progress log becomes unreadable.
-            if print_lock is not None:
-                with print_lock:
+            # One line per record printed 1,536 lines on a real battery, which
+            # buried the summary and made the notebook unscrollable. By default
+            # only what needs attention is printed — a record that failed, was
+            # cut off, or needed a retry — plus a line at every tenth of the run.
+            # verbose="records" restores a line for every record.
+            #
+            # One line at a time: sixteen workers writing to stdout interleave
+            # mid-line and the log becomes unreadable.
+            notable = status != "ok" or attempt > 1
+            show = verbose == "records" or notable
+            lock = print_lock if print_lock is not None else contextlib.nullcontext()
+            with lock:
+                if show:
                     _print_line(seq_base + turn_i + 1, n_records, r, turn_i,
                                 status, attempt, latency, parsed)
-            else:
-                _print_line(seq_base + turn_i + 1, n_records, r, turn_i, status,
-                            attempt, latency, parsed)
+                if progress is not None and verbose != "records":
+                    progress["done"] += 1
+                    while progress["done"] >= progress["next"] and progress["next"] <= n_records:
+                        pct = round(100 * progress["next"] / n_records)
+                        print(f"  {pct:>3}%  {progress['done']:,} of {n_records:,} records")
+                        progress["next"] += progress["step"]
 
         # (9) A FAILED TURN ENDS THIS CONVERSATION, NEVER THE RUN.
         #     `truncated` CONTINUES: the answer is real — measured at
@@ -659,8 +683,52 @@ def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backof
 
 
 
+
+class RunResult(tuple):
+    """`(results, raw)` — exactly as before — but it DISPLAYS as one line.
+
+    **Why.** A notebook cell whose last line is a run displays whatever the run
+    returns, and a plain tuple renders as text: the results frame, then every raw
+    API response body. On a 48-record battery that was 175,594 characters; a
+    1,536-record battery would print several million, wrapped across thousands of
+    screen lines. It happened whenever a cell ended on a call that returned the
+    run — an easy thing to write and an impossible thing to scroll.
+
+    Still a tuple, so `results, raw = run_investigation(...)` and `out[0]` work
+    unchanged. Only how it shows itself differs.
+    """
+
+    def __new__(cls, results, raw):
+        return super().__new__(cls, (results, raw))
+
+    def __getnewargs__(self):
+        # copy and pickle rebuild through __new__, which takes two arguments.
+        return (self[0], self[1])
+
+    @property
+    def results(self):
+        return self[0]
+
+    @property
+    def raw(self):
+        return self[1]
+
+    def __repr__(self):
+        results = self[0]
+        n = len(results)
+        status = (results["status"].value_counts().to_dict()
+                  if n and "status" in results else {})
+        where = results.attrs.get("run_dir", "not persisted") if n else "nothing ran"
+        return (f"<run: {n:,} records · {status} · {where}> — "
+                f"unpack with  results, raw = ...")
+
+    def _repr_pretty_(self, printer, cycle):
+        # IPython would otherwise pretty-print it as the tuple it is.
+        printer.text(repr(self))
+
+
 def run_investigation(run: pd.DataFrame, persist: bool = True,
-                      export: bool = True, verbose: bool = True,
+                      export: bool = True, verbose: bool | str = True,
                       retries: int = 5, backoff: int = 4,
                       concurrency: int | dict[str, int] | str = 1,
                       resume: str | bool | None = None,
@@ -774,6 +842,10 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
     if verbose:
         where = str(run_dir) if persist else "(not persisted)"
         print(f"{inv} · {len(run)} conversations, {n_records} records · {where}\n")
+    # A tenth of the run per milestone, so a battery prints about ten progress
+    # lines whatever its size. Shared by every worker, guarded by print_lock.
+    progress = {"done": 0, "step": max(1, n_records // 10),
+                "next": max(1, n_records // 10)}
 
     rows: list[dict] = []
     raw: list = []
@@ -865,7 +937,7 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
             send=dispatch or providers[r.provider].dispatch,
             seq_base=bases[i], n_records=n_records, retries=retries,
             backoff=backoff, persist=persist, run_dir=run_dir, inv=inv,
-            verbose=verbose, failures=failures, raw_out=raw,
+            verbose=verbose, failures=failures, raw_out=raw, progress=progress,
             conv_rows=mine, print_lock=print_lock, latch=latch,
             governor=governor)
         return mine
@@ -888,6 +960,7 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
                     seq_base=bases[i], n_records=n_records, retries=retries,
                     backoff=backoff, persist=persist, run_dir=run_dir, inv=inv,
                     verbose=verbose, failures=failures, raw_out=raw,
+                    progress=progress,
                     conv_rows=conv_rows, print_lock=print_lock, latch=latch,
                     governor=governor)
                 rows.extend(conv_rows)
@@ -1030,7 +1103,8 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
         except Exception as e:
             print(f"  export failed, records are on disk: {e!r}")
 
-    return results, raw
+    # A tuple that displays as one line — see RunResult. Unpacking is unchanged.
+    return RunResult(results, raw)
 
 
 def _print_line(seq, n_records, r, turn_i, status, attempt, latency, parsed):

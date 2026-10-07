@@ -245,7 +245,8 @@ class Anthropic(Provider):
                    "stop_details": body.get("stop_details"),
                    "container": body.get("container"),
                    "cached_tok": usage.get("cache_read_input_tokens"),
-                   "cache_write_tok": usage.get("cache_creation_input_tokens")},
+                   "cache_write_tok": usage.get("cache_creation_input_tokens"),
+                   "interleaved_text_blocks": self._interleaved(content)},
         )
 
     # ── extraction helpers ───────────────────────────────────────────────────
@@ -263,9 +264,12 @@ class Anthropic(Provider):
         tool boundary and cut the answer there. Since thinking now fires on every
         call by default, that would truncate every grounded record.
 
-        On the three grounded fixtures the heuristic cut nothing — no text
-        appeared before the last tool block in any of them, because the model
-        searches first and then writes. That is three records, not a property.
+        What it cuts, in practice, is usually a PREAMBLE: the current grounded
+        fixture opens "I'll research this for you to get current pricing and
+        ratings information." before its first search, and that is correctly filed
+        as process. (An earlier note here said the fixtures cut nothing; a later
+        fixture disproved it.) Text written BETWEEN searches is the risky case —
+        see `_interleaved`.
         """
         tool_idx = [i for i, b in enumerate(content)
                     if b.get("type") not in NON_TOOL_BLOCKS]
@@ -281,6 +285,24 @@ class Anthropic(Provider):
         # and is a finding. None would say the split does not apply here, which
         # is false and would hide it.
         return answer, n_answer, n_process
+
+    @staticmethod
+    def _interleaved(content: list) -> int:
+        """Text blocks written BETWEEN the first and last tool call.
+
+        The heuristic files all text before the last tool block as process. Two
+        different things land there. Text before ANY tool is a preamble — "I'll
+        research this for you" — and filing it as process is correct. Text between
+        tool calls was written mid-research and may be part of the answer, now
+        missing from `answer_text`. Only the second is worth a reader's time, so
+        it is counted separately and the preamble is not.
+        """
+        tools = [i for i, b in enumerate(content)
+                 if b.get("type") not in NON_TOOL_BLOCKS]
+        if len(tools) < 2:
+            return 0
+        return sum(1 for b in content[min(tools) + 1:max(tools)]
+                   if b.get("type") == "text")
 
     @staticmethod
     def _thought_text(content: list) -> str | None:
