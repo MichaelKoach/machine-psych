@@ -93,8 +93,8 @@ needs them. Qualification should be short and hard to misuse, not exhaustive.
    preregistration material in `Design/<investigation_id>/` — not in
    `Investigations/`, which holds specs only (A8).
 6. **Run:** `results, _ = mp.run_investigation(run, concurrency="auto", limits=LIMITS)`.
-   Interrupted? Run it again with `resume=True`. The cell prints progress and a
-   summary, not results — save those to files (A9).
+   Interrupted? Run it again with `resume=True`. The cell shows a progress bar and
+   a summary, not results — save those to files (A9).
 7. **Validate before interpreting** — counts per model × probe × rep, statuses,
    `served_model`, grounding rate, unique conversation ids, **and any
    `budget_exhausted` in the integrity report**. A call can finish `ok` with its
@@ -338,11 +338,13 @@ you find, and leave it where it is.
 only where they were saved. A notebook that prints its results cannot be
 scrolled, and the person reading it uploads the files when they need them.
 
-- **A run prints progress, not records.** By default `run_investigation` prints a
-  line at every tenth of the run, a full line for any record that failed, was cut
-  off or needed a retry, and the summary — about 15 lines for a clean battery of
-  any size. `verbose="records"` prints every record, for small debugging runs;
-  `verbose=False` prints nothing.
+- **A run shows a progress bar, not records.** By default `run_investigation`
+  draws a bar that fills as records finish — percentage, count, elapsed time,
+  time remaining, and a live count of records that need attention. Only those
+  records (failed, cut off, or retried) get a line of their own, then the summary.
+  The bar bypasses `redirect_stdout`, so a notebook that sends the run's text to a
+  log file still shows it. `verbose="records"` prints every record instead, for
+  small debugging runs; `verbose=False` prints nothing.
 - **A run displays as one line.** It returns `(results, raw)` as before, but a
   cell ending on it shows a one-line summary rather than every raw response —
   which was 175,594 characters for 48 records. Still unpack it:

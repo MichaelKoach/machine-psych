@@ -28,6 +28,7 @@ import hashlib
 import json
 import pathlib
 import random
+import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -631,26 +632,28 @@ def _run_conversation(r, *, provider, send, seq_base, n_records, retries, backof
 
         if verbose:
             # One line per record printed 1,536 lines on a real battery, which
-            # buried the summary and made the notebook unscrollable. By default
-            # only what needs attention is printed — a record that failed, was
-            # cut off, or needed a retry — plus a line at every tenth of the run.
+            # buried the summary and made the notebook unscrollable. By default a
+            # progress BAR fills instead, and only records that need attention —
+            # failed, cut off, or retried — get a line of their own.
             # verbose="records" restores a line for every record.
             #
-            # One line at a time: sixteen workers writing to stdout interleave
-            # mid-line and the log becomes unreadable.
+            # One line at a time: sixteen workers writing at once interleave
+            # mid-line and the output becomes unreadable.
             notable = status != "ok" or attempt > 1
             show = verbose == "records" or notable
             lock = print_lock if print_lock is not None else contextlib.nullcontext()
             with lock:
                 if show:
-                    _print_line(seq_base + turn_i + 1, n_records, r, turn_i,
-                                status, attempt, latency, parsed)
-                if progress is not None and verbose != "records":
-                    progress["done"] += 1
-                    while progress["done"] >= progress["next"] and progress["next"] <= n_records:
-                        pct = round(100 * progress["next"] / n_records)
-                        print(f"  {pct:>3}%  {progress['done']:,} of {n_records:,} records")
-                        progress["next"] += progress["step"]
+                    line = _format_line(seq_base + turn_i + 1, n_records, r, turn_i,
+                                        status, attempt, latency, parsed)
+                    # Through the bar when there is one, so the line lands above
+                    # it instead of breaking it.
+                    (progress.write if progress is not None else print)(line)
+                if progress is not None:
+                    progress.update(1)
+                    if notable:
+                        progress.issues += 1
+                        progress.set_postfix_str(f"{progress.issues} need attention")
 
         # (9) A FAILED TURN ENDS THIS CONVERSATION, NEVER THE RUN.
         #     `truncated` CONTINUES: the answer is real — measured at
@@ -842,10 +845,7 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
     if verbose:
         where = str(run_dir) if persist else "(not persisted)"
         print(f"{inv} · {len(run)} conversations, {n_records} records · {where}\n")
-    # A tenth of the run per milestone, so a battery prints about ten progress
-    # lines whatever its size. Shared by every worker, guarded by print_lock.
-    progress = {"done": 0, "step": max(1, n_records // 10),
-                "next": max(1, n_records // 10)}
+    progress = _progress_bar(inv, n_records) if verbose is True else None
 
     rows: list[dict] = []
     raw: list = []
@@ -1091,6 +1091,8 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
     results.attrs["investigation_id"] = inv
     results.attrs["interrupted"] = repr(interrupted) if interrupted else None
 
+    if progress is not None:
+        progress.close()
     if verbose and len(results):
         _print_summary(results, failures, interrupted, n_records,
                        time.perf_counter() - t_start, run_dir if persist else None)
@@ -1107,7 +1109,32 @@ def run_investigation(run: pd.DataFrame, persist: bool = True,
     return RunResult(results, raw)
 
 
+def _progress_bar(inv, n_records):
+    """A bar that fills as records finish, or None if tqdm is unavailable.
+
+    `tqdm.auto` draws a real bar in a notebook and a single self-rewriting line in
+    a terminal. Either way it bypasses `contextlib.redirect_stdout` — a notebook
+    widget is not stdout, and the terminal bar writes to stderr — so a notebook
+    that sends the run's text to a log file still shows the bar.
+
+    `mininterval` keeps it from redrawing more than once a second, which matters
+    when stderr is a log file rather than a screen.
+    """
+    try:
+        from tqdm.auto import tqdm
+    except ImportError:
+        return None
+    bar = tqdm(total=n_records, desc=inv[:40], unit="rec", mininterval=1.0,
+               file=sys.stderr, dynamic_ncols=True)
+    bar.issues = 0
+    return bar
+
+
 def _print_line(seq, n_records, r, turn_i, status, attempt, latency, parsed):
+    print(_format_line(seq, n_records, r, turn_i, status, attempt, latency, parsed))
+
+
+def _format_line(seq, n_records, r, turn_i, status, attempt, latency, parsed):
     tag = f" x{attempt}" if attempt > 1 else ""
     code = {"ok": "200", "truncated": "TRUNC", "unavailable": "503",
             "incomplete": "INC", "error": "ERR"}.get(status, status)
@@ -1122,8 +1149,8 @@ def _print_line(seq, n_records, r, turn_i, status, attempt, latency, parsed):
     if parsed.citations:
         bits.append(f"{len(parsed.citations)} cite")
     turn_tag = f" t{turn_i}" if len(r.turns) > 1 else ""
-    print(f"  [{seq:>3}/{n_records}] {r.provider[:3]} {r.probe[:26]:<26}"
-          f" r{r.rep}{turn_tag}  {code}{tag}  {latency:6.1f}s  {'  '.join(bits)}")
+    return (f"  [{seq:>3}/{n_records}] {r.provider[:3]} {r.probe[:26]:<26}"
+            f" r{r.rep}{turn_tag}  {code}{tag}  {latency:6.1f}s  {'  '.join(bits)}")
 
 
 def _print_summary(results, failures, interrupted, n_records, elapsed, run_dir):

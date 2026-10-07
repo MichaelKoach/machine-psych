@@ -919,12 +919,70 @@ def _sized_run(tmp_path, n, verbose, fail_every=0):
     return out, [l for l in buf.getvalue().split("\n") if l.strip()]
 
 
-def test_a_clean_run_prints_milestones_not_every_record(tmp_path):
+def test_a_clean_run_prints_a_bar_not_every_record(tmp_path):
     """**One line per record printed 1,536 lines on a real battery**, burying the
-    summary and making the notebook unscrollable. A clean run now prints about
-    ten progress lines plus the summary, whatever its size."""
+    summary and making the notebook unscrollable. A clean run now prints a few
+    lines of text, and its progress is a bar that fills in place."""
     _, lines = _sized_run(tmp_path, 200, True)
-    assert len(lines) < 30, f"{len(lines)} lines for a clean 200-record run"
+    assert len(lines) < 15, f"{len(lines)} lines for a clean 200-record run"
+
+
+def test_the_bar_survives_a_redirected_stdout(tmp_path):
+    """Notebooks send the run's text to a log file with `redirect_stdout`, to keep
+    the notebook short. A bar printed to stdout would vanish into that log, so it
+    is drawn on stderr (or as a notebook widget), which the redirect leaves alone.
+    It fills to the full count, and counts records that need attention."""
+    import sys
+
+    real = sys.stderr
+    err = io.StringIO()
+    sys.stderr = err
+    try:
+        _sized_run(tmp_path, 100, True, fail_every=25)    # stdout redirected inside
+    finally:
+        sys.stderr = real
+    final = err.getvalue().replace("\r", "\n").strip().split("\n")[-1]
+    assert "100/100" in final, f"the bar did not fill: {final!r}"
+    assert "need attention" in final, f"failures were not counted on the bar: {final!r}"
+
+
+def test_an_interrupted_run_closes_its_bar(tmp_path):
+    """A bar left open after an interrupt stays half-drawn in the notebook."""
+    import sys
+
+    import machine_psych.runner as RN
+
+    made, original = {}, RN._progress_bar
+
+    def spy(*a, **k):
+        made["bar"] = original(*a, **k)
+        return made["bar"]
+
+    R.set_base(tmp_path)
+    n = {"c": 0}
+
+    def send(cfg):
+        n["c"] += 1
+        if n["c"] > 10:
+            raise KeyboardInterrupt
+        return _ok_body(cfg, 0)
+
+    spec = {"investigation_id": "intr", "studies": [{"study_id": "s",
+            "probes": [{"probe_id": f"p{i}", "prompt_paths": [["q"]]} for i in range(40)],
+            "providers": {"anthropic/claude-sonnet-5": {"reasoning": "off", "repetitions": 1}}}]}
+    with contextlib.redirect_stdout(io.StringIO()):
+        run = R.load_investigation(spec)
+    RN._progress_bar = spy
+    real, sys.stderr = sys.stderr, io.StringIO()
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            R.run_investigation(run, dispatch=send, backoff=0, export=False)
+    finally:
+        sys.stderr = real
+        RN._progress_bar = original
+    bar = made["bar"]
+    assert bar.n == 10 and bar.total == 40
+    assert bar.disable, "the bar was left open"
 
 
 def test_a_record_that_needs_attention_is_still_shown(tmp_path):
