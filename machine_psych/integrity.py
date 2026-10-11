@@ -36,7 +36,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-__all__ = ["Issue", "check_record", "describe_integrity"]
+__all__ = ["Issue", "check_record", "data_quality", "describe_integrity"]
 
 
 @dataclass(frozen=True)
@@ -224,3 +224,63 @@ def describe_integrity(corpus) -> str:
         lines.append(f"    {severity.upper():<9}{code:<26}{n} record(s)")
         lines.append(f"    {'':<9}{examples[code][:96]}")
     return "\n".join(lines)
+
+
+# Status values that mean the record is not a usable answer, and how serious each is.
+_STATUS_SEVERITY = {"truncated": "warning", "incomplete": "warning",
+                    "error": "critical", "unavailable": "critical"}
+
+_IDENTITY = ("record_id", "provider", "model", "study", "probe", "path",
+             "rep", "turn", "condition")
+
+
+def data_quality(corpus, summary: bool = False):
+    """Every record that needs attention, one row per problem — a table to SAVE.
+
+    `describe_integrity` prints one line per problem across the whole corpus. That
+    serves a quick look, but it cannot say WHICH model had the problem, it is
+    printed text rather than something to file, and it cannot give a notebook the
+    list of records to retry.
+
+    This covers both:
+    - every integrity flag (`budget_exhausted`, `answer_split_heuristically`,
+      `searched_but_cited_nothing`, ...), and
+    - every status that is not a usable answer (`truncated`, `incomplete`,
+      `error`, `unavailable`), as `status:<value>`,
+
+    with the record's identity, so it can be grouped by model, saved beside the
+    results, and filtered into a retry list:
+
+        dq = mp.data_quality(corpus)
+        dq.to_csv(OUT / "data_quality.csv", index=False)
+        retry = dq[dq.flag == "budget_exhausted"]
+
+    `summary=True` returns counts by model and flag instead of one row per record.
+    An empty frame — with these columns — means nothing needs attention.
+    """
+    import pandas as pd
+
+    ident = [c for c in _IDENTITY if c in corpus.columns]
+    rows = []
+    for _, rec in corpus.iterrows():
+        base = {c: rec[c] for c in ident}
+        status = rec.get("status")
+        if status in _STATUS_SEVERITY:
+            rows.append({**base, "flag": f"status:{status}",
+                         "severity": _STATUS_SEVERITY[status],
+                         "detail": str(rec.get("error") or "")[:300]})
+        issues = rec.get("integrity") if "integrity" in corpus.columns else None
+        if isinstance(issues, list):
+            for issue in issues:
+                rows.append({**base, "flag": issue["code"],
+                             "severity": issue["severity"], "detail": issue["detail"]})
+
+    frame = pd.DataFrame(rows, columns=[*ident, "flag", "severity", "detail"])
+    if not summary:
+        return frame
+    by = [c for c in ("model", "flag", "severity") if c in frame.columns]
+    return (frame.groupby(by, dropna=False).size().reset_index(name="records")
+            .sort_values(["severity", "records"], ascending=[True, False],
+                         key=lambda col: col.map({"critical": 0, "warning": 1, "info": 2})
+                         if col.name == "severity" else col)
+            .reset_index(drop=True))

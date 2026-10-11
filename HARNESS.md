@@ -203,6 +203,16 @@ that used 97% or more of a shared budget, whether or not it finished.
 
 **When a coder's answers decide its next questions** (a gated, multi-round design):
 
+- **Treat a budget-exhausted answer as missing.** A coder whose call is flagged
+  `budget_exhausted` produced its answer with its reasoning cut short. Retry it
+  once; if it is flagged again, record it as missing — never as an answer.
+  Three cautions. The retry runs at the same cap (Gemini is already at its
+  65,536 maximum), so hard items will often fail twice. Recording a present
+  answer as missing makes missingness **non-random**: the calls that exhaust the
+  budget are the hardest items, so complete-case agreement and prevalence are
+  computed on the easier ones — report how many and which, and compare results
+  with and without them. And this is for **measurement calls only**: a
+  budget-exhausted STUDY response is data, and the fix there is a higher cap.
 - **Never route on a missing answer.** A parse failure or truncation is not a "no".
   Treated as one, it silently closes every question beneath it, and the two coders
   then look as though they disagreed when one simply did not answer. Re-ask it, or
@@ -357,6 +367,12 @@ scrolled, and the person reading it uploads the files when they need them.
   longer frame then prints about 14 lines.
 - **Analysis results go to files too.** A table that is only printed is lost when
   the runtime ends — save it to `Measurement/`, then print where.
+- **Every results output includes the data-quality table.**
+  `mp.data_quality(corpus)` lists every record that needs attention — each
+  integrity flag (including `budget_exhausted` and `answer_split_heuristically`)
+  and each status that is not a usable answer — with the model and probe. Save
+  it beside the results; `summary=True` gives counts by model and flag. A
+  retry list is a filter: `dq[dq.flag == "budget_exhausted"]`.
 
 ---
 
@@ -561,14 +577,19 @@ nearly all of the time.
 ```python
 import sys, subprocess
 subprocess.run([sys.executable, "-m", "pip", "install", "-q", "genson"])
+# Pin the harness: None takes the latest; a commit hash runs that exact code.
+HARNESS_COMMIT = None
 !rm -rf /content/mp
 !git clone -q https://github.com/MichaelKoach/machine-psych.git /content/mp
+if HARNESS_COMMIT:
+    subprocess.run(["git", "-C", "/content/mp", "checkout", "-q", HARNESS_COMMIT], check=True)
 sys.path.insert(0, "/content/mp")
 
 from google.colab import userdata, drive
 drive.mount('/content/drive')
 import machine_psych as mp
 from machine_psych import paths
+print("harness", mp.require_commit(HARNESS_COMMIT)[:12])   # stops if the LOADED code differs
 
 # Secret names and the output path are per-person. These are the ones in use;
 # substitute whatever the Colab secrets panel actually holds.
@@ -739,6 +760,21 @@ one that fails during analysis has already wasted the reading. Worth confirming:
 total records against what was planned; records per **model** × probe × rep;
 statuses; `served_model` against the model requested; grounding rate; and that
 `conversation` is unique per experimental unit.
+
+**Every run records the harness commit** in `_run.json` and in `_corpus.json`,
+read from the clone when the package is imported — so it names the code that
+actually RAN, even if the clone on disk has since moved. `dirty: true` means the
+checkout had local edits.
+
+**Pin with `HARNESS_COMMIT`** when a result must be reproducible, or when a
+methods record cites it. `mp.require_commit` stops the notebook if the loaded
+code is not that commit — most often because setup was re-run without restarting
+the runtime, which re-clones the files but keeps the old code in memory.
+
+**Runs before 2026-10-11 recorded `commit: null`.** Provenance only read pip's
+install metadata, which a clone does not have. Because every notebook re-clones
+`main` at setup, a run's commit is the head of `main` when that session started:
+match the run's `started_at` against the repository history.
 
 **Notes that matter.** Clone rather than `pip install` — `drift/` is not packaged.
 **Restart the runtime after cloning**, or Python serves a cached module. Records

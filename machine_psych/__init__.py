@@ -20,7 +20,14 @@ Installed from git and pinned by commit, so a corpus records verifiable
 provenance rather than a version string someone typed.
 """
 
-from .paths import VERSION, install_report, provenance, set_api_key, set_base
+from .paths import (
+    VERSION,
+    install_report,
+    provenance,
+    require_commit,
+    set_api_key,
+    set_base,
+)
 
 # A plain rebind, not a call. Computing this at import time coupled the package
 # to the order of its own imports for no benefit.
@@ -71,6 +78,7 @@ from .corpus import (
     units,
 )
 from .export import export_corpus
+from .integrity import data_quality
 from .providers import PROVIDERS, ParsedResponse, Provider, get_provider
 from .runner import (
     estimate,
@@ -110,6 +118,7 @@ __all__ = [
     "capability_note",
     "caps_for",
     "citations",
+    "data_quality",
     # running
     "estimate",
     "expand_conditions",
@@ -135,6 +144,7 @@ __all__ = [
     "provisional",
     "queries",
     "read",
+    "require_commit",
     "resolve",
     "run_investigation",
     "save_investigation",
